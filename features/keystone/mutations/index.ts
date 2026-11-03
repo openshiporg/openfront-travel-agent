@@ -1,6 +1,7 @@
 import { mergeSchemas } from "@graphql-tools/schema";
 import type { GraphQLSchema } from 'graphql';
 import redirectToInit from "./redirectToInit";
+import {ensureTravelOnboardingPhase,setOnboardingStatus} from './onboarding';
 import {operators,submitInquiry,viewProposal,acceptProposal,viewItinerary,payInvoice,confirmInvoicePayment} from './travel';
 import {GraphQLScalarType,Kind} from 'graphql';
 const GraphQLJSON=new GraphQLScalarType({name:'TravelJSON',serialize:(v:any)=>v,parseValue:(v:any)=>v,parseLiteral:function lit(a:any):any{switch(a.kind){case Kind.OBJECT:return Object.fromEntries(a.fields.map((f:any)=>[f.name.value,lit(f.value)]));case Kind.LIST:return a.values.map(lit);case Kind.INT:return Number(a.value);case Kind.FLOAT:return Number(a.value);case Kind.NULL:return null;default:return (a as any).value;}}});
@@ -20,6 +21,8 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
       type Mutation {
         ${Object.keys(operators).map(name=>`${name}(input:TravelJSON!): TravelJSON`).join('\n')}
         submitInquiry(input:TravelJSON!): TravelJSON
+        ensureTravelOnboardingPhase(phase:String!,template:String!): TravelJSON
+        setOnboardingStatus(status:String!): TravelJSON
         acceptProposal(token:String!,optionId:ID!,name:String!,idempotencyKey:String!): TravelJSON
         payInvoice(token:String!,idempotencyKey:String!): TravelJSON
         confirmInvoicePayment(token:String!,paymentIntentId:String!): TravelJSON
@@ -28,7 +31,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
     resolvers: {
       TravelJSON: GraphQLJSON,
       Query: {redirectToInit,viewProposal,viewItinerary},
-      Mutation: {...Object.fromEntries(Object.entries(operators).map(([name,handler])=>[name,(_root:any,{input}:any,context:any)=>handler(context,input)])),submitInquiry,acceptProposal,payInvoice,confirmInvoicePayment},
+      Mutation: {ensureTravelOnboardingPhase:(_r:any,a:any,c:any)=>ensureTravelOnboardingPhase(c,a),setOnboardingStatus,...Object.fromEntries(Object.entries(operators).map(([name,handler])=>[name,(_root:any,{input}:any,context:any)=>handler(context,input)])),submitInquiry,acceptProposal,payInvoice,confirmInvoicePayment},
     },
   });
 }

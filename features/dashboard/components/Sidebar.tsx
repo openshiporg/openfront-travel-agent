@@ -39,23 +39,32 @@ import { AdminMeta } from '../hooks/useAdminMeta'
 import { Home, Database, ChevronRight, Package } from 'lucide-react'
 import { Logo, LogoIcon } from '@/features/dashboard/components/Logo'
 import { UserProfileClient } from './UserProfileClient'
-import { visibleSidebarLists } from '../lib/sidebarAccess'
+import { useDashboard } from '../context/DashboardProvider'
+import { visiblePlatformItems, visibleSidebarLists } from '../lib/sidebarAccess'
+import { OnboardingCards } from '@/features/platform/onboarding/components/OnboardingCards'
+import { dismissOnboarding } from '@/features/platform/onboarding/actions/onboarding'
+import { platformNavGroups, platformStandaloneItems, getPlatformNavItemsWithBasePath } from '@/features/platform/lib/navigation'
 
 interface User {
   id: string;
   email: string;
   name?: string;
+  onboardingStatus?: string;
+  tripsCount?: number | null;
   role?: {
     canAccessDashboard?: boolean;
+    canManageOnboarding?: boolean;
   };
 }
 
 interface SidebarProps {
   adminMeta: AdminMeta | null
   user?: User | null
+  onOpenDialog?: () => void
 }
 
-export function Sidebar({ adminMeta, user }: SidebarProps) {
+export function Sidebar({ adminMeta, user, onOpenDialog }: SidebarProps) {
+  const { basePath } = useDashboard()
   const { isMobile, setOpenMobile } = useSidebar()
   const pathname = usePathname()
 
@@ -87,6 +96,15 @@ export function Sidebar({ adminMeta, user }: SidebarProps) {
     title: list.label,
     href: `/dashboard/${list.path}`
   }))
+
+  const platformItemsWithBasePath = visiblePlatformItems(getPlatformNavItemsWithBasePath(basePath), listsArray as any[], user)
+  const platformItems = platformNavGroups.map((group) => ({
+    title: group.title,
+    items: platformItemsWithBasePath.filter((item) => item.group === group.id).map((item) => ({ title: item.title, href: item.href, icon: item.icon })),
+    isActive: platformItemsWithBasePath.filter((item) => item.group === group.id).some((item) => isLinkActive(item.href)),
+    icon: group.icon,
+  })).filter((group) => group.items.length > 0)
+  const standaloneItemsWithBasePath = visiblePlatformItems(platformStandaloneItems, listsArray as any[], user).map((item) => ({ ...item, href: `${basePath}${item.href}` }))
 
   // Dashboard items for the collapsible menu
   const dashboardItems = [
@@ -125,6 +143,114 @@ export function Sidebar({ adminMeta, user }: SidebarProps) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Platform Routes */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarMenu className="group-has-[[data-collapsible=icon]]/sidebar-wrapper:hidden gap-0">
+            {/* Standalone Items in Expanded Mode */}
+            {standaloneItemsWithBasePath.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={isLinkActive(item.href)}>
+                  <Link href={item.href} onClick={() => setOpenMobile(false)}>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+
+            {/* Platform Groups */}
+            {platformItems.map((platformItem) => (
+              <Collapsible
+                key={platformItem.title}
+                asChild
+                defaultOpen={platformItem.isActive}
+                className="group/collapsible"
+              >
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton>
+                      <platformItem.icon className="h-4 w-4" />
+                      <span>{platformItem.title}</span>
+                      <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {platformItem.items.map((link) => (
+                        <SidebarMenuSubItem key={link.href}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isLinkActive(link.href)}
+                          >
+                            <Link href={link.href} onClick={() => setOpenMobile(false)}>
+                              <span>{link.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ))}
+          </SidebarMenu>
+
+          {/* Platform Items - Icon Mode */}
+          <SidebarMenu className="hidden group-has-[[data-collapsible=icon]]/sidebar-wrapper:block">
+            {/* Standalone Items in Icon Mode */}
+            {standaloneItemsWithBasePath.map((item) => (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={isLinkActive(item.href)}>
+                  <Link href={item.href} onClick={() => setOpenMobile(false)}>
+                    <item.icon className="h-4 w-4" />
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+            
+            {/* Grouped Items in Icon Mode */}
+
+            {platformItems.map((platformItem) => (
+              <DropdownMenu key={platformItem.title}>
+                <SidebarMenuItem>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                      <platformItem.icon className="h-4 w-4" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side={isMobile ? 'bottom' : 'right'}
+                    align={isMobile ? 'end' : 'start'}
+                    className="min-w-56"
+                  >
+                    <div className="max-h-[calc(100vh-16rem)] overflow-y-auto py-1">
+                      {platformItem.items.map((link) => (
+                        <DropdownMenuItem
+                          asChild
+                          key={link.href}
+                          className={
+                            isLinkActive(link.href)
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : ''
+                          }
+                        >
+                          <Link href={link.href} onClick={() => setOpenMobile(false)}>
+                            <span>{link.title}</span>
+                            {isLinkActive(link.href) && (
+                              <div className="ml-auto h-2 w-2 rounded-full bg-primary" />
+                            )}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  </DropdownMenuContent>
+                </SidebarMenuItem>
+              </DropdownMenu>
+            ))}
           </SidebarMenu>
         </SidebarGroup>
 
@@ -224,6 +350,16 @@ export function Sidebar({ adminMeta, user }: SidebarProps) {
       </SidebarContent>
       
       <SidebarFooter>
+        <div className="w-full mb-2 overflow-visible">
+          <OnboardingCards
+            steps={[{ href: '#onboarding', title: 'Set up your agency', description: 'Add advisors, suppliers, clients and trips to start planning.' }]}
+            onboardingStatus={user?.onboardingStatus}
+            tripsCount={user?.tripsCount}
+            userRole={user?.role}
+            onDismiss={async () => { try { await dismissOnboarding() } catch (error) { console.error('Error dismissing onboarding:', error) } }}
+            onOpenDialog={onOpenDialog}
+          />
+        </div>
         {user && <UserProfileClient user={user} />}
       </SidebarFooter>
       

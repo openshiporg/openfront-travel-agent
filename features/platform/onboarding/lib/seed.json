@@ -1,0 +1,2015 @@
+{
+ "agency": {
+  "name": "Wayfarer & Co.",
+  "address": "418 Harbor Street, Portland, OR 97201",
+  "email": "hello@wayfarer.example",
+  "phone": "+1 503 555 0140",
+  "defaultPlanningFeeCents": 45000,
+  "refundApprovalThresholdCents": 100000,
+  "hostAgencySplitBps": 2000,
+  "currencyCode": "USD"
+ },
+ "advisors": [
+  {
+   "name": "Maya Okafor",
+   "email": "maya@wayfarer.example",
+   "role": "Advisor"
+  },
+  {
+   "name": "Theo Lindqvist",
+   "email": "theo@wayfarer.example",
+   "role": "Advisor"
+  },
+  {
+   "name": "Priya Raman",
+   "email": "priya@wayfarer.example",
+   "role": "Advisor"
+  }
+ ],
+ "suppliers": [
+  {
+   "name": "Aurelia Hotels & Resorts",
+   "kind": "hotel",
+   "defaultCommissionBps": 1200,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Aurelia Trade Desk",
+     "email": "trade@aureliahotelsr.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Cobalt Island Hotels",
+   "kind": "hotel",
+   "defaultCommissionBps": 1000,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Cobalt Trade Desk",
+     "email": "trade@cobaltislandho.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Kyoto Ryokan Collective",
+   "kind": "hotel",
+   "defaultCommissionBps": 1100,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Kyoto Trade Desk",
+     "email": "trade@kyotoryokancol.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Marlowe Grand Hotel Group",
+   "kind": "hotel",
+   "defaultCommissionBps": 1400,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Marlowe Trade Desk",
+     "email": "trade@marlowegrandho.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Northstar Cruise Line",
+   "kind": "cruise_line",
+   "defaultCommissionBps": 1500,
+   "commissionPaymentTermsDays": 60,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "CLIA member",
+   "contacts": [
+    {
+     "name": "Northstar Trade Desk",
+     "email": "trade@northstarcruis.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Meridian River Cruises",
+   "kind": "cruise_line",
+   "defaultCommissionBps": 1600,
+   "commissionPaymentTermsDays": 60,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "CLIA member",
+   "contacts": [
+    {
+     "name": "Meridian Trade Desk",
+     "email": "trade@meridianriverc.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Bella Italia DMC",
+   "kind": "dmc",
+   "defaultCommissionBps": 1200,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Bella Trade Desk",
+     "email": "trade@bellaitaliadmc.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Nippon Journeys DMC",
+   "kind": "dmc",
+   "defaultCommissionBps": 1300,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Nippon Trade Desk",
+     "email": "trade@nipponjourneys.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Pura Vida Costa Rica DMC",
+   "kind": "dmc",
+   "defaultCommissionBps": 1200,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Pura Trade Desk",
+     "email": "trade@puravidacostar.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Summit Adventure Tours",
+   "kind": "tour_operator",
+   "defaultCommissionBps": 1000,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Summit Trade Desk",
+     "email": "trade@summitadventur.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Lumen Rail Journeys",
+   "kind": "tour_operator",
+   "defaultCommissionBps": 800,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Lumen Trade Desk",
+     "email": "trade@lumenrailjourn.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Atlas Consolidated Air",
+   "kind": "consolidator",
+   "defaultCommissionBps": 300,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Atlas Trade Desk",
+     "email": "trade@atlasconsolida.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Skyward Airlines",
+   "kind": "airline",
+   "defaultCommissionBps": 0,
+   "commissionPaymentTermsDays": 0,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "IATA 1AB",
+   "contacts": [
+    {
+     "name": "Skyward Trade Desk",
+     "email": "trade@skywardairline.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Safeguard Travel Insurance",
+   "kind": "insurer",
+   "defaultCommissionBps": 1500,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Safeguard Trade Desk",
+     "email": "trade@safeguardtrave.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  },
+  {
+   "name": "Curbside Private Transfers",
+   "kind": "transfer",
+   "defaultCommissionBps": 1000,
+   "commissionPaymentTermsDays": 30,
+   "bookingPortalUrl": "",
+   "iataCliaNotes": "",
+   "contacts": [
+    {
+     "name": "Curbside Trade Desk",
+     "email": "trade@curbsideprivat.example",
+     "phone": "",
+     "title": "Agency support"
+    }
+   ]
+  }
+ ],
+ "destinations": [
+  {
+   "name": "Italy",
+   "slug": "italy",
+   "country": "IT",
+   "specialty": "Culinary and culture"
+  },
+  {
+   "name": "Japan",
+   "slug": "japan",
+   "country": "JP",
+   "specialty": "Culture and rail"
+  },
+  {
+   "name": "Costa Rica",
+   "slug": "costa-rica",
+   "country": "CR",
+   "specialty": "Adventure and wellness"
+  },
+  {
+   "name": "Greece",
+   "slug": "greece",
+   "country": "GR",
+   "specialty": "Islands"
+  },
+  {
+   "name": "Alaska",
+   "slug": "alaska",
+   "country": "US",
+   "specialty": "Cruise"
+  },
+  {
+   "name": "Iceland",
+   "slug": "iceland",
+   "country": "IS",
+   "specialty": "Adventure"
+  },
+  {
+   "name": "Portugal",
+   "slug": "portugal",
+   "country": "PT",
+   "specialty": "Wine and coast"
+  },
+  {
+   "name": "Peru",
+   "slug": "peru",
+   "country": "PE",
+   "specialty": "Andes and history"
+  }
+ ],
+ "clients": [
+  {
+   "name": "Hannah Whitaker",
+   "email": "hannah.whitaker@mail.example",
+   "phone": "+1 206 555 0100",
+   "source": "Referral",
+   "preferences": "Aisle seats; quiet rooms",
+   "preferenceTags": [
+    "seat"
+   ],
+   "marketingConsent": false,
+   "loyaltyNumbers": {
+    "airline": "SK9000"
+   }
+  },
+  {
+   "name": "Marcus Delgado",
+   "email": "marcus.delgado@mail.example",
+   "phone": "+1 206 555 0101",
+   "source": "Website",
+   "preferences": "Vegetarian",
+   "preferenceTags": [
+    "dietary"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9001"
+   }
+  },
+  {
+   "name": "Elena Rossi",
+   "email": "elena.rossi@mail.example",
+   "phone": "+1 206 555 0102",
+   "source": "Instagram",
+   "preferences": "Step-free access",
+   "preferenceTags": [
+    "accessibility"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9002"
+   }
+  },
+  {
+   "name": "Samir Haddad",
+   "email": "samir.haddad@mail.example",
+   "phone": "+1 206 555 0103",
+   "source": "Repeat client",
+   "preferences": "Late checkout",
+   "preferenceTags": [
+    "room"
+   ],
+   "marketingConsent": false,
+   "loyaltyNumbers": {
+    "airline": "SK9003"
+   }
+  },
+  {
+   "name": "Grace Nakamura",
+   "email": "grace.nakamura@mail.example",
+   "phone": "+1 206 555 0104",
+   "source": "Referral",
+   "preferences": "Aisle seats; quiet rooms",
+   "preferenceTags": [
+    "seat"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9004"
+   }
+  },
+  {
+   "name": "Jonas Berg",
+   "email": "jonas.berg@mail.example",
+   "phone": "+1 206 555 0105",
+   "source": "Website",
+   "preferences": "Vegetarian",
+   "preferenceTags": [
+    "dietary"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9005"
+   }
+  },
+  {
+   "name": "Alicia Sutherland",
+   "email": "alicia.sutherland@mail.example",
+   "phone": "+1 206 555 0106",
+   "source": "Instagram",
+   "preferences": "Step-free access",
+   "preferenceTags": [
+    "accessibility"
+   ],
+   "marketingConsent": false,
+   "loyaltyNumbers": {
+    "airline": "SK9006"
+   }
+  },
+  {
+   "name": "Dmitri Volkov",
+   "email": "dmitri.volkov@mail.example",
+   "phone": "+1 206 555 0107",
+   "source": "Repeat client",
+   "preferences": "Late checkout",
+   "preferenceTags": [
+    "room"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9007"
+   }
+  },
+  {
+   "name": "Noor Aziz",
+   "email": "noor.aziz@mail.example",
+   "phone": "+1 206 555 0108",
+   "source": "Referral",
+   "preferences": "Aisle seats; quiet rooms",
+   "preferenceTags": [
+    "seat"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9008"
+   }
+  },
+  {
+   "name": "Caleb Brennan",
+   "email": "caleb.brennan@mail.example",
+   "phone": "+1 206 555 0109",
+   "source": "Website",
+   "preferences": "Vegetarian",
+   "preferenceTags": [
+    "dietary"
+   ],
+   "marketingConsent": false,
+   "loyaltyNumbers": {
+    "airline": "SK9009"
+   }
+  },
+  {
+   "name": "Freya Larsen",
+   "email": "freya.larsen@mail.example",
+   "phone": "+1 206 555 0110",
+   "source": "Instagram",
+   "preferences": "Step-free access",
+   "preferenceTags": [
+    "accessibility"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9010"
+   }
+  },
+  {
+   "name": "Ravi Menon",
+   "email": "ravi.menon@mail.example",
+   "phone": "+1 206 555 0111",
+   "source": "Repeat client",
+   "preferences": "Late checkout",
+   "preferenceTags": [
+    "room"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9011"
+   }
+  },
+  {
+   "name": "Isla Fraser",
+   "email": "isla.fraser@mail.example",
+   "phone": "+1 206 555 0112",
+   "source": "Referral",
+   "preferences": "Aisle seats; quiet rooms",
+   "preferenceTags": [
+    "seat"
+   ],
+   "marketingConsent": false,
+   "loyaltyNumbers": {
+    "airline": "SK9012"
+   }
+  },
+  {
+   "name": "Tomas Novak",
+   "email": "tomas.novak@mail.example",
+   "phone": "+1 206 555 0113",
+   "source": "Website",
+   "preferences": "Vegetarian",
+   "preferenceTags": [
+    "dietary"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9013"
+   }
+  },
+  {
+   "name": "Leah Cohen",
+   "email": "leah.cohen@mail.example",
+   "phone": "+1 206 555 0114",
+   "source": "Instagram",
+   "preferences": "Step-free access",
+   "preferenceTags": [
+    "accessibility"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9014"
+   }
+  },
+  {
+   "name": "Omar Farouk",
+   "email": "omar.farouk@mail.example",
+   "phone": "+1 206 555 0115",
+   "source": "Repeat client",
+   "preferences": "Late checkout",
+   "preferenceTags": [
+    "room"
+   ],
+   "marketingConsent": false,
+   "loyaltyNumbers": {
+    "airline": "SK9015"
+   }
+  },
+  {
+   "name": "Chloe Dubois",
+   "email": "chloe.dubois@mail.example",
+   "phone": "+1 206 555 0116",
+   "source": "Referral",
+   "preferences": "Aisle seats; quiet rooms",
+   "preferenceTags": [
+    "seat"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9016"
+   }
+  },
+  {
+   "name": "Mateo Castillo",
+   "email": "mateo.castillo@mail.example",
+   "phone": "+1 206 555 0117",
+   "source": "Website",
+   "preferences": "Vegetarian",
+   "preferenceTags": [
+    "dietary"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9017"
+   }
+  },
+  {
+   "name": "Sana Qureshi",
+   "email": "sana.qureshi@mail.example",
+   "phone": "+1 206 555 0118",
+   "source": "Instagram",
+   "preferences": "Step-free access",
+   "preferenceTags": [
+    "accessibility"
+   ],
+   "marketingConsent": false,
+   "loyaltyNumbers": {
+    "airline": "SK9018"
+   }
+  },
+  {
+   "name": "Benji Abbott",
+   "email": "benji.abbott@mail.example",
+   "phone": "+1 206 555 0119",
+   "source": "Repeat client",
+   "preferences": "Late checkout",
+   "preferenceTags": [
+    "room"
+   ],
+   "marketingConsent": true,
+   "loyaltyNumbers": {
+    "airline": "SK9019"
+   }
+  }
+ ],
+ "inquiries": [
+  {
+   "name": "Rhea Gallagher",
+   "email": "rhea.gallagher.lead@mail.example",
+   "phone": "",
+   "tripType": "honeymoon",
+   "destinations": "Santorini and Crete",
+   "travelWindowStartOffset": 120,
+   "travelWindowEndOffset": 132,
+   "partySize": 2,
+   "budgetCents": 600000,
+   "status": "new",
+   "source": "Website",
+   "advisor": 0
+  },
+  {
+   "name": "Victor Ibarra",
+   "email": "victor.ibarra.lead@mail.example",
+   "phone": "",
+   "tripType": "family",
+   "destinations": "Patagonia",
+   "travelWindowStartOffset": 140,
+   "travelWindowEndOffset": 152,
+   "partySize": 3,
+   "budgetCents": 750000,
+   "status": "new",
+   "source": "Website",
+   "advisor": 1
+  },
+  {
+   "name": "Amara Obi",
+   "email": "amara.obi.lead@mail.example",
+   "phone": "",
+   "tripType": "group",
+   "destinations": "Safari in Kenya",
+   "travelWindowStartOffset": 160,
+   "travelWindowEndOffset": 172,
+   "partySize": 4,
+   "budgetCents": 900000,
+   "status": "qualifying",
+   "source": "Website",
+   "advisor": 2
+  },
+  {
+   "name": "Lena Hoffmann",
+   "email": "lena.hoffmann.lead@mail.example",
+   "phone": "",
+   "tripType": "corporate",
+   "destinations": "Rhine river cruise",
+   "travelWindowStartOffset": 180,
+   "travelWindowEndOffset": 192,
+   "partySize": 5,
+   "budgetCents": 1050000,
+   "status": "qualifying",
+   "source": "Website",
+   "advisor": 0
+  },
+  {
+   "name": "Jun Park",
+   "email": "jun.park.lead@mail.example",
+   "phone": "",
+   "tripType": "cruise",
+   "destinations": "Kyoto and Osaka",
+   "travelWindowStartOffset": 200,
+   "travelWindowEndOffset": 212,
+   "partySize": 2,
+   "budgetCents": 1200000,
+   "status": "proposal",
+   "source": "Website",
+   "advisor": 1
+  },
+  {
+   "name": "Sofia Marchetti",
+   "email": "sofia.marchetti.lead@mail.example",
+   "phone": "",
+   "tripType": "adventure",
+   "destinations": "Amalfi coast",
+   "travelWindowStartOffset": 220,
+   "travelWindowEndOffset": 232,
+   "partySize": 3,
+   "budgetCents": 1350000,
+   "status": "lost",
+   "source": "Website",
+   "advisor": 2
+  }
+ ],
+ "trips": [
+  {
+   "title": "Tuscany honeymoon",
+   "status": "planning",
+   "client": "Hannah Whitaker",
+   "advisor": 0,
+   "destinations": [
+    "Italy"
+   ],
+   "startOffset": 150,
+   "endOffset": 160,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Hannah",
+     "Whitaker"
+    ],
+    [
+     "Daniel",
+     "Whitaker"
+    ]
+   ],
+   "proposals": [],
+   "components": [],
+   "invoices": [],
+   "receipts": [],
+   "itinerary": []
+  },
+  {
+   "title": "Kyoto and Tokyo family trip",
+   "status": "proposal_sent",
+   "client": "Marcus Delgado",
+   "advisor": 1,
+   "destinations": [
+    "Japan"
+   ],
+   "startOffset": 170,
+   "endOffset": 184,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Marcus",
+     "Delgado"
+    ],
+    [
+     "Inez",
+     "Delgado"
+    ]
+   ],
+   "proposals": [
+    {
+     "version": 1,
+     "status": "superseded",
+     "introNote": "First draft built around Kyoto.",
+     "options": [
+      {
+       "title": "Option A",
+       "items": [
+        {
+         "kind": "hotel",
+         "supplier": "Kyoto Ryokan Collective",
+         "title": "Kyoto ryokan, 5 nights",
+         "sellCents": 480000,
+         "estimatedCommissionBps": 1100,
+         "details": ""
+        },
+        {
+         "kind": "tour",
+         "supplier": "Nippon Journeys DMC",
+         "title": "Private temple day",
+         "sellCents": 90000,
+         "estimatedCommissionBps": 1300,
+         "details": ""
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "version": 2,
+     "status": "sent",
+     "introNote": "Revised with Tokyo and a rail pass.",
+     "options": [
+      {
+       "title": "Option A",
+       "items": [
+        {
+         "kind": "hotel",
+         "supplier": "Kyoto Ryokan Collective",
+         "title": "Kyoto ryokan, 5 nights",
+         "sellCents": 480000,
+         "estimatedCommissionBps": 1100,
+         "details": ""
+        },
+        {
+         "kind": "hotel",
+         "supplier": "Marlowe Grand Hotel Group",
+         "title": "Tokyo city hotel, 4 nights",
+         "sellCents": 360000,
+         "estimatedCommissionBps": 1400,
+         "details": ""
+        },
+        {
+         "kind": "tour",
+         "supplier": "Lumen Rail Journeys",
+         "title": "Rail pass, 7 days",
+         "sellCents": 58000,
+         "estimatedCommissionBps": 800,
+         "details": ""
+        }
+       ]
+      },
+      {
+       "title": "Option B",
+       "items": [
+        {
+         "kind": "hotel",
+         "supplier": "Kyoto Ryokan Collective",
+         "title": "Kyoto ryokan, 4 nights",
+         "sellCents": 384000,
+         "estimatedCommissionBps": 1100,
+         "details": ""
+        },
+        {
+         "kind": "hotel",
+         "supplier": "Marlowe Grand Hotel Group",
+         "title": "Tokyo city hotel, 3 nights",
+         "sellCents": 270000,
+         "estimatedCommissionBps": 1400,
+         "details": ""
+        }
+       ]
+      },
+      {
+       "title": "Option C",
+       "items": [
+        {
+         "kind": "tour",
+         "supplier": "Nippon Journeys DMC",
+         "title": "Guided Japan highlights, 10 days",
+         "sellCents": 980000,
+         "estimatedCommissionBps": 1300,
+         "details": ""
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "components": [],
+   "invoices": [],
+   "receipts": [],
+   "itinerary": []
+  },
+  {
+   "title": "Amalfi coast anniversary",
+   "status": "accepted",
+   "client": "Elena Rossi",
+   "advisor": 2,
+   "destinations": [
+    "Italy"
+   ],
+   "startOffset": 130,
+   "endOffset": 140,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Elena",
+     "Rossi"
+    ],
+    [
+     "Paolo",
+     "Rossi"
+    ]
+   ],
+   "proposals": [
+    {
+     "version": 1,
+     "status": "accepted",
+     "introNote": "Seven nights on the coast.",
+     "acceptedBy": "Elena Rossi",
+     "options": [
+      {
+       "title": "Option A",
+       "items": [
+        {
+         "kind": "hotel",
+         "supplier": "Aurelia Hotels & Resorts",
+         "title": "Amalfi cliff hotel, 6 nights",
+         "sellCents": 720000,
+         "estimatedCommissionBps": 1200,
+         "details": ""
+        },
+        {
+         "kind": "transfer",
+         "supplier": "Curbside Private Transfers",
+         "title": "Private transfers",
+         "sellCents": 42000,
+         "estimatedCommissionBps": 1000,
+         "details": ""
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "components": [
+    {
+     "supplier": "Aurelia Hotels & Resorts",
+     "kind": "hotel",
+     "title": "Amalfi cliff hotel, 6 nights",
+     "sellCents": 720000,
+     "netCostCents": 610000,
+     "paymentModel": "client_pays_supplier",
+     "bookingStatus": "quoted",
+     "commissionBps": 1200,
+     "commissionStatus": "expected",
+     "startOffset": 130,
+     "endOffset": 136,
+     "depositCents": 0,
+     "depositDueOffset": null,
+     "finalDueOffset": null,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    },
+    {
+     "supplier": "Curbside Private Transfers",
+     "kind": "transfer",
+     "title": "Private transfers",
+     "sellCents": 42000,
+     "netCostCents": 33000,
+     "paymentModel": "agency_collects",
+     "bookingStatus": "quoted",
+     "commissionBps": 1000,
+     "commissionStatus": "expected",
+     "startOffset": 130,
+     "endOffset": 140,
+     "depositCents": 0,
+     "depositDueOffset": null,
+     "finalDueOffset": null,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    }
+   ],
+   "invoices": [],
+   "receipts": [],
+   "itinerary": []
+  },
+  {
+   "title": "Costa Rica adventure week",
+   "status": "booked",
+   "client": "Samir Haddad",
+   "advisor": 0,
+   "destinations": [
+    "Costa Rica"
+   ],
+   "startOffset": 90,
+   "endOffset": 97,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Samir",
+     "Haddad"
+    ],
+    [
+     "Layla",
+     "Haddad"
+    ],
+    [
+     "Omar",
+     "Haddad"
+    ]
+   ],
+   "proposals": [
+    {
+     "version": 1,
+     "status": "accepted",
+     "introNote": "Volcano, cloud forest and coast.",
+     "acceptedBy": "Samir Haddad",
+     "options": [
+      {
+       "title": "Option A",
+       "items": [
+        {
+         "kind": "tour",
+         "supplier": "Pura Vida Costa Rica DMC",
+         "title": "Seven-day guided itinerary",
+         "sellCents": 540000,
+         "estimatedCommissionBps": 1200,
+         "details": ""
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "components": [
+    {
+     "supplier": "Pura Vida Costa Rica DMC",
+     "kind": "tour",
+     "title": "Seven-day guided itinerary",
+     "sellCents": 540000,
+     "netCostCents": 450000,
+     "paymentModel": "agency_collects",
+     "bookingStatus": "booked",
+     "commissionBps": 1200,
+     "commissionStatus": "expected",
+     "startOffset": 90,
+     "endOffset": 97,
+     "depositCents": 108000,
+     "depositDueOffset": -5,
+     "finalDueOffset": 45,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    },
+    {
+     "supplier": "Skyward Airlines",
+     "kind": "flight",
+     "title": "Return flights, three travellers",
+     "sellCents": 180000,
+     "netCostCents": 172000,
+     "paymentModel": "client_pays_supplier",
+     "bookingStatus": "ticketed",
+     "commissionBps": 0,
+     "commissionStatus": "expected",
+     "startOffset": 90,
+     "endOffset": 97,
+     "depositCents": 0,
+     "depositDueOffset": null,
+     "finalDueOffset": null,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    }
+   ],
+   "invoices": [
+    {
+     "lines": [
+      [
+       "planning_fee",
+       "Planning fee",
+       45000
+      ],
+      [
+       "component_deposit",
+       "Deposit: Costa Rica itinerary",
+       108000
+      ]
+     ],
+     "paidCents": 153000
+    }
+   ],
+   "receipts": [],
+   "itinerary": []
+  },
+  {
+   "title": "Alaska cruise with grandparents",
+   "status": "final_payment_due",
+   "client": "Grace Nakamura",
+   "advisor": 1,
+   "destinations": [
+    "Alaska"
+   ],
+   "startOffset": 35,
+   "endOffset": 42,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Grace",
+     "Nakamura"
+    ],
+    [
+     "Ken",
+     "Nakamura"
+    ],
+    [
+     "Yuki",
+     "Nakamura"
+    ]
+   ],
+   "proposals": [],
+   "components": [
+    {
+     "supplier": "Northstar Cruise Line",
+     "kind": "cruise",
+     "title": "Inside Passage, balcony cabin",
+     "sellCents": 640000,
+     "netCostCents": 540000,
+     "paymentModel": "agency_collects",
+     "bookingStatus": "booked",
+     "commissionBps": 1500,
+     "commissionStatus": "expected",
+     "startOffset": 35,
+     "endOffset": 42,
+     "depositCents": 160000,
+     "depositDueOffset": -60,
+     "finalDueOffset": 7,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    },
+    {
+     "supplier": "Safeguard Travel Insurance",
+     "kind": "insurance",
+     "title": "Trip protection",
+     "sellCents": 38000,
+     "netCostCents": 30000,
+     "paymentModel": "agency_collects",
+     "bookingStatus": "booked",
+     "commissionBps": 1500,
+     "commissionStatus": "expected",
+     "startOffset": 35,
+     "endOffset": 42,
+     "depositCents": 38000,
+     "depositDueOffset": -60,
+     "finalDueOffset": -60,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    }
+   ],
+   "invoices": [
+    {
+     "lines": [
+      [
+       "planning_fee",
+       "Planning fee",
+       45000
+      ],
+      [
+       "component_deposit",
+       "Deposit: Northstar cruise",
+       160000
+      ],
+      [
+       "insurance",
+       "Trip protection",
+       38000
+      ]
+     ],
+     "paidCents": 243000
+    },
+    {
+     "lines": [
+      [
+       "component_final",
+       "Final payment: Northstar cruise",
+       480000
+      ]
+     ],
+     "paidCents": 0
+    }
+   ],
+   "receipts": [],
+   "itinerary": []
+  },
+  {
+   "title": "Iceland ring road",
+   "status": "paid_in_full",
+   "client": "Jonas Berg",
+   "advisor": 2,
+   "destinations": [
+    "Iceland"
+   ],
+   "startOffset": 12,
+   "endOffset": 22,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Jonas",
+     "Berg"
+    ],
+    [
+     "Astrid",
+     "Berg"
+    ]
+   ],
+   "proposals": [],
+   "components": [
+    {
+     "supplier": "Summit Adventure Tours",
+     "kind": "tour",
+     "title": "Ring road self-drive package",
+     "sellCents": 460000,
+     "netCostCents": 395000,
+     "paymentModel": "agency_collects",
+     "bookingStatus": "booked",
+     "commissionBps": 1000,
+     "commissionStatus": "invoiced",
+     "startOffset": 12,
+     "endOffset": 22,
+     "depositCents": 100000,
+     "depositDueOffset": -90,
+     "finalDueOffset": -20,
+     "supplierPaidCents": 395000,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    },
+    {
+     "supplier": "Skyward Airlines",
+     "kind": "flight",
+     "title": "Return flights",
+     "sellCents": 160000,
+     "netCostCents": 152000,
+     "paymentModel": "client_pays_supplier",
+     "bookingStatus": "ticketed",
+     "commissionBps": 0,
+     "commissionStatus": "expected",
+     "startOffset": 12,
+     "endOffset": 22,
+     "depositCents": 0,
+     "depositDueOffset": null,
+     "finalDueOffset": null,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    }
+   ],
+   "invoices": [
+    {
+     "lines": [
+      [
+       "planning_fee",
+       "Planning fee",
+       45000
+      ],
+      [
+       "component_deposit",
+       "Deposit: ring road",
+       100000
+      ]
+     ],
+     "paidCents": 145000
+    },
+    {
+     "lines": [
+      [
+       "component_final",
+       "Final: ring road",
+       360000
+      ]
+     ],
+     "paidCents": 360000
+    }
+   ],
+   "receipts": [],
+   "itinerary": []
+  },
+  {
+   "title": "Lisbon and Douro wine trip",
+   "status": "traveling",
+   "client": "Alicia Sutherland",
+   "advisor": 0,
+   "destinations": [
+    "Portugal"
+   ],
+   "startOffset": -3,
+   "endOffset": 5,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Alicia",
+     "Sutherland"
+    ],
+    [
+     "Grant",
+     "Sutherland"
+    ]
+   ],
+   "proposals": [],
+   "components": [
+    {
+     "supplier": "Marlowe Grand Hotel Group",
+     "kind": "hotel",
+     "title": "Lisbon riverside hotel, 4 nights",
+     "sellCents": 420000,
+     "netCostCents": 360000,
+     "paymentModel": "client_pays_supplier",
+     "bookingStatus": "booked",
+     "commissionBps": 1400,
+     "commissionStatus": "invoiced",
+     "startOffset": -3,
+     "endOffset": 1,
+     "depositCents": 0,
+     "depositDueOffset": null,
+     "finalDueOffset": null,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    },
+    {
+     "supplier": "Meridian River Cruises",
+     "kind": "cruise",
+     "title": "Douro river cruise, 4 nights",
+     "sellCents": 780000,
+     "netCostCents": 660000,
+     "paymentModel": "agency_collects",
+     "bookingStatus": "booked",
+     "commissionBps": 1600,
+     "commissionStatus": "invoiced",
+     "startOffset": 1,
+     "endOffset": 5,
+     "depositCents": 200000,
+     "depositDueOffset": -100,
+     "finalDueOffset": -30,
+     "supplierPaidCents": 660000,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    }
+   ],
+   "invoices": [
+    {
+     "lines": [
+      [
+       "planning_fee",
+       "Planning fee",
+       45000
+      ],
+      [
+       "component_deposit",
+       "Deposit: Douro cruise",
+       200000
+      ],
+      [
+       "component_final",
+       "Final: Douro cruise",
+       580000
+      ]
+     ],
+     "paidCents": 825000
+    }
+   ],
+   "receipts": [
+    {
+     "supplier": "Marlowe Grand Hotel Group",
+     "amountCents": 58800,
+     "allocations": [
+      [
+       "Lisbon riverside hotel, 4 nights",
+       58800
+      ]
+     ]
+    }
+   ],
+   "itinerary": [
+    {
+     "dayOffset": -3,
+     "title": "Arrival and transfer",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Private transfer",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -2,
+     "title": "Old town walking tour",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Guided walk",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -1,
+     "title": "Market and cooking class",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Cooking class",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": 0,
+     "title": "Coastal day trip",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Boat excursion",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": 1,
+     "title": "Free morning, evening tasting",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Free time",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": 2,
+     "title": "Museum and gardens",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Guided visit",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": 3,
+     "title": "Scenic train",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Rail transfer",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": 4,
+     "title": "Departure",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Airport transfer",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Peru and Machu Picchu",
+   "status": "completed",
+   "client": "Dmitri Volkov",
+   "advisor": 1,
+   "destinations": [
+    "Peru"
+   ],
+   "startOffset": -40,
+   "endOffset": -30,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Dmitri",
+     "Volkov"
+    ],
+    [
+     "Anya",
+     "Volkov"
+    ]
+   ],
+   "proposals": [],
+   "components": [
+    {
+     "supplier": "Aurelia Hotels & Resorts",
+     "kind": "hotel",
+     "title": "Cusco hotel, 5 nights",
+     "sellCents": 350000,
+     "netCostCents": 300000,
+     "paymentModel": "client_pays_supplier",
+     "bookingStatus": "booked",
+     "commissionBps": 1200,
+     "commissionStatus": "received",
+     "startOffset": -40,
+     "endOffset": -35,
+     "depositCents": 0,
+     "depositDueOffset": null,
+     "finalDueOffset": null,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    },
+    {
+     "supplier": "Lumen Rail Journeys",
+     "kind": "rail",
+     "title": "Machu Picchu rail and entry",
+     "sellCents": 96000,
+     "netCostCents": 80000,
+     "paymentModel": "agency_collects",
+     "bookingStatus": "booked",
+     "commissionBps": 800,
+     "commissionStatus": "short_paid",
+     "startOffset": -36,
+     "endOffset": -35,
+     "depositCents": 96000,
+     "depositDueOffset": -120,
+     "finalDueOffset": -120,
+     "supplierPaidCents": 80000,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    }
+   ],
+   "invoices": [
+    {
+     "lines": [
+      [
+       "planning_fee",
+       "Planning fee",
+       45000
+      ],
+      [
+       "component_deposit",
+       "Rail and entry",
+       96000
+      ]
+     ],
+     "paidCents": 141000
+    }
+   ],
+   "receipts": [
+    {
+     "supplier": "Aurelia Hotels & Resorts",
+     "amountCents": 42000,
+     "allocations": [
+      [
+       "Cusco hotel, 5 nights",
+       42000
+      ]
+     ]
+    },
+    {
+     "supplier": "Lumen Rail Journeys",
+     "amountCents": 5000,
+     "allocations": [
+      [
+       "Machu Picchu rail and entry",
+       5000
+      ]
+     ]
+    }
+   ],
+   "itinerary": [
+    {
+     "dayOffset": -40,
+     "title": "Arrival and transfer",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Private transfer",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -39,
+     "title": "Old town walking tour",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Guided walk",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -38,
+     "title": "Market and cooking class",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Cooking class",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -37,
+     "title": "Coastal day trip",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Boat excursion",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -36,
+     "title": "Free morning, evening tasting",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Free time",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -35,
+     "title": "Museum and gardens",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Guided visit",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -34,
+     "title": "Scenic train",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Rail transfer",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    },
+    {
+     "dayOffset": -33,
+     "title": "Departure",
+     "items": [
+      {
+       "time": "09:00",
+       "title": "Breakfast at the hotel",
+       "location": "Hotel"
+      },
+      {
+       "time": "10:30",
+       "title": "Airport transfer",
+       "location": "Meeting point at the lobby"
+      },
+      {
+       "time": "19:30",
+       "title": "Dinner reservation",
+       "location": "Chef's table"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Greek islands",
+   "status": "cancelled",
+   "client": "Noor Aziz",
+   "advisor": 2,
+   "destinations": [
+    "Greece"
+   ],
+   "startOffset": 60,
+   "endOffset": 68,
+   "planningFeeCents": 45000,
+   "travelers": [
+    [
+     "Noor",
+     "Aziz"
+    ]
+   ],
+   "proposals": [],
+   "components": [
+    {
+     "supplier": "Cobalt Island Hotels",
+     "kind": "hotel",
+     "title": "Naxos beach resort, 7 nights",
+     "sellCents": 560000,
+     "netCostCents": 470000,
+     "paymentModel": "client_pays_supplier",
+     "bookingStatus": "cancelled",
+     "commissionBps": 1000,
+     "commissionStatus": "written_off",
+     "startOffset": 60,
+     "endOffset": 67,
+     "depositCents": 0,
+     "depositDueOffset": null,
+     "finalDueOffset": null,
+     "supplierPaidCents": 0,
+     "cancellationPolicy": "Full refund to 60 days before arrival; 50% to 30 days; none after.",
+     "cancelPenaltySchedule": [
+      {
+       "daysBefore": 60,
+       "penaltyBps": 0
+      },
+      {
+       "daysBefore": 30,
+       "penaltyBps": 5000
+      },
+      {
+       "daysBefore": 0,
+       "penaltyBps": 10000
+      }
+     ]
+    }
+   ],
+   "invoices": [
+    {
+     "lines": [
+      [
+       "planning_fee",
+       "Planning fee",
+       45000
+      ]
+     ],
+     "paidCents": 45000
+    }
+   ],
+   "receipts": [],
+   "itinerary": []
+  }
+ ],
+ "paymentProviders": [
+  {
+   "name": "Stripe (test)",
+   "code": "pp_stripe",
+   "adapter": "stripe"
+  },
+  {
+   "name": "Manual (check or wire)",
+   "code": "pp_manual",
+   "adapter": "manual"
+  }
+ ]
+}

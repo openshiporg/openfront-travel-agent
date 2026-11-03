@@ -4703,6 +4703,8 @@ type Mutation {
   transitionTrip(input: TravelJSON!): TravelJSON
   sweepTripDates(input: TravelJSON!): TravelJSON
   submitInquiry(input: TravelJSON!): TravelJSON
+  ensureTravelOnboardingPhase(phase: String!, template: String!): TravelJSON
+  setOnboardingStatus(status: String!): TravelJSON
   acceptProposal(token: String!, optionId: ID!, name: String!, idempotencyKey: String!): TravelJSON
   payInvoice(token: String!, idempotencyKey: String!): TravelJSON
   confirmInvoicePayment(token: String!, paymentIntentId: String!): TravelJSON
