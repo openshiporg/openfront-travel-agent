@@ -9,6 +9,8 @@ export const CommissionAllocation = list({
     component: relationship({ ref: "TripComponent.allocations", many: false }),
     receipt: relationship({ ref: "CommissionReceipt.allocations", many: false }),
     currencyCode: currency(),
+    overpaymentCents: integer({defaultValue:0,validation:{min:0}}),
+    approval: relationship({ref:'ManagerApproval'}),
     ...trackingFields,
   },
 });

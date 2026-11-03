@@ -37,6 +37,12 @@ export async function ensureTravelOnboardingPhase(context:any,{phase,template}:{
     const roles:Record<string,string>={};
     const perms={canAccessDashboard:true,canSeeOtherPeople:true,canManageTrips:true,canManageClients:true,canManageSuppliers:true,canManageCommissions:true,canManageDocuments:true,canManageTasks:true,canReadPayments:true,canManagePayments:true};
     let role=await db.role.findFirst({where:{name:'Advisor'}});if(!role)role=await db.role.create({data:{name:'Advisor',...perms}});roles.Advisor=role.id;
+    let manager=await db.role.findFirst({where:{name:'Manager'}});
+    if(!manager)manager=await db.role.create({data:{name:'Manager',...perms,canIssueRefunds:true,canManageSettings:true,canReadAudit:true}});
+    for(const m of s.managers||[]){
+      if(await db.user.findUnique({where:{email:m.email}}))continue;
+      await context.sudo().query.User.createOne({data:{name:m.name,email:m.email,password:randomBytes(24).toString('base64url'),role:{connect:{id:manager.id}},onboardingStatus:'dismissed'},query:'id'});count++;
+    }
     const customer=await db.role.findFirst({where:{name:'Customer'}});if(!customer)await db.role.create({data:{name:'Customer'}});
     for(const a of s.advisors){
       if(await db.user.findUnique({where:{email:a.email}}))continue;

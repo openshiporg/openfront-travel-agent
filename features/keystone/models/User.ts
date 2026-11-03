@@ -84,6 +84,8 @@ export const User = list({
     inquiries: relationship({ref:'Inquiry.assignedAdvisor',many:true}),
     commissionLedger: relationship({ref:'AdvisorCommissionLedger.advisor',many:true,access:{create:()=>false,update:()=>false}}),
     auditEvents: relationship({ref:'AuditEvent.actor',many:true,access:{create:()=>false,update:()=>false}}),
+    requestedApprovals: relationship({ref:'ManagerApproval.requestedBy',many:true,access:{create:()=>false,update:()=>false}}),
+    approvedApprovals: relationship({ref:'ManagerApproval.approvedBy',many:true,access:{create:()=>false,update:()=>false}}),
     processedPayments: relationship({ref:'Payment.processedBy',many:true,access:{create:()=>false,update:()=>false}}),
     requestedRefunds: relationship({ref:'Refund.requestedBy',many:true,access:{create:()=>false,update:()=>false}}),
     approvedRefunds: relationship({ref:'Refund.approvedBy',many:true,access:{create:()=>false,update:()=>false}}),

@@ -4,6 +4,7 @@ import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/Platf
 import { StatusLabel } from '../../components/StatusLabel'
 import { StatusTabs } from '../../components/StatusTabs'
 import { ActionButton } from '../../components/ActionButton'
+import { MoneyAction } from '../../components/MoneyAction'
 
 const TABS = ['overview', 'travelers', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
 const NAMES: Record<string, string> = { funds: 'Client funds', proposals: 'Proposals' }
@@ -19,18 +20,24 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     proposals(orderBy: { version: desc }) { id version status sentAt acceptedAt acceptedByName options(orderBy: { sort: asc }) { id title items(orderBy: { sort: asc }) { id kind title sellCents supplier { name } } } }
     components(orderBy: { startAt: asc }) { id kind title startAt endAt confirmationNumber bookingStatus paymentModel sellCents netCostCents commissionBps commissionCents commissionStatus depositCents depositDueAt finalDueAt supplier { name } allocations { amountCents } supplierPayments { amountCents } }
     days(orderBy: { date: asc }) { id date title items(orderBy: { sort: asc }) { id time title location } }
-    invoices(orderBy: { createdAt: asc }) { id number status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } }
+    invoices(orderBy: { createdAt: asc }) { id number status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } payments(orderBy: { createdAt: asc }) { id amount refundedAmount status providerPaymentId paymentMethod processedAt } }
     schedule(orderBy: { dueAt: asc }) { id kind amountCents dueAt status }
     funds(orderBy: { occurredAt: asc }) { id entryType amountCents reference occurredAt }
     tasks(orderBy: { dueAt: asc }) { id title type status dueAt }
     documents { id kind title }
-  } }`, { id })
+  }
+    agencySettingsRecords(take: 1) { refundApprovalThresholdCents }
+    managerApprovals(where: { status: { equals: approved } }, take: 100) { id actionType targetId amountCents requestedBy { id } }
+    me: authenticatedItem { ... on User { id } }
+  }`, { id })
   const t = d.trip
   if (!t) notFound()
   const href = (k: string) => `/dashboard/platform/trips/${id}?tab=${k}`
   const cur = t.currencyCode
   const balance = t.funds.reduce((n: number, f: any) => n + (f.entryType === 'receipt' ? f.amountCents : f.entryType === 'reversal' ? f.amountCents : -f.amountCents), 0)
   const next = NEXT[t.status]
+  const threshold = d.agencySettingsRecords[0]?.refundApprovalThresholdCents ?? 50000
+  const approvalFor = (actionType: string, targetId: string, amountCents: number) => d.managerApprovals.find((a: any) => a.actionType === actionType && a.targetId === targetId && a.amountCents === amountCents && a.requestedBy?.id === d.me?.id)?.id || null
   const receivedCommission = t.components.reduce((n: number, c: any) => n + c.allocations.reduce((m: number, a: any) => m + a.amountCents, 0), 0)
   const shortCommission = Math.max(t.expectedCommissionCents - receivedCommission, 0)
   const commissionCard = t.status === 'completed'
@@ -88,8 +95,15 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
 
       {active === 'payments' && (
         <div className="space-y-4">
-          <Panel title="Invoices" action={<ActionButton operator="generatePaymentSchedule" input={{ tripId: id }}>Generate schedule</ActionButton>}>{t.invoices.length ? <RowList>{t.invoices.map((i: any) => (
-            <Row key={i.id}><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium">{i.number}<StatusLabel status={i.status} /></p><p className="text-xs text-muted-foreground">{i.lines.map((l: any) => l.description).join(' · ')}</p></div><span className="text-sm">{money(i.collectedCents, cur)} of {money(i.totalCents, cur)}</span></Row>))}</RowList> : <Empty>No invoices</Empty>}</Panel>
+          <Panel title="Invoices" action={<ActionButton operator="generatePaymentSchedule" input={{ tripId: id }}>Generate schedule</ActionButton>}>{t.invoices.length ? <ul className="divide-y">{t.invoices.map((i: any) => (
+            <li key={i.id} className="space-y-2 py-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium">{i.number}<StatusLabel status={i.status} /></p><p className="text-xs text-muted-foreground">{i.lines.map((l: any) => l.description).join(' · ')}</p></div><span className="text-sm">{money(i.collectedCents, cur)} of {money(i.totalCents, cur)}</span></div>
+              {i.payments.map((p: any) => { const left = p.amount - p.refundedAmount; return (
+                <div key={p.id} className="flex flex-col gap-1 pl-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                  <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{p.providerPaymentId ? 'card' : 'manual'} · {label(p.status)} · {money(p.amount, cur)}{p.refundedAmount ? ` · ${money(p.refundedAmount, cur)} refunded` : ''}</p>
+                  {p.providerPaymentId && left > 0 ? <MoneyAction kind="refund" label="Refund" targetId={p.id} maxCents={left} thresholdCents={threshold} approvedId={null} /> : null}
+                </div>) })}
+            </li>))}</ul> : <Empty>No invoices</Empty>}</Panel>
           <Panel title="Schedule">{t.schedule.length ? <RowList>{t.schedule.map((s: any) => <Row key={s.id}><span className="font-mono text-xs uppercase tracking-wide">{label(s.kind)} · {day(s.dueAt)}</span><span className="flex items-center gap-3 text-sm">{money(s.amountCents, cur)}<StatusLabel status={s.status} /></span></Row>)}</RowList> : <Empty>No schedule rows</Empty>}</Panel>
         </div>)}
 

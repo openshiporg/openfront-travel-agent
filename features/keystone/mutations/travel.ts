@@ -2,7 +2,8 @@ import {randomBytes,createHash} from 'node:crypto';
 import {guardKeystonePrismaResults} from '../lib/prisma-result';
 import {permissions, type Permission} from '../access';
 import {getOrCreateIdempotencyAttempt,updateIdempotencyAttempt} from '../utils/idempotency';
-import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,fundsDelta,integerMoney,assertTransition} from '../lib/travel-money';
+import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,fundsDelta,integerMoney,assertTransition,refundableRemaining,assertRefundAmount,requiresApproval,overpaymentCents,writeOffRemaining} from '../lib/travel-money';
+import {consumeManagerApproval} from '../utils/managerApproval';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
 export async function lockTransactionKey(tx:any,key:string){await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${key},0))) AS acquired`;}
@@ -38,6 +39,45 @@ async function postFunds(tx:any,context:any,input:any){
  const row=await tx.clientFundsEntry.create({data:{tripId:input.tripId,componentId:input.componentId||null,entryType:input.entryType,amountCents:amount,currencyCode:input.currencyCode||'USD',reference:input.reference||'',reason:input.reason||'',occurredAt:new Date(),entryKey:input.entryKey||randomBytes(16).toString('hex')}});
  if(input.reverseOfId){const linked=await tx.clientFundsEntry.updateMany({where:{id:input.reverseOfId,reversedById:null},data:{reversedById:row.id}});if(linked.count!==1)throw new Error('Entry already reversed');}
  await audit(tx,context,'post','ClientFundsEntry',row.id,null,{entryType:row.entryType,amountCents:row.amountCents});return row;
+}
+/** Reserve locally (lock, cap, approval, Refund row), call the provider outside any transaction, then finalize under the trip lock. */
+export async function refundClientPayment(context:any,input:any){
+ authorize(context,'canIssueRefunds');
+ const actorId=context.session.itemId;const key=String(input.idempotencyKey||'').trim();
+ if(!key)throw new Error('Idempotency key required');const reason=String(input.reason||'').trim();if(!reason)throw new Error('Reason required');
+ const amount=integerMoney(input.amountCents);
+ const db=guardKeystonePrismaResults(context.prisma as any);const refundKey=`refund:${key}`;
+ const reserved=await db.$transaction(async(tx:any)=>{
+  const pay=await tx.payment.findUnique({where:{id:input.paymentId},include:{order:true}});if(!pay||!pay.order)throw new Error('Payment not found');
+  await trip(tx,pay.order.tripId);
+  const existing=await tx.refund.findUnique({where:{idempotencyKey:refundKey}});
+  if(existing){if(existing.paymentId!==pay.id||existing.amount!==amount||existing.reason!==reason)throw new Error('Idempotency key was already used with a different refund');return {refund:existing,pay,replay:true};}
+  if(!['succeeded','partially_refunded'].includes(pay.status))throw new Error('Payment is not refundable');
+  if(!pay.providerPaymentId)throw new Error('Manual payments are refunded outside the system');
+  const pending=await tx.refund.aggregate({where:{paymentId:pay.id,status:{in:['processing','unknown']}},_sum:{amount:true}});
+  assertRefundAmount(amount,refundableRemaining(pay.amount,pay.refundedAmount,pending._sum.amount||0));
+  const settings=await tx.agencySettings.findFirst();const threshold=settings?.refundApprovalThresholdCents??50000;
+  if(requiresApproval(amount,threshold))await consumeManagerApproval(tx,{approvalId:input.approvalId,actorId,actionType:'refund_payment',targetId:pay.id,amountCents:amount,reason,entityType:'Payment',entityId:pay.id});
+  const refund=await tx.refund.create({data:{idempotencyKey:refundKey,amount,currencyCode:pay.currencyCode,status:'processing',reason,paymentId:pay.id,orderId:pay.orderId,requestedById:actorId,approvedById:input.approvalId?(await tx.managerApproval.findUnique({where:{id:input.approvalId}}))?.approvedById||null:null}});
+  await audit(tx,context,'refund_requested','Payment',pay.id,null,{refundId:refund.id,amountCents:amount,reason});
+  return {refund,pay,replay:false};
+ },{timeout:20000,isolationLevel:'Serializable'});
+ const {refund,pay}=reserved;
+ if(refund.status==='succeeded')return {refundId:refund.id,status:'succeeded',amountCents:refund.amount};
+ if(refund.status==='failed')return {refundId:refund.id,status:'failed',amountCents:refund.amount};
+ const {refundPayment}=await import('../utils/paymentProviderAdapter');
+ let result:any=null,final='unknown';
+ try{result=await refundPayment({provider:stripeProvider,paymentId:pay.providerPaymentId,amount:refund.amount,currency:pay.currencyCode,idempotencyKey:refundKey});final=result.status==='succeeded'?'succeeded':['failed','canceled'].includes(result.status)?'failed':'unknown';}catch{final='unknown';}
+ return db.$transaction(async(tx:any)=>{
+  await trip(tx,pay.order.tripId);
+  const moved=await tx.refund.updateMany({where:{id:refund.id,status:{in:['processing','unknown']}},data:{status:final,providerRefundId:result?.refundId||null,providerData:result?.data?JSON.parse(JSON.stringify({id:result.refundId,status:result.status,amount:result.amount})):undefined,processedAt:final==='succeeded'?new Date():null}});
+  if(moved.count!==1||final!=='succeeded')return {refundId:refund.id,status:final,amountCents:refund.amount};
+  const p=await tx.payment.update({where:{id:pay.id},data:{refundedAmount:{increment:refund.amount}}});
+  await tx.payment.update({where:{id:pay.id},data:{status:p.refundedAmount>=p.amount?'refunded':'partially_refunded'}});
+  const entry=await postFunds(tx,context,{tripId:pay.order.tripId,componentId:input.componentId||null,entryType:'refund_to_client',amountCents:refund.amount,currencyCode:pay.currencyCode,reference:refund.id,reason,entryKey:`refund:${refund.id}`});
+  await audit(tx,context,'refund','Payment',pay.id,{refundedAmount:pay.refundedAmount},{refundedAmount:p.refundedAmount,refundId:refund.id,fundsEntryId:entry.id,reason});
+  return {refundId:refund.id,status:'succeeded',amountCents:refund.amount};
+ },{timeout:20000});
 }
 export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  createTripFromInquiry:(context,input)=>command(context,'createTripFromInquiry',input,'canManageTrips',async tx=>{
@@ -96,9 +136,10 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  recordCommissionReceipt:(context,input)=>command(context,'recordCommissionReceipt',input,'canManageCommissions',async tx=>{
  integerMoney(input.amountCents);if(!input.allocations?.length||input.allocations.reduce((n:number,a:any)=>n+a.amountCents,0)!==input.amountCents)throw new Error('Receipt allocations must equal amount');
  const settings=await tx.agencySettings.findFirst();const receipt=await tx.commissionReceipt.create({data:{supplierId:input.supplierId,amountCents:input.amountCents,receivedAt:new Date(),reference:input.reference,currencyCode:input.currencyCode||'USD'}});
- for(const a of [...input.allocations].sort((a:any,b:any)=>a.componentId.localeCompare(b.componentId))){integerMoney(a.amountCents);const c=await tx.tripComponent.findUnique({where:{id:a.componentId}});if(!c||c.supplierId!==input.supplierId||c.currencyCode!==(input.currencyCode||'USD'))throw new Error('Allocation supplier/currency mismatch');const t=await trip(tx,c.tripId);const prior=await tx.commissionAllocation.aggregate({where:{componentId:c.id},_sum:{amountCents:true}});const collected=(prior._sum.amountCents||0)+a.amountCents;if(collected>c.commissionCents)throw new Error('Overpayment requires independent approval');
- await tx.commissionAllocation.create({data:{receiptId:receipt.id,componentId:c.id,amountCents:a.amountCents,currencyCode:c.currencyCode}});await tx.tripComponent.update({where:{id:c.id},data:{commissionStatus:collected===c.commissionCents?'received':'short_paid'}});
+ for(const a of [...input.allocations].sort((a:any,b:any)=>a.componentId.localeCompare(b.componentId))){integerMoney(a.amountCents);const c=await tx.tripComponent.findUnique({where:{id:a.componentId}});if(!c||c.supplierId!==input.supplierId||c.currencyCode!==(input.currencyCode||'USD'))throw new Error('Allocation supplier/currency mismatch');const t=await trip(tx,c.tripId);const prior=await tx.commissionAllocation.aggregate({where:{componentId:c.id},_sum:{amountCents:true}});const collected=(prior._sum.amountCents||0)+a.amountCents;const over=overpaymentCents(c.commissionCents,prior._sum.amountCents||0,a.amountCents);if(over>0)await consumeManagerApproval(tx,{approvalId:a.approvalId,actorId:context.session.itemId,actionType:'commission_overpayment',targetId:c.id,amountCents:over,reason:String(a.reason||''),entityType:'TripComponent',entityId:c.id});
+ await tx.commissionAllocation.create({data:{receiptId:receipt.id,componentId:c.id,amountCents:a.amountCents,overpaymentCents:over,approvalId:over>0?a.approvalId:null,currencyCode:c.currencyCode}});await tx.tripComponent.update({where:{id:c.id},data:{commissionStatus:collected>=c.commissionCents?'received':'short_paid'}});
  const split=advisorSplit(a.amountCents,settings?.hostAgencySplitBps||0);await tx.advisorCommissionLedger.create({data:{advisorId:t.advisorId,componentId:c.id,entryType:'allocation',amountCents:split.advisorCents,currencyCode:c.currencyCode,reference:receipt.id,occurredAt:new Date()}});
+ if(over>0)await audit(tx,context,'overpayment','TripComponent',c.id,null,{overpaymentCents:over,approvalId:a.approvalId});
  if(collected<c.commissionCents)await tx.task.upsert({where:{taskKey:`short-paid:${c.id}`},update:{status:'open'},create:{taskKey:`short-paid:${c.id}`,tripId:t.id,assigneeId:t.advisorId,title:`Commission short-paid: ${c.title}`,type:'commission_overdue',status:'open',dueAt:new Date()}});
  }await audit(tx,context,'receive','CommissionReceipt',receipt.id,null,{amountCents:input.amountCents});return {id:receipt.id};
  }),
@@ -111,10 +152,26 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  if(['receipt','supplier_payment','refund_to_client'].includes(e.entryType))throw new Error('External funds require a corresponding reconciled cash movement');
  return postFunds(tx,context,{tripId:e.tripId,componentId:e.componentId,entryType:'reversal',amountCents:-fundsDelta(e.entryType,e.amountCents),currencyCode:e.currencyCode,reverseOfId:e.id,reason:input.reason});
  }),
- cancelComponent:(context,input)=>command(context,'cancelComponent',input,'canManageTrips',async tx=>{
+ cancelComponent:async(context,input)=>{
+  const cancelled=await command(context,'cancelComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c||c.bookingStatus==='cancelled')throw new Error('Component not cancellable');await trip(tx,c.tripId);const penalty=penaltyCents(c.sellCents,c.startAt||new Date(),new Date(),Array.isArray(c.cancelPenaltySchedule)?c.cancelPenaltySchedule:[]);
- if(input.refundCents)throw new Error('Refund requires original-tender payment reconciliation and independent approval');
  const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'cancelled'}});await audit(tx,context,'cancel','TripComponent',c.id,{bookingStatus:c.bookingStatus},{bookingStatus:'cancelled',penaltyCents:penalty});return {id:row.id,penaltyCents:penalty,refundableCents:Math.max(0,c.sellCents-penalty)};
+  });
+  if(!input.refundCents)return cancelled;
+  if(!input.paymentId)throw new Error('A refund needs the payment to refund');
+  if(!Number.isSafeInteger(input.refundCents)||input.refundCents>cancelled.refundableCents)throw new Error('Refund exceeds the amount refundable after the cancellation penalty');
+  const refund=await refundClientPayment(context,{paymentId:input.paymentId,amountCents:input.refundCents,reason:input.reason||'Component cancellation',approvalId:input.approvalId,idempotencyKey:`${input.idempotencyKey}:refund`,componentId:input.componentId});
+  return {...cancelled,refund};
+ },
+ refundClientPayment:(context,input)=>refundClientPayment(context,input),
+ writeOffCommission:(context,input)=>command(context,'writeOffCommission',input,'canManageCommissions',async tx=>{
+ if(!String(input.reason||'').trim())throw new Error('Reason required');
+ const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c)throw new Error('Component not found');await trip(tx,c.tripId);
+ if(!['expected','short_paid'].includes(c.commissionStatus))throw new Error('Only expected or short-paid commission can be written off');
+ const got=await tx.commissionAllocation.aggregate({where:{componentId:c.id},_sum:{amountCents:true}});const given=writeOffRemaining(c.commissionCents,got._sum.amountCents||0);
+ await consumeManagerApproval(tx,{approvalId:input.approvalId,actorId:context.session.itemId,actionType:'commission_writeoff',targetId:c.id,amountCents:given,reason:String(input.reason),entityType:'TripComponent',entityId:c.id});
+ const moved=await tx.tripComponent.updateMany({where:{id:c.id,commissionStatus:c.commissionStatus},data:{commissionStatus:'written_off'}});if(moved.count!==1)throw new Error('Component changed concurrently');
+ await audit(tx,context,'write_off','TripComponent',c.id,{commissionStatus:c.commissionStatus},{commissionStatus:'written_off',writtenOffCents:given,reason:input.reason,approvalId:input.approvalId});return {id:c.id,writtenOffCents:given};
  }),
  shareItinerary:(context,input)=>command(context,'shareItinerary',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);const token=randomBytes(32).toString('base64url');await tx.trip.update({where:{id:t.id},data:{itineraryToken:hash(token)}});await audit(tx,context,'share','Trip',t.id,null,{itinerary:'shared'});return {id:t.id,token};}),
  transitionTrip:(context,input)=>command(context,'transitionTrip',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);await transition(tx,context,t,input.status);return {id:t.id,status:input.status};}),

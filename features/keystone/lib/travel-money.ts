@@ -31,3 +31,33 @@ export const tripTransitions:Record<string,string[]>={planning:['proposal_sent',
 export function assertTransition(current:string,next:string,map=tripTransitions) {
  if(!map[current]?.includes(next))throw new Error(`Invalid transition ${current} → ${next}`);
 }
+
+/** Money still refundable on one payment: paid, less refunded, less refunds already reserved with the provider. */
+export function refundableRemaining(paid: number, refunded: number, pending = 0) {
+  [paid, refunded, pending].forEach((x) => integerMoney(x));
+  const remaining = paid - refunded - pending;
+  if (remaining < 0) throw new Error('Refunds exceed the amount paid');
+  return remaining;
+}
+export function assertRefundAmount(amount: number, remaining: number) {
+  integerMoney(amount);
+  if (amount < 1) throw new Error('Refund amount must be positive');
+  if (amount > remaining) throw new Error('Refund exceeds the amount still refundable');
+  return remaining - amount;
+}
+/** A refund strictly above the threshold needs an independent approval. */
+export function requiresApproval(amountCents: number, thresholdCents: number) {
+  integerMoney(amountCents); integerMoney(thresholdCents);
+  return amountCents > thresholdCents;
+}
+/** Part of a new allocation that lands above the expected commission for a component. */
+export function overpaymentCents(expected: number, alreadyAllocated: number, amount: number) {
+  [expected, alreadyAllocated, amount].forEach((x) => integerMoney(x));
+  const over = Math.max(0, alreadyAllocated + amount - expected);
+  return Math.min(over, amount);
+}
+/** Commission still unreceived on a component; the amount a write-off gives up. */
+export function writeOffRemaining(expected: number, allocated: number) {
+  [expected, allocated].forEach((x) => integerMoney(x));
+  return Math.max(0, expected - allocated);
+}

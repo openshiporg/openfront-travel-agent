@@ -18,6 +18,10 @@ type User {
   commissionLedgerCount(where: AdvisorCommissionLedgerWhereInput! = {}): Int
   auditEvents(where: AuditEventWhereInput! = {}, orderBy: [AuditEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AuditEventWhereUniqueInput): [AuditEvent!]
   auditEventsCount(where: AuditEventWhereInput! = {}): Int
+  requestedApprovals(where: ManagerApprovalWhereInput! = {}, orderBy: [ManagerApprovalOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ManagerApprovalWhereUniqueInput): [ManagerApproval!]
+  requestedApprovalsCount(where: ManagerApprovalWhereInput! = {}): Int
+  approvedApprovals(where: ManagerApprovalWhereInput! = {}, orderBy: [ManagerApprovalOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ManagerApprovalWhereUniqueInput): [ManagerApproval!]
+  approvedApprovalsCount(where: ManagerApprovalWhereInput! = {}): Int
   processedPayments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
   processedPaymentsCount(where: PaymentWhereInput! = {}): Int
   requestedRefunds(where: RefundWhereInput! = {}, orderBy: [RefundOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RefundWhereUniqueInput): [Refund!]
@@ -54,6 +58,8 @@ input UserWhereInput {
   inquiries: InquiryManyRelationFilter
   commissionLedger: AdvisorCommissionLedgerManyRelationFilter
   auditEvents: AuditEventManyRelationFilter
+  requestedApprovals: ManagerApprovalManyRelationFilter
+  approvedApprovals: ManagerApprovalManyRelationFilter
   processedPayments: PaymentManyRelationFilter
   requestedRefunds: RefundManyRelationFilter
   approvedRefunds: RefundManyRelationFilter
@@ -154,6 +160,12 @@ input AuditEventManyRelationFilter {
   none: AuditEventWhereInput
 }
 
+input ManagerApprovalManyRelationFilter {
+  every: ManagerApprovalWhereInput
+  some: ManagerApprovalWhereInput
+  none: ManagerApprovalWhereInput
+}
+
 input PaymentManyRelationFilter {
   every: PaymentWhereInput
   some: PaymentWhereInput
@@ -218,6 +230,8 @@ input UserUpdateInput {
   inquiries: InquiryRelateToManyForUpdateInput
   commissionLedger: AdvisorCommissionLedgerRelateToManyForUpdateInput
   auditEvents: AuditEventRelateToManyForUpdateInput
+  requestedApprovals: ManagerApprovalRelateToManyForUpdateInput
+  approvedApprovals: ManagerApprovalRelateToManyForUpdateInput
   processedPayments: PaymentRelateToManyForUpdateInput
   requestedRefunds: RefundRelateToManyForUpdateInput
   approvedRefunds: RefundRelateToManyForUpdateInput
@@ -269,6 +283,13 @@ input AuditEventRelateToManyForUpdateInput {
   connect: [AuditEventWhereUniqueInput!]
 }
 
+input ManagerApprovalRelateToManyForUpdateInput {
+  disconnect: [ManagerApprovalWhereUniqueInput!]
+  set: [ManagerApprovalWhereUniqueInput!]
+  create: [ManagerApprovalCreateInput!]
+  connect: [ManagerApprovalWhereUniqueInput!]
+}
+
 input PaymentRelateToManyForUpdateInput {
   disconnect: [PaymentWhereUniqueInput!]
   set: [PaymentWhereUniqueInput!]
@@ -299,6 +320,8 @@ input UserCreateInput {
   inquiries: InquiryRelateToManyForCreateInput
   commissionLedger: AdvisorCommissionLedgerRelateToManyForCreateInput
   auditEvents: AuditEventRelateToManyForCreateInput
+  requestedApprovals: ManagerApprovalRelateToManyForCreateInput
+  approvedApprovals: ManagerApprovalRelateToManyForCreateInput
   processedPayments: PaymentRelateToManyForCreateInput
   requestedRefunds: RefundRelateToManyForCreateInput
   approvedRefunds: RefundRelateToManyForCreateInput
@@ -337,6 +360,11 @@ input AdvisorCommissionLedgerRelateToManyForCreateInput {
 input AuditEventRelateToManyForCreateInput {
   create: [AuditEventCreateInput!]
   connect: [AuditEventWhereUniqueInput!]
+}
+
+input ManagerApprovalRelateToManyForCreateInput {
+  create: [ManagerApprovalCreateInput!]
+  connect: [ManagerApprovalWhereUniqueInput!]
 }
 
 input PaymentRelateToManyForCreateInput {
@@ -3148,6 +3176,8 @@ type CommissionAllocation {
   component: TripComponent
   receipt: CommissionReceipt
   currencyCode: String
+  overpaymentCents: Int
+  approval: ManagerApproval
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3165,6 +3195,8 @@ input CommissionAllocationWhereInput {
   component: TripComponentWhereInput
   receipt: CommissionReceiptWhereInput
   currencyCode: StringFilter
+  overpaymentCents: IntNullableFilter
+  approval: ManagerApprovalWhereInput
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
@@ -3173,6 +3205,7 @@ input CommissionAllocationOrderByInput {
   id: OrderDirection
   amountCents: OrderDirection
   currencyCode: OrderDirection
+  overpaymentCents: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -3182,6 +3215,8 @@ input CommissionAllocationUpdateInput {
   component: TripComponentRelateToOneForUpdateInput
   receipt: CommissionReceiptRelateToOneForUpdateInput
   currencyCode: String
+  overpaymentCents: Int
+  approval: ManagerApprovalRelateToOneForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3189,6 +3224,12 @@ input CommissionAllocationUpdateInput {
 input CommissionReceiptRelateToOneForUpdateInput {
   create: CommissionReceiptCreateInput
   connect: CommissionReceiptWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ManagerApprovalRelateToOneForUpdateInput {
+  create: ManagerApprovalCreateInput
+  connect: ManagerApprovalWhereUniqueInput
   disconnect: Boolean
 }
 
@@ -3202,6 +3243,8 @@ input CommissionAllocationCreateInput {
   component: TripComponentRelateToOneForCreateInput
   receipt: CommissionReceiptRelateToOneForCreateInput
   currencyCode: String
+  overpaymentCents: Int
+  approval: ManagerApprovalRelateToOneForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3209,6 +3252,11 @@ input CommissionAllocationCreateInput {
 input CommissionReceiptRelateToOneForCreateInput {
   create: CommissionReceiptCreateInput
   connect: CommissionReceiptWhereUniqueInput
+}
+
+input ManagerApprovalRelateToOneForCreateInput {
+  create: ManagerApprovalCreateInput
+  connect: ManagerApprovalWhereUniqueInput
 }
 
 type AdvisorCommissionLedger {
@@ -4461,6 +4509,144 @@ input IdempotencyKeyCreateInput {
   updatedAt: DateTime
 }
 
+type ManagerApproval {
+  id: ID!
+  actionType: ManagerApprovalActionTypeType
+  targetId: String
+  amountCents: Int
+  reason: String
+  requestFingerprint: String
+  requestPayload: JSON
+  status: ManagerApprovalStatusType
+  requestedAt: DateTime
+  decidedAt: DateTime
+  consumedAt: DateTime
+  expiresAt: DateTime
+  consumedEntityType: String
+  consumedEntityId: String
+  requestedBy: User
+  approvedBy: User
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum ManagerApprovalActionTypeType {
+  refund_payment
+  commission_overpayment
+  commission_writeoff
+}
+
+enum ManagerApprovalStatusType {
+  requested
+  approved
+  rejected
+  consumed
+}
+
+input ManagerApprovalWhereUniqueInput {
+  id: ID
+}
+
+input ManagerApprovalWhereInput {
+  AND: [ManagerApprovalWhereInput!]
+  OR: [ManagerApprovalWhereInput!]
+  NOT: [ManagerApprovalWhereInput!]
+  id: IDFilter
+  actionType: ManagerApprovalActionTypeTypeNullableFilter
+  targetId: StringFilter
+  amountCents: IntNullableFilter
+  reason: StringFilter
+  requestFingerprint: StringFilter
+  status: ManagerApprovalStatusTypeNullableFilter
+  requestedAt: DateTimeNullableFilter
+  decidedAt: DateTimeNullableFilter
+  consumedAt: DateTimeNullableFilter
+  expiresAt: DateTimeFilter
+  consumedEntityType: StringFilter
+  consumedEntityId: StringFilter
+  requestedBy: UserWhereInput
+  approvedBy: UserWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ManagerApprovalActionTypeTypeNullableFilter {
+  equals: ManagerApprovalActionTypeType
+  in: [ManagerApprovalActionTypeType!]
+  notIn: [ManagerApprovalActionTypeType!]
+  not: ManagerApprovalActionTypeTypeNullableFilter
+}
+
+input ManagerApprovalStatusTypeNullableFilter {
+  equals: ManagerApprovalStatusType
+  in: [ManagerApprovalStatusType!]
+  notIn: [ManagerApprovalStatusType!]
+  not: ManagerApprovalStatusTypeNullableFilter
+}
+
+input ManagerApprovalOrderByInput {
+  id: OrderDirection
+  actionType: OrderDirection
+  targetId: OrderDirection
+  amountCents: OrderDirection
+  reason: OrderDirection
+  requestFingerprint: OrderDirection
+  status: OrderDirection
+  requestedAt: OrderDirection
+  decidedAt: OrderDirection
+  consumedAt: OrderDirection
+  expiresAt: OrderDirection
+  consumedEntityType: OrderDirection
+  consumedEntityId: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ManagerApprovalUpdateInput {
+  actionType: ManagerApprovalActionTypeType
+  targetId: String
+  amountCents: Int
+  reason: String
+  requestFingerprint: String
+  requestPayload: JSON
+  status: ManagerApprovalStatusType
+  requestedAt: DateTime
+  decidedAt: DateTime
+  consumedAt: DateTime
+  expiresAt: DateTime
+  consumedEntityType: String
+  consumedEntityId: String
+  requestedBy: UserRelateToOneForUpdateInput
+  approvedBy: UserRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ManagerApprovalUpdateArgs {
+  where: ManagerApprovalWhereUniqueInput!
+  data: ManagerApprovalUpdateInput!
+}
+
+input ManagerApprovalCreateInput {
+  actionType: ManagerApprovalActionTypeType
+  targetId: String
+  amountCents: Int
+  reason: String
+  requestFingerprint: String
+  requestPayload: JSON
+  status: ManagerApprovalStatusType
+  requestedAt: DateTime
+  decidedAt: DateTime
+  consumedAt: DateTime
+  expiresAt: DateTime
+  consumedEntityType: String
+  consumedEntityId: String
+  requestedBy: UserRelateToOneForCreateInput
+  approvedBy: UserRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -4683,6 +4869,12 @@ type Mutation {
   updateIdempotencyKeys(data: [IdempotencyKeyUpdateArgs!]!): [IdempotencyKey]
   deleteIdempotencyKey(where: IdempotencyKeyWhereUniqueInput!): IdempotencyKey
   deleteIdempotencyKeys(where: [IdempotencyKeyWhereUniqueInput!]!): [IdempotencyKey]
+  createManagerApproval(data: ManagerApprovalCreateInput!): ManagerApproval
+  createManagerApprovals(data: [ManagerApprovalCreateInput!]!): [ManagerApproval]
+  updateManagerApproval(where: ManagerApprovalWhereUniqueInput!, data: ManagerApprovalUpdateInput!): ManagerApproval
+  updateManagerApprovals(data: [ManagerApprovalUpdateArgs!]!): [ManagerApproval]
+  deleteManagerApproval(where: ManagerApprovalWhereUniqueInput!): ManagerApproval
+  deleteManagerApprovals(where: [ManagerApprovalWhereUniqueInput!]!): [ManagerApproval]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -4700,10 +4892,14 @@ type Mutation {
   postClientFundsEntry(input: TravelJSON!): TravelJSON
   reverseEntry(input: TravelJSON!): TravelJSON
   cancelComponent(input: TravelJSON!): TravelJSON
+  refundClientPayment(input: TravelJSON!): TravelJSON
+  writeOffCommission(input: TravelJSON!): TravelJSON
   shareItinerary(input: TravelJSON!): TravelJSON
   transitionTrip(input: TravelJSON!): TravelJSON
   sweepTripDates(input: TravelJSON!): TravelJSON
   submitInquiry(input: TravelJSON!): TravelJSON
+  requestManagerApproval(actionType: String!, targetId: String!, amountCents: Int, reason: String!): TravelJSON
+  decideManagerApproval(approvalId: ID!, decision: String!): TravelJSON
   ensureTravelOnboardingPhase(phase: String!, template: String!): TravelJSON
   setOnboardingStatus(status: String!): TravelJSON
   acceptProposal(token: String!, optionId: ID!, name: String!, idempotencyKey: String!): TravelJSON
@@ -4848,6 +5044,9 @@ type Query {
   idempotencyKey(where: IdempotencyKeyWhereUniqueInput!): IdempotencyKey
   idempotencyKeys(where: IdempotencyKeyWhereInput! = {}, orderBy: [IdempotencyKeyOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: IdempotencyKeyWhereUniqueInput): [IdempotencyKey!]
   idempotencyKeysCount(where: IdempotencyKeyWhereInput! = {}): Int
+  managerApproval(where: ManagerApprovalWhereUniqueInput!): ManagerApproval
+  managerApprovals(where: ManagerApprovalWhereInput! = {}, orderBy: [ManagerApprovalOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ManagerApprovalWhereUniqueInput): [ManagerApproval!]
+  managerApprovalsCount(where: ManagerApprovalWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult

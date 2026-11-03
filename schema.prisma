@@ -24,6 +24,8 @@ model User {
   inquiries               Inquiry[]                 @relation("Inquiry_assignedAdvisor")
   commissionLedger        AdvisorCommissionLedger[] @relation("AdvisorCommissionLedger_advisor")
   auditEvents             AuditEvent[]              @relation("AuditEvent_actor")
+  requestedApprovals      ManagerApproval[]         @relation("ManagerApproval_requestedBy")
+  approvedApprovals       ManagerApproval[]         @relation("ManagerApproval_approvedBy")
   processedPayments       Payment[]                 @relation("Payment_processedBy")
   requestedRefunds        Refund[]                  @relation("Refund_requestedBy")
   approvedRefunds         Refund[]                  @relation("Refund_approvedBy")
@@ -488,18 +490,22 @@ model CommissionReceipt {
 }
 
 model CommissionAllocation {
-  id           String             @id @default(cuid())
-  amountCents  Int?               @default(0)
-  component    TripComponent?     @relation("CommissionAllocation_component", fields: [componentId], references: [id])
-  componentId  String?            @map("component")
-  receipt      CommissionReceipt? @relation("CommissionAllocation_receipt", fields: [receiptId], references: [id])
-  receiptId    String?            @map("receipt")
-  currencyCode String             @default("USD")
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @default(now()) @updatedAt
+  id               String             @id @default(cuid())
+  amountCents      Int?               @default(0)
+  component        TripComponent?     @relation("CommissionAllocation_component", fields: [componentId], references: [id])
+  componentId      String?            @map("component")
+  receipt          CommissionReceipt? @relation("CommissionAllocation_receipt", fields: [receiptId], references: [id])
+  receiptId        String?            @map("receipt")
+  currencyCode     String             @default("USD")
+  overpaymentCents Int?               @default(0)
+  approval         ManagerApproval?   @relation("CommissionAllocation_approval", fields: [approvalId], references: [id])
+  approvalId       String?            @map("approval")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now()) @updatedAt
 
   @@index([componentId])
   @@index([receiptId])
+  @@index([approvalId])
 }
 
 model AdvisorCommissionLedger {
@@ -569,7 +575,7 @@ model AgencySettings {
   email                        String   @default("")
   phone                        String   @default("")
   defaultPlanningFeeCents      Int?     @default(0)
-  refundApprovalThresholdCents Int?     @default(0)
+  refundApprovalThresholdCents Int?     @default(50000)
   hostAgencySplitBps           Int?     @default(0)
   currencyCode                 String   @default("USD")
   createdAt                    DateTime @default(now())
@@ -752,6 +758,38 @@ model IdempotencyKey {
   updatedAt      DateTime  @default(now()) @updatedAt
 }
 
+model ManagerApproval {
+  id                                 String                        @id @default(cuid())
+  actionType                         ManagerApprovalActionTypeType
+  targetId                           String                        @default("")
+  amountCents                        Int?
+  reason                             String                        @default("")
+  requestFingerprint                 String                        @default("")
+  requestPayload                     Json?
+  status                             ManagerApprovalStatusType     @default(requested)
+  requestedAt                        DateTime?                     @default(now())
+  decidedAt                          DateTime?
+  consumedAt                         DateTime?
+  expiresAt                          DateTime
+  consumedEntityType                 String                        @default("")
+  consumedEntityId                   String                        @default("")
+  requestedBy                        User?                         @relation("ManagerApproval_requestedBy", fields: [requestedById], references: [id])
+  requestedById                      String?                       @map("requestedBy")
+  approvedBy                         User?                         @relation("ManagerApproval_approvedBy", fields: [approvedById], references: [id])
+  approvedById                       String?                       @map("approvedBy")
+  createdAt                          DateTime                      @default(now())
+  updatedAt                          DateTime                      @default(now()) @updatedAt
+  from_CommissionAllocation_approval CommissionAllocation[]        @relation("CommissionAllocation_approval")
+
+  @@index([actionType])
+  @@index([targetId])
+  @@index([status])
+  @@index([requestedAt])
+  @@index([expiresAt])
+  @@index([requestedById])
+  @@index([approvedById])
+}
+
 enum InquiryTripTypeType {
   honeymoon
   family
@@ -912,4 +950,17 @@ enum TaskStatusType {
 enum PaymentCollectionDescriptionType {
   default
   refund
+}
+
+enum ManagerApprovalActionTypeType {
+  refund_payment
+  commission_overpayment
+  commission_writeoff
+}
+
+enum ManagerApprovalStatusType {
+  requested
+  approved
+  rejected
+  consumed
 }

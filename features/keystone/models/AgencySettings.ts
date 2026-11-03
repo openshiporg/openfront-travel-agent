@@ -11,7 +11,7 @@ export const AgencySettings = list({
     email: text(),
     phone: text(),
     defaultPlanningFeeCents: cents(),
-    refundApprovalThresholdCents: cents(),
+    refundApprovalThresholdCents: integer({defaultValue:50000,validation:{min:0}}),
     hostAgencySplitBps: bps(),
     currencyCode: currency(),
     ...trackingFields,

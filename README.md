@@ -51,18 +51,24 @@ Every Openfront is open source and self-hostable.
 - **Trips only reach paid in full, traveling or completed with a zero client balance.**
 
 ### Models
-36 Keystone lists: Client, Traveler, Inquiry, Destination, Trip, Proposal, ProposalOption, ProposalItem, TripComponent, ItineraryDay, ItineraryItem, Supplier, SupplierContact, ClientInvoice, ClientInvoiceLine, PaymentSchedule, ClientFundsEntry, SupplierPayment, CommissionReceipt, CommissionAllocation, AdvisorCommissionLedger, Document, Task, AgencySettings, AuditEvent, IdempotencyKey, the payment set (PaymentProvider, PaymentCollection, PaymentSession, Payment, Refund, PaymentWebhookEvent), and User, Role, OAuthApp, OAuthToken.
+37 Keystone lists: Client, Traveler, Inquiry, Destination, Trip, Proposal, ProposalOption, ProposalItem, TripComponent, ItineraryDay, ItineraryItem, Supplier, SupplierContact, ClientInvoice, ClientInvoiceLine, PaymentSchedule, ClientFundsEntry, SupplierPayment, CommissionReceipt, CommissionAllocation, AdvisorCommissionLedger, Document, Task, AgencySettings, AuditEvent, IdempotencyKey, ManagerApproval, the payment set (PaymentProvider, PaymentCollection, PaymentSession, Payment, Refund, PaymentWebhookEvent), and User, Role, OAuthApp, OAuthToken.
 
 Status fields are set only through custom mutations. Raw status updates are closed, financial and evidence lists are create-less through the API, and traveler date of birth, passport expiry and known traveler number cannot be read through the generic API.
 
+### Approvals, refunds and write-offs
+- **ManagerApproval** is action-bound (action, target, amount, reason), has a requester and a different approver, and is used once. It expires after an hour.
+- **`refundClientPayment`** refunds to the original card payment through the Stripe adapter, never above what was paid. It locks the trip, records a `refund_to_client` funds entry and an audit event, and replays safely by idempotency key. Above `AgencySettings.refundApprovalThresholdCents` (default $500) it needs an approved request, consumed in the same transaction.
+- **Commission over-payment** is allowed only with an approval and is stored on the allocation as tracked over-payment. **`writeOffCommission`** always needs an approval.
+- The Approvals page lists requests to approve or reject; refunds are started from the trip's Payments tab and write-offs from the Commissions board.
+
 ### Operator mutations (GraphQL)
-`createTripFromInquiry`, `buildProposal`, `sendProposal`, `bookComponent`, `generatePaymentSchedule`, `issueClientInvoice`, `recordClientPayment`, `recordSupplierPayment`, `recordCommissionReceipt`, `postClientFundsEntry`, `reverseEntry`, `cancelComponent`, `transitionTrip`, `sweepTripDates`, `shareItinerary`. Each takes an idempotency key, runs in a transaction under an advisory lock, and writes an audit event.
+`createTripFromInquiry`, `buildProposal`, `sendProposal`, `bookComponent`, `generatePaymentSchedule`, `issueClientInvoice`, `recordClientPayment`, `recordSupplierPayment`, `recordCommissionReceipt`, `postClientFundsEntry`, `reverseEntry`, `cancelComponent` (with an optional refund), `refundClientPayment`, `writeOffCommission`, `requestManagerApproval`, `decideManagerApproval`, `transitionTrip`, `sweepTripDates`, `shareItinerary`. Each takes an idempotency key, runs in a transaction under an advisory lock, and writes an audit event.
 
 ### Public operations (GraphQL)
 `submitInquiry`, `viewProposal`, `acceptProposal`, `viewItinerary`, `viewInvoice`, `payInvoice`, `confirmInvoicePayment`, `publicDestinations`, `publicDestination`, `lookupBooking`. Proposal, itinerary and invoice links carry a random token stored only as a SHA-256 hash. Booking lookup needs the email on file and the trip or invoice code.
 
 ### Dashboard slices (`/dashboard/platform/...`)
-Dashboard, Inquiries, Trips (with a workspace: overview, travelers, proposals, components, itinerary, payments, client funds, commissions, documents, tasks), Commissions (expected, invoiced, received, short-paid and written-off boards, receipts, advisor payouts), Clients and travelers, Suppliers, Invoices, Tasks, Payment Providers, Settings. Onboarding in the sidebar seeds a full agency (3 advisors, 15 suppliers, 20 clients, 6 inquiries, 9 trips) or a minimal one.
+Dashboard, Inquiries, Approvals, Trips (with a workspace: overview, travelers, proposals, components, itinerary, payments, client funds, commissions, documents, tasks), Commissions (expected, invoiced, received, short-paid and written-off boards, receipts, advisor payouts), Clients and travelers, Suppliers, Invoices, Tasks, Payment Providers, Settings. Onboarding in the sidebar seeds a full agency (3 advisors, 15 suppliers, 20 clients, 6 inquiries, 9 trips) or a minimal one.
 
 ### Storefront (plain pages)
 Destinations, an inquiry form, the tokenised proposal page (choose an option and accept with a name), the itinerary page, and the invoice page with card payment and a confirmation code. A booking lookup finds a trip by email and code.
@@ -71,7 +77,7 @@ Destinations, an inquiry form, the tokenised proposal page (choose an option and
 The MCP transport at `/api/mcp-transport/mcp` runs as the signed-in user (cookie or MCP OAuth token). Besides the generic schema tools, `travelOperation` calls the operator mutations above, so the same rules, audit and idempotency apply.
 
 ### Not included
-Live air booking (GDS), supplier APIs, card authorisation forms, accounting sync, e-signature (acceptance records a name and timestamp), refunds over a threshold (refused until manager approval is added), commission over-payment approval.
+Live air booking (GDS), supplier APIs, card authorisation forms, accounting sync, e-signature (acceptance records a name and timestamp), a Stripe webhook route (payments are confirmed by checking the payment intent with Stripe).
 
 ## Getting started
 

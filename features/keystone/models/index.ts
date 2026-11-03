@@ -34,7 +34,8 @@ import { Payment } from "./Payment";
 import { Refund } from "./Refund";
 import { PaymentWebhookEvent } from "./PaymentWebhookEvent";
 import { IdempotencyKey } from "./IdempotencyKey";
+import { ManagerApproval } from "./ManagerApproval";
 export const models = {
-User,Role,OAuthApp,OAuthToken,Client,Traveler,Inquiry,Destination,Trip,Proposal,ProposalOption,ProposalItem,TripComponent,ItineraryDay,ItineraryItem,Supplier,SupplierContact,ClientInvoice,ClientInvoiceLine,PaymentSchedule,ClientFundsEntry,SupplierPayment,CommissionReceipt,CommissionAllocation,AdvisorCommissionLedger,Document,Task,AgencySettings,AuditEvent,PaymentProvider,PaymentCollection,PaymentSession,Payment,Refund,PaymentWebhookEvent,IdempotencyKey
+User,Role,OAuthApp,OAuthToken,Client,Traveler,Inquiry,Destination,Trip,Proposal,ProposalOption,ProposalItem,TripComponent,ItineraryDay,ItineraryItem,Supplier,SupplierContact,ClientInvoice,ClientInvoiceLine,PaymentSchedule,ClientFundsEntry,SupplierPayment,CommissionReceipt,CommissionAllocation,AdvisorCommissionLedger,Document,Task,AgencySettings,AuditEvent,PaymentProvider,PaymentCollection,PaymentSession,Payment,Refund,PaymentWebhookEvent,IdempotencyKey,ManagerApproval
 };
 export default models;

@@ -2011,5 +2011,12 @@
    "code": "pp_manual",
    "adapter": "manual"
   }
+ ],
+ "managers": [
+  {
+   "name": "Jordan Ellis",
+   "email": "jordan@wayfarer.example",
+   "role": "Manager"
+  }
  ]
 }

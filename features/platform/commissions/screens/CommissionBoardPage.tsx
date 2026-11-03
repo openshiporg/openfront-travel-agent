@@ -2,6 +2,7 @@ import { query, money, day, label } from '../../lib/data'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
 import { StatusLabel } from '../../components/StatusLabel'
 import { StatusTabs } from '../../components/StatusTabs'
+import { MoneyAction } from '../../components/MoneyAction'
 
 const TABS = ['expected', 'invoiced', 'received', 'short_paid', 'written_off']
 
@@ -12,6 +13,8 @@ export async function CommissionBoardPage({ searchParams }: { searchParams: Prom
     components: tripComponents(where: { commissionStatus: { equals: ${active} }, commissionCents: { gt: 0 } }, orderBy: { endAt: asc }, take: 100) { id title commissionBps commissionCents currencyCode endAt supplier { name commissionPaymentTermsDays } trip { id title advisor { name } } allocations { amountCents } }
     ${TABS.map((t) => `${t}: tripComponentsCount(where: { commissionStatus: { equals: ${t} }, commissionCents: { gt: 0 } })`).join('\n')}
     commissionReceipts(orderBy: { receivedAt: desc }, take: 10) { id reference amountCents currencyCode receivedAt supplier { name } allocations { amountCents component { title } } }
+    managerApprovals(where: { status: { equals: approved }, actionType: { equals: commission_writeoff } }, take: 100) { id targetId amountCents requestedBy { id } }
+    me: authenticatedItem { ... on User { id } }
     advisorCommissionLedgers(take: 500) { amountCents advisor { id name } }
   }`)
   const payouts = new Map<string, { name: string; total: number }>()
@@ -21,7 +24,7 @@ export async function CommissionBoardPage({ searchParams }: { searchParams: Prom
       <StatusTabs active={active} hrefFor={(k) => `/dashboard/platform/commissions?status=${k}`} tabs={TABS.map((k) => ({ key: k, label: label(k), count: d[k] }))} />
       <Panel>{d.components.length ? <RowList>{d.components.map((c: any) => {
         const got = c.allocations.reduce((n: number, a: any) => n + a.amountCents, 0)
-        return <Row key={c.id} href={`/dashboard/platform/trips/${c.trip?.id}?tab=commissions`}><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{c.title}</span><StatusLabel status={active} /></p><p className="truncate text-xs text-muted-foreground">{c.supplier?.name} · {c.trip?.title} · {(c.commissionBps / 100).toFixed(2)}% · travel ends {day(c.endAt)}</p></div><span className="text-sm">{money(got, c.currencyCode)} of {money(c.commissionCents, c.currencyCode)}</span></Row>
+        return <Row key={c.id}><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{c.title}</span><StatusLabel status={active} /></p><p className="truncate text-xs text-muted-foreground">{c.supplier?.name} · <a className="underline" href={`/dashboard/platform/trips/${c.trip?.id}?tab=commissions`}>{c.trip?.title}</a> · {(c.commissionBps / 100).toFixed(2)}% · travel ends {day(c.endAt)}</p></div><div className="flex flex-wrap items-center gap-2"><span className="text-sm">{money(got, c.currencyCode)} of {money(c.commissionCents, c.currencyCode)}</span>{['expected', 'short_paid'].includes(active) && c.commissionCents - got > 0 ? <MoneyAction kind="writeoff" label="Write off" targetId={c.id} maxCents={c.commissionCents - got} approvedId={d.managerApprovals.find((a: any) => a.targetId === c.id && a.amountCents === c.commissionCents - got && a.requestedBy?.id === d.me?.id)?.id || null} /> : null}</div></Row>
       })}</RowList> : <Empty>Nothing in this status</Empty>}</Panel>
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Recent receipts">{d.commissionReceipts.length ? <RowList>{d.commissionReceipts.map((r: any) => <Row key={r.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{r.supplier?.name}</p><p className="truncate text-xs text-muted-foreground">{r.reference} · {day(r.receivedAt)} · {r.allocations.map((a: any) => a.component?.title).join(', ')}</p></div><span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span></Row>)}</RowList> : <Empty>No receipts</Empty>}</Panel>
