@@ -64,7 +64,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
         <Row key={x.id}><span className="text-sm font-medium">{x.firstName} {x.lastName}</span><span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{x.nationality} · passport {x.passportOnFile ? 'on file' : 'missing'}</span></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
 
       {active === 'proposals' && (t.proposals.length ? t.proposals.map((p: any) => (
-        <Panel key={p.id} title={`Version ${p.version}`} action={<div className="flex items-center gap-2"><StatusLabel status={p.status} />{p.status === 'draft' ? <ActionButton operator="sendProposal" input={{ proposalId: p.id }}>Send</ActionButton> : null}</div>}>
+        <Panel key={p.id} title={`Version ${p.version}`} action={<div className="flex items-center gap-2"><StatusLabel status={p.status} />{p.status === 'draft' ? <ActionButton operator="sendProposal" input={{ proposalId: p.id }} linkPrefix="/proposal/">Send</ActionButton> : null}</div>}>
           <div className="grid gap-3 md:grid-cols-3">{p.options.map((o: any) => (
             <div key={o.id} className="rounded-lg border p-3">
               <p className="text-sm font-medium">{o.title} · {money(o.items.reduce((n: number, i: any) => n + i.sellCents, 0), cur)}</p>
@@ -82,6 +82,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
           <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium">{money(c.sellCents, cur)}</span>{c.bookingStatus !== 'cancelled' ? <ActionButton operator="cancelComponent" input={{ componentId: c.id }} confirm="Cancel this component?">Cancel</ActionButton> : null}</div>
         </Row>))}</RowList> : <Empty>No components</Empty>}</Panel>}
 
+      {active === 'itinerary' && <div className="flex justify-end"><ActionButton operator="shareItinerary" input={{ tripId: id }} linkPrefix="/itinerary/">Share itinerary</ActionButton></div>}
       {active === 'itinerary' && (t.days.length ? t.days.map((dd: any) => (
         <Panel key={dd.id} title={`${day(dd.date)} · ${dd.title}`}><RowList>{dd.items.map((i: any) => <Row key={i.id}><span className="text-sm">{i.time} {i.title}</span><span className="text-xs text-muted-foreground">{i.location}</span></Row>)}</RowList></Panel>)) : <Panel><Empty>No itinerary days</Empty></Panel>)}
 

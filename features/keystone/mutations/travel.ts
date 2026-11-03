@@ -35,7 +35,8 @@ async function postFunds(tx:any,context:any,input:any){
   const prior=entries.filter((e:any)=>e.entryType==='transfer_planning_fee').reduce((n:number,e:any)=>n+e.amountCents,0);
   if(amount+prior>(lines._sum.amountCents||0))throw new Error('Planning fee transfer exceeds paid planning invoices');
  }
- const row=await tx.clientFundsEntry.create({data:{tripId:input.tripId,componentId:input.componentId||null,entryType:input.entryType,amountCents:amount,currencyCode:input.currencyCode||'USD',reference:input.reference||'',reason:input.reason||'',occurredAt:new Date(),entryKey:input.entryKey||randomBytes(16).toString('hex'),reversesId:input.reversesId||null}});
+ const row=await tx.clientFundsEntry.create({data:{tripId:input.tripId,componentId:input.componentId||null,entryType:input.entryType,amountCents:amount,currencyCode:input.currencyCode||'USD',reference:input.reference||'',reason:input.reason||'',occurredAt:new Date(),entryKey:input.entryKey||randomBytes(16).toString('hex')}});
+ if(input.reverseOfId){const linked=await tx.clientFundsEntry.updateMany({where:{id:input.reverseOfId,reversedById:null},data:{reversedById:row.id}});if(linked.count!==1)throw new Error('Entry already reversed');}
  await audit(tx,context,'post','ClientFundsEntry',row.id,null,{entryType:row.entryType,amountCents:row.amountCents});return row;
 }
 export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
@@ -105,16 +106,17 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  if(!['transfer_planning_fee'].includes(input.entryType))throw new Error('Receipts, supplier payments, refunds and reversals require their dedicated mutation');return postFunds(tx,context,input);
  }),
  reverseEntry:(context,input)=>command(context,'reverseEntry',input,'canManagePayments',async tx=>{
- const e=await tx.clientFundsEntry.findUnique({where:{id:input.entryId}});if(!e||e.entryType==='reversal')throw new Error('Entry cannot be reversed');await trip(tx,e.tripId);if(await tx.clientFundsEntry.findFirst({where:{reversesId:e.id}}))throw new Error('Entry already reversed');
+ const e=await tx.clientFundsEntry.findUnique({where:{id:input.entryId}});if(!e||e.entryType==='reversal')throw new Error('Entry cannot be reversed');await trip(tx,e.tripId);if(e.reversedById)throw new Error('Entry already reversed');
  // External cash cannot be reversed by bookkeeping alone.
  if(['receipt','supplier_payment','refund_to_client'].includes(e.entryType))throw new Error('External funds require a corresponding reconciled cash movement');
- return postFunds(tx,context,{tripId:e.tripId,componentId:e.componentId,entryType:'reversal',amountCents:-fundsDelta(e.entryType,e.amountCents),currencyCode:e.currencyCode,reversesId:e.id,reason:input.reason});
+ return postFunds(tx,context,{tripId:e.tripId,componentId:e.componentId,entryType:'reversal',amountCents:-fundsDelta(e.entryType,e.amountCents),currencyCode:e.currencyCode,reverseOfId:e.id,reason:input.reason});
  }),
  cancelComponent:(context,input)=>command(context,'cancelComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c||c.bookingStatus==='cancelled')throw new Error('Component not cancellable');await trip(tx,c.tripId);const penalty=penaltyCents(c.sellCents,c.startAt||new Date(),new Date(),Array.isArray(c.cancelPenaltySchedule)?c.cancelPenaltySchedule:[]);
  if(input.refundCents)throw new Error('Refund requires original-tender payment reconciliation and independent approval');
  const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'cancelled'}});await audit(tx,context,'cancel','TripComponent',c.id,{bookingStatus:c.bookingStatus},{bookingStatus:'cancelled',penaltyCents:penalty});return {id:row.id,penaltyCents:penalty,refundableCents:Math.max(0,c.sellCents-penalty)};
  }),
+ shareItinerary:(context,input)=>command(context,'shareItinerary',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);const token=randomBytes(32).toString('base64url');await tx.trip.update({where:{id:t.id},data:{itineraryToken:hash(token)}});await audit(tx,context,'share','Trip',t.id,null,{itinerary:'shared'});return {id:t.id,token};}),
  transitionTrip:(context,input)=>command(context,'transitionTrip',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);await transition(tx,context,t,input.status);return {id:t.id,status:input.status};}),
  sweepTripDates:(context,input)=>command(context,'sweepTripDates',input,'canManageTrips',async tx=>{const rows=await tx.trip.findMany({where:{status:{in:['paid_in_full','traveling']}}});let count=0;for(const row of rows){const t=await trip(tx,row.id);if(t.status==='paid_in_full'&&t.startDate&&t.startDate<=new Date()){await transition(tx,context,t,'traveling');count++;}else if(t.status==='traveling'&&t.endDate&&t.endDate<new Date()){await transition(tx,context,t,'completed');count++;}}return {count};}),
 };
@@ -154,4 +156,21 @@ export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:an
   const collected=cur.collectedCents+session.amount;await tx.clientInvoice.update({where:{id:inv.id},data:{collectedCents:collected,status:collected>=cur.totalCents?'paid':'partially_paid'}});
   await postFunds(tx,context,{tripId:inv.tripId,entryType:'receipt',amountCents:session.amount,currencyCode:inv.currencyCode,reference:p.id,entryKey:`receipt:${p.id}`});
   await audit(tx,context,'receive','Payment',p.id,null,{amountCents:session.amount});return {status:'succeeded',invoiceStatus:collected>=cur.totalCents?'paid':'partially_paid',number:inv.number};});
+}
+
+const DESTINATION_SELECT={name:true,slug:true,country:true,specialty:true};
+export async function publicDestinations(_root:any,_args:any,context:any){return guardKeystonePrismaResults(context.prisma as any).destination.findMany({orderBy:{name:'asc'},select:DESTINATION_SELECT,take:100});}
+export async function publicDestination(_root:any,{slug}:any,context:any){if(!/^[a-z0-9-]{1,80}$/.test(slug||''))return null;return guardKeystonePrismaResults(context.prisma as any).destination.findFirst({where:{slug},select:DESTINATION_SELECT});}
+const INVOICE_VIEW={number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,dueAt:true,trip:{select:{title:true,tripNumber:true}},lines:{select:{description:true,amountCents:true,kind:true}}};
+export async function viewInvoice(_root:any,{token}:any,context:any){
+ if(!token||token.length<32)throw new Error('Invoice not found');
+ const i=await guardKeystonePrismaResults(context.prisma as any).clientInvoice.findFirst({where:{publicToken:hash(token)},select:INVOICE_VIEW});if(!i||i.status==='draft')throw new Error('Invoice not found');return i;
+}
+// Customer lookup: both the booking code and the email on file must match; only status data is returned.
+export async function lookupBooking(_root:any,{email,code}:any,context:any){
+ const mail=String(email||'').trim().toLowerCase(),ref=String(code||'').trim().toUpperCase();
+ if(!/^\S+@\S+\.\S+$/.test(mail)||!/^(TR|INV)-[A-Z0-9]{16}$/.test(ref))throw new Error('Booking not found');
+ const db=guardKeystonePrismaResults(context.prisma as any);
+ const trip=await db.trip.findFirst({where:{client:{email:{equals:mail,mode:'insensitive'}},OR:[{tripNumber:ref},{invoices:{some:{number:ref}}}]},select:{tripNumber:true,title:true,status:true,startDate:true,endDate:true,invoices:{select:{number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true}}}});
+ if(!trip)throw new Error('Booking not found');return trip;
 }

@@ -4700,6 +4700,7 @@ type Mutation {
   postClientFundsEntry(input: TravelJSON!): TravelJSON
   reverseEntry(input: TravelJSON!): TravelJSON
   cancelComponent(input: TravelJSON!): TravelJSON
+  shareItinerary(input: TravelJSON!): TravelJSON
   transitionTrip(input: TravelJSON!): TravelJSON
   sweepTripDates(input: TravelJSON!): TravelJSON
   submitInquiry(input: TravelJSON!): TravelJSON
@@ -4853,6 +4854,10 @@ type Query {
   redirectToInit: Boolean
   viewProposal(token: String!): TravelJSON
   viewItinerary(token: String!): TravelJSON
+  publicDestinations: TravelJSON
+  publicDestination(slug: String!): TravelJSON
+  viewInvoice(token: String!): TravelJSON
+  lookupBooking(email: String!, code: String!): TravelJSON
 }
 
 union AuthenticatedItem = User

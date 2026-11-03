@@ -266,7 +266,7 @@ test('a customer token is the customer: no staff role, and staff mutations are r
   assert.equal(permissions.canManagePeople({ session }), false);
   assert.equal(permissions.canManageTrips({ session }), false);
   assert.deepEqual(plain(rules.canUpdatePeople({ session })), { id: { equals: 'customer' } });
-  assert.deepEqual(plain(rules.canReadPeople({ session })), { assignedTo: { id: { equals: 'customer' } } });
+  assert.deepEqual(plain(rules.canReadPeople({ session })), { id: { equals: 'customer' } });
 
   const staff = await connect(h, 'staff');
   const staffSession = await sessionFor(h, staff.tokens.access_token);

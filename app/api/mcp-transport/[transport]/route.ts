@@ -281,6 +281,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
           },
           required: ['modelName', 'searchQuery', 'fields']
         }
+      }, {
+        name: 'travelOperation',
+        description: 'Run one agency operation through its custom mutation (same rules, audit and idempotency as the dashboard): createTripFromInquiry, buildProposal, sendProposal, bookComponent, generatePaymentSchedule, issueClientInvoice, recordClientPayment, recordSupplierPayment, recordCommissionReceipt, postClientFundsEntry, reverseEntry, cancelComponent, transitionTrip, shareItinerary.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            operation: { type: 'string', description: 'The operation name.' },
+            input: { type: 'string', description: 'JSON object with the operation input. An idempotency key is added when missing.' }
+          },
+          required: ['operation', 'input']
+        }
       }];
       
       return new Response(JSON.stringify({
@@ -615,6 +626,26 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
           });
         }
         
+        if (name === 'travelOperation') {
+          const TRAVEL_OPERATIONS = ['createTripFromInquiry', 'buildProposal', 'sendProposal', 'bookComponent', 'generatePaymentSchedule', 'issueClientInvoice', 'recordClientPayment', 'recordSupplierPayment', 'recordCommissionReceipt', 'postClientFundsEntry', 'reverseEntry', 'cancelComponent', 'transitionTrip', 'shareItinerary'];
+          if (!TRAVEL_OPERATIONS.includes(args.operation)) throw new Error('Unknown operation');
+          const input = JSON.parse(args.input);
+          if (!input.idempotencyKey) input.idempotencyKey = crypto.randomUUID();
+          const response = await selfFetch(graphqlEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...auth },
+            body: JSON.stringify({ query: `mutation($input: TravelJSON!) { ${args.operation}(input: $input) }`, variables: { input } }),
+          });
+          const result = await response.json();
+          if (result.errors) throw new Error(`GraphQL execution failed: ${JSON.stringify(result.errors)}`);
+          dataHasChanged = true;
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+          }), { status: 200, headers: { 'Content-Type': 'application/json', 'X-Data-Changed': 'true' } });
+        }
+
         if (name === 'createData') {
           const { operation, data, fields } = args;
           
