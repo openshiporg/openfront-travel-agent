@@ -1,0 +1,38 @@
+import { list, graphql } from "@keystone-6/core";
+import { text, integer, json, timestamp, checkbox, relationship, virtual } from "@keystone-6/core/fields";
+import { trackingFields } from "./trackingFields";
+import { cents, bps, currency, state, code, domainAccess, tripSum } from "./domainFields";
+export const TripComponent = list({
+  access: {...domainAccess("canManageTrips", true),},
+  fields: {
+    title: text(),
+    confirmationNumber: text(),
+    cancellationPolicy: text(),
+    sellCents: cents(),
+    netCostCents: cents(),
+    depositCents: cents(),
+    commissionCents: cents(),
+    startAt: timestamp(),
+    endAt: timestamp(),
+    depositDueAt: timestamp(),
+    finalDueAt: timestamp(),
+    cancelPenaltySchedule: json(),
+    purchaseSnapshot: json(),
+    trip: relationship({ ref: "Trip.components", many: false }),
+    supplier: relationship({ ref: "Supplier.components", many: false }),
+    kind: state(["hotel", "cruise", "tour", "flight", "transfer", "rail", "insurance", "activity", "fee"]),
+    bookingStatus: state(["quoted", "held", "booked", "ticketed", "cancelled"]),
+    paymentModel: state(["client_pays_supplier", "agency_collects"]),
+    commissionBps: bps(),
+    commissionStatus: state(["expected", "invoiced", "received", "short_paid", "written_off"]),
+    travelers: relationship({ ref: "Traveler.components", many: true }),
+    itineraryItems: relationship({ ref: "ItineraryItem.component", many: true }),
+    schedule: relationship({ ref: "PaymentSchedule.component", many: true }),
+    funds: relationship({ ref: "ClientFundsEntry.component", many: true }),
+    supplierPayments: relationship({ ref: "SupplierPayment.component", many: true }),
+    allocations: relationship({ ref: "CommissionAllocation.component", many: true }),
+    advisorLedger: relationship({ ref: "AdvisorCommissionLedger.component", many: true }),
+    currencyCode: currency(),
+    ...trackingFields,
+  },
+});

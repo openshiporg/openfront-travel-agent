@@ -7,8 +7,25 @@ type User {
   email: String
   password: PasswordState
   role: Role
-  tasks(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  tasksCount(where: TodoWhereInput! = {}): Int
+  onboardingStatus: String
+  tasks(where: TaskWhereInput! = {}, orderBy: [TaskOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TaskWhereUniqueInput): [Task!]
+  tasksCount(where: TaskWhereInput! = {}): Int
+  trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
+  tripsCount(where: TripWhereInput! = {}): Int
+  inquiries(where: InquiryWhereInput! = {}, orderBy: [InquiryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InquiryWhereUniqueInput): [Inquiry!]
+  inquiriesCount(where: InquiryWhereInput! = {}): Int
+  commissionLedger(where: AdvisorCommissionLedgerWhereInput! = {}, orderBy: [AdvisorCommissionLedgerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdvisorCommissionLedgerWhereUniqueInput): [AdvisorCommissionLedger!]
+  commissionLedgerCount(where: AdvisorCommissionLedgerWhereInput! = {}): Int
+  auditEvents(where: AuditEventWhereInput! = {}, orderBy: [AuditEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AuditEventWhereUniqueInput): [AuditEvent!]
+  auditEventsCount(where: AuditEventWhereInput! = {}): Int
+  processedPayments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  processedPaymentsCount(where: PaymentWhereInput! = {}): Int
+  requestedRefunds(where: RefundWhereInput! = {}, orderBy: [RefundOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RefundWhereUniqueInput): [Refund!]
+  requestedRefundsCount(where: RefundWhereInput! = {}): Int
+  approvedRefunds(where: RefundWhereInput! = {}, orderBy: [RefundOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RefundWhereUniqueInput): [Refund!]
+  approvedRefundsCount(where: RefundWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
   passwordResetToken: PasswordState
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -31,7 +48,17 @@ input UserWhereInput {
   id: IDFilter
   name: StringFilter
   role: RoleWhereInput
-  tasks: TodoManyRelationFilter
+  onboardingStatus: StringNullableFilter
+  tasks: TaskManyRelationFilter
+  trips: TripManyRelationFilter
+  inquiries: InquiryManyRelationFilter
+  commissionLedger: AdvisorCommissionLedgerManyRelationFilter
+  auditEvents: AuditEventManyRelationFilter
+  processedPayments: PaymentManyRelationFilter
+  requestedRefunds: RefundManyRelationFilter
+  approvedRefunds: RefundManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
   passwordResetToken: PasswordFilter
   passwordResetIssuedAt: DateTimeNullableFilter
   passwordResetRedeemedAt: DateTimeNullableFilter
@@ -82,10 +109,72 @@ input NestedStringFilter {
   not: NestedStringFilter
 }
 
-input TodoManyRelationFilter {
-  every: TodoWhereInput
-  some: TodoWhereInput
-  none: TodoWhereInput
+input StringNullableFilter {
+  equals: String
+  in: [String!]
+  notIn: [String!]
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  contains: String
+  startsWith: String
+  endsWith: String
+  mode: QueryMode
+  not: StringNullableFilter
+}
+
+input TaskManyRelationFilter {
+  every: TaskWhereInput
+  some: TaskWhereInput
+  none: TaskWhereInput
+}
+
+input TripManyRelationFilter {
+  every: TripWhereInput
+  some: TripWhereInput
+  none: TripWhereInput
+}
+
+input InquiryManyRelationFilter {
+  every: InquiryWhereInput
+  some: InquiryWhereInput
+  none: InquiryWhereInput
+}
+
+input AdvisorCommissionLedgerManyRelationFilter {
+  every: AdvisorCommissionLedgerWhereInput
+  some: AdvisorCommissionLedgerWhereInput
+  none: AdvisorCommissionLedgerWhereInput
+}
+
+input AuditEventManyRelationFilter {
+  every: AuditEventWhereInput
+  some: AuditEventWhereInput
+  none: AuditEventWhereInput
+}
+
+input PaymentManyRelationFilter {
+  every: PaymentWhereInput
+  some: PaymentWhereInput
+  none: PaymentWhereInput
+}
+
+input RefundManyRelationFilter {
+  every: RefundWhereInput
+  some: RefundWhereInput
+  none: RefundWhereInput
+}
+
+input DateTimeFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: DateTimeFilter
 }
 
 input PasswordFilter {
@@ -106,6 +195,9 @@ input DateTimeNullableFilter {
 input UserOrderByInput {
   id: OrderDirection
   name: OrderDirection
+  onboardingStatus: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
   passwordResetIssuedAt: OrderDirection
   passwordResetRedeemedAt: OrderDirection
 }
@@ -120,7 +212,17 @@ input UserUpdateInput {
   email: String
   password: String
   role: RoleRelateToOneForUpdateInput
-  tasks: TodoRelateToManyForUpdateInput
+  onboardingStatus: String
+  tasks: TaskRelateToManyForUpdateInput
+  trips: TripRelateToManyForUpdateInput
+  inquiries: InquiryRelateToManyForUpdateInput
+  commissionLedger: AdvisorCommissionLedgerRelateToManyForUpdateInput
+  auditEvents: AuditEventRelateToManyForUpdateInput
+  processedPayments: PaymentRelateToManyForUpdateInput
+  requestedRefunds: RefundRelateToManyForUpdateInput
+  approvedRefunds: RefundRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -132,11 +234,53 @@ input RoleRelateToOneForUpdateInput {
   disconnect: Boolean
 }
 
-input TodoRelateToManyForUpdateInput {
-  disconnect: [TodoWhereUniqueInput!]
-  set: [TodoWhereUniqueInput!]
-  create: [TodoCreateInput!]
-  connect: [TodoWhereUniqueInput!]
+input TaskRelateToManyForUpdateInput {
+  disconnect: [TaskWhereUniqueInput!]
+  set: [TaskWhereUniqueInput!]
+  create: [TaskCreateInput!]
+  connect: [TaskWhereUniqueInput!]
+}
+
+input TripRelateToManyForUpdateInput {
+  disconnect: [TripWhereUniqueInput!]
+  set: [TripWhereUniqueInput!]
+  create: [TripCreateInput!]
+  connect: [TripWhereUniqueInput!]
+}
+
+input InquiryRelateToManyForUpdateInput {
+  disconnect: [InquiryWhereUniqueInput!]
+  set: [InquiryWhereUniqueInput!]
+  create: [InquiryCreateInput!]
+  connect: [InquiryWhereUniqueInput!]
+}
+
+input AdvisorCommissionLedgerRelateToManyForUpdateInput {
+  disconnect: [AdvisorCommissionLedgerWhereUniqueInput!]
+  set: [AdvisorCommissionLedgerWhereUniqueInput!]
+  create: [AdvisorCommissionLedgerCreateInput!]
+  connect: [AdvisorCommissionLedgerWhereUniqueInput!]
+}
+
+input AuditEventRelateToManyForUpdateInput {
+  disconnect: [AuditEventWhereUniqueInput!]
+  set: [AuditEventWhereUniqueInput!]
+  create: [AuditEventCreateInput!]
+  connect: [AuditEventWhereUniqueInput!]
+}
+
+input PaymentRelateToManyForUpdateInput {
+  disconnect: [PaymentWhereUniqueInput!]
+  set: [PaymentWhereUniqueInput!]
+  create: [PaymentCreateInput!]
+  connect: [PaymentWhereUniqueInput!]
+}
+
+input RefundRelateToManyForUpdateInput {
+  disconnect: [RefundWhereUniqueInput!]
+  set: [RefundWhereUniqueInput!]
+  create: [RefundCreateInput!]
+  connect: [RefundWhereUniqueInput!]
 }
 
 input UserUpdateArgs {
@@ -149,7 +293,17 @@ input UserCreateInput {
   email: String
   password: String
   role: RoleRelateToOneForCreateInput
-  tasks: TodoRelateToManyForCreateInput
+  onboardingStatus: String
+  tasks: TaskRelateToManyForCreateInput
+  trips: TripRelateToManyForCreateInput
+  inquiries: InquiryRelateToManyForCreateInput
+  commissionLedger: AdvisorCommissionLedgerRelateToManyForCreateInput
+  auditEvents: AuditEventRelateToManyForCreateInput
+  processedPayments: PaymentRelateToManyForCreateInput
+  requestedRefunds: RefundRelateToManyForCreateInput
+  approvedRefunds: RefundRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
   passwordResetToken: String
   passwordResetIssuedAt: DateTime
   passwordResetRedeemedAt: DateTime
@@ -160,23 +314,65 @@ input RoleRelateToOneForCreateInput {
   connect: RoleWhereUniqueInput
 }
 
-input TodoRelateToManyForCreateInput {
-  create: [TodoCreateInput!]
-  connect: [TodoWhereUniqueInput!]
+input TaskRelateToManyForCreateInput {
+  create: [TaskCreateInput!]
+  connect: [TaskWhereUniqueInput!]
+}
+
+input TripRelateToManyForCreateInput {
+  create: [TripCreateInput!]
+  connect: [TripWhereUniqueInput!]
+}
+
+input InquiryRelateToManyForCreateInput {
+  create: [InquiryCreateInput!]
+  connect: [InquiryWhereUniqueInput!]
+}
+
+input AdvisorCommissionLedgerRelateToManyForCreateInput {
+  create: [AdvisorCommissionLedgerCreateInput!]
+  connect: [AdvisorCommissionLedgerWhereUniqueInput!]
+}
+
+input AuditEventRelateToManyForCreateInput {
+  create: [AuditEventCreateInput!]
+  connect: [AuditEventWhereUniqueInput!]
+}
+
+input PaymentRelateToManyForCreateInput {
+  create: [PaymentCreateInput!]
+  connect: [PaymentWhereUniqueInput!]
+}
+
+input RefundRelateToManyForCreateInput {
+  create: [RefundCreateInput!]
+  connect: [RefundWhereUniqueInput!]
 }
 
 type Role {
   id: ID!
   name: String
-  canCreateTodos: Boolean
-  canManageAllTodos: Boolean
   canSeeOtherPeople: Boolean
   canEditOtherPeople: Boolean
   canManagePeople: Boolean
   canManageRoles: Boolean
   canAccessDashboard: Boolean
+  canManageOnboarding: Boolean
+  canManagePayments: Boolean
+  canReadPayments: Boolean
+  canIssueRefunds: Boolean
+  canReadAudit: Boolean
+  canManageTrips: Boolean
+  canManageClients: Boolean
+  canManageSuppliers: Boolean
+  canManageCommissions: Boolean
+  canManageDocuments: Boolean
+  canManageTasks: Boolean
+  canManageSettings: Boolean
   assignedTo(where: UserWhereInput! = {}, orderBy: [UserOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: UserWhereUniqueInput): [User!]
   assignedToCount(where: UserWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input RoleWhereUniqueInput {
@@ -189,14 +385,26 @@ input RoleWhereInput {
   NOT: [RoleWhereInput!]
   id: IDFilter
   name: StringFilter
-  canCreateTodos: BooleanFilter
-  canManageAllTodos: BooleanFilter
   canSeeOtherPeople: BooleanFilter
   canEditOtherPeople: BooleanFilter
   canManagePeople: BooleanFilter
   canManageRoles: BooleanFilter
   canAccessDashboard: BooleanFilter
+  canManageOnboarding: BooleanFilter
+  canManagePayments: BooleanFilter
+  canReadPayments: BooleanFilter
+  canIssueRefunds: BooleanFilter
+  canReadAudit: BooleanFilter
+  canManageTrips: BooleanFilter
+  canManageClients: BooleanFilter
+  canManageSuppliers: BooleanFilter
+  canManageCommissions: BooleanFilter
+  canManageDocuments: BooleanFilter
+  canManageTasks: BooleanFilter
+  canManageSettings: BooleanFilter
   assignedTo: UserManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
 }
 
 input BooleanFilter {
@@ -213,25 +421,49 @@ input UserManyRelationFilter {
 input RoleOrderByInput {
   id: OrderDirection
   name: OrderDirection
-  canCreateTodos: OrderDirection
-  canManageAllTodos: OrderDirection
   canSeeOtherPeople: OrderDirection
   canEditOtherPeople: OrderDirection
   canManagePeople: OrderDirection
   canManageRoles: OrderDirection
   canAccessDashboard: OrderDirection
+  canManageOnboarding: OrderDirection
+  canManagePayments: OrderDirection
+  canReadPayments: OrderDirection
+  canIssueRefunds: OrderDirection
+  canReadAudit: OrderDirection
+  canManageTrips: OrderDirection
+  canManageClients: OrderDirection
+  canManageSuppliers: OrderDirection
+  canManageCommissions: OrderDirection
+  canManageDocuments: OrderDirection
+  canManageTasks: OrderDirection
+  canManageSettings: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
 }
 
 input RoleUpdateInput {
   name: String
-  canCreateTodos: Boolean
-  canManageAllTodos: Boolean
   canSeeOtherPeople: Boolean
   canEditOtherPeople: Boolean
   canManagePeople: Boolean
   canManageRoles: Boolean
   canAccessDashboard: Boolean
+  canManageOnboarding: Boolean
+  canManagePayments: Boolean
+  canReadPayments: Boolean
+  canIssueRefunds: Boolean
+  canReadAudit: Boolean
+  canManageTrips: Boolean
+  canManageClients: Boolean
+  canManageSuppliers: Boolean
+  canManageCommissions: Boolean
+  canManageDocuments: Boolean
+  canManageTasks: Boolean
+  canManageSettings: Boolean
   assignedTo: UserRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input UserRelateToManyForUpdateInput {
@@ -248,289 +480,31 @@ input RoleUpdateArgs {
 
 input RoleCreateInput {
   name: String
-  canCreateTodos: Boolean
-  canManageAllTodos: Boolean
   canSeeOtherPeople: Boolean
   canEditOtherPeople: Boolean
   canManagePeople: Boolean
   canManageRoles: Boolean
   canAccessDashboard: Boolean
+  canManageOnboarding: Boolean
+  canManagePayments: Boolean
+  canReadPayments: Boolean
+  canIssueRefunds: Boolean
+  canReadAudit: Boolean
+  canManageTrips: Boolean
+  canManageClients: Boolean
+  canManageSuppliers: Boolean
+  canManageCommissions: Boolean
+  canManageDocuments: Boolean
+  canManageTasks: Boolean
+  canManageSettings: Boolean
   assignedTo: UserRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 input UserRelateToManyForCreateInput {
   create: [UserCreateInput!]
   connect: [UserWhereUniqueInput!]
-}
-
-type Todo {
-  id: ID!
-  label: String
-  description: Todo_description_Document
-  isComplete: Boolean
-  status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: PasswordState
-  coverImage: ImageFieldOutput
-  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
-  todoImagesCount(where: TodoImageWhereInput! = {}): Int
-  assignedTo: User
-}
-
-type Todo_description_Document {
-  document(hydrateRelationships: Boolean! = false): JSON!
-}
-
-scalar Decimal
-
-scalar BigInt
-
-type ImageFieldOutput {
-  id: ID!
-  filesize: Int!
-  width: Int!
-  height: Int!
-  extension: ImageExtension!
-  url: String!
-}
-
-enum ImageExtension {
-  jpg
-  png
-  webp
-  gif
-}
-
-input TodoWhereUniqueInput {
-  id: ID
-}
-
-input TodoWhereInput {
-  AND: [TodoWhereInput!]
-  OR: [TodoWhereInput!]
-  NOT: [TodoWhereInput!]
-  id: IDFilter
-  label: StringFilter
-  isComplete: BooleanFilter
-  status: StringNullableFilter
-  priority: IntNullableFilter
-  dueDate: DateTimeNullableFilter
-  weight: FloatNullableFilter
-  budget: DecimalNullableFilter
-  isPrivate: BooleanFilter
-  largeNumber: BigIntNullableFilter
-  secretNote: PasswordFilter
-  todoImages: TodoImageManyRelationFilter
-  assignedTo: UserWhereInput
-}
-
-input StringNullableFilter {
-  equals: String
-  in: [String!]
-  notIn: [String!]
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  contains: String
-  startsWith: String
-  endsWith: String
-  mode: QueryMode
-  not: StringNullableFilter
-}
-
-input IntNullableFilter {
-  equals: Int
-  in: [Int!]
-  notIn: [Int!]
-  lt: Int
-  lte: Int
-  gt: Int
-  gte: Int
-  not: IntNullableFilter
-}
-
-input FloatNullableFilter {
-  equals: Float
-  in: [Float!]
-  notIn: [Float!]
-  lt: Float
-  lte: Float
-  gt: Float
-  gte: Float
-  not: FloatNullableFilter
-}
-
-input DecimalNullableFilter {
-  equals: Decimal
-  in: [Decimal!]
-  notIn: [Decimal!]
-  lt: Decimal
-  lte: Decimal
-  gt: Decimal
-  gte: Decimal
-  not: DecimalNullableFilter
-}
-
-input BigIntNullableFilter {
-  equals: BigInt
-  in: [BigInt!]
-  notIn: [BigInt!]
-  lt: BigInt
-  lte: BigInt
-  gt: BigInt
-  gte: BigInt
-  not: BigIntNullableFilter
-}
-
-input TodoImageManyRelationFilter {
-  every: TodoImageWhereInput
-  some: TodoImageWhereInput
-  none: TodoImageWhereInput
-}
-
-input TodoOrderByInput {
-  id: OrderDirection
-  label: OrderDirection
-  isComplete: OrderDirection
-  status: OrderDirection
-  priority: OrderDirection
-  dueDate: OrderDirection
-  weight: OrderDirection
-  budget: OrderDirection
-  isPrivate: OrderDirection
-  largeNumber: OrderDirection
-}
-
-input TodoUpdateInput {
-  label: String
-  description: JSON
-  isComplete: Boolean
-  status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: String
-  coverImage: ImageFieldInput
-  todoImages: TodoImageRelateToManyForUpdateInput
-  assignedTo: UserRelateToOneForUpdateInput
-}
-
-input ImageFieldInput {
-  upload: Upload!
-}
-
-"""The `Upload` scalar type represents a file upload."""
-scalar Upload
-
-input TodoImageRelateToManyForUpdateInput {
-  disconnect: [TodoImageWhereUniqueInput!]
-  set: [TodoImageWhereUniqueInput!]
-  create: [TodoImageCreateInput!]
-  connect: [TodoImageWhereUniqueInput!]
-}
-
-input UserRelateToOneForUpdateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-  disconnect: Boolean
-}
-
-input TodoUpdateArgs {
-  where: TodoWhereUniqueInput!
-  data: TodoUpdateInput!
-}
-
-input TodoCreateInput {
-  label: String
-  description: JSON
-  isComplete: Boolean
-  status: String
-  priority: Int
-  tags: [String!]
-  dueDate: DateTime
-  weight: Float
-  budget: Decimal
-  isPrivate: Boolean
-  largeNumber: BigInt
-  metadata: JSON
-  secretNote: String
-  coverImage: ImageFieldInput
-  todoImages: TodoImageRelateToManyForCreateInput
-  assignedTo: UserRelateToOneForCreateInput
-}
-
-input TodoImageRelateToManyForCreateInput {
-  create: [TodoImageCreateInput!]
-  connect: [TodoImageWhereUniqueInput!]
-}
-
-input UserRelateToOneForCreateInput {
-  create: UserCreateInput
-  connect: UserWhereUniqueInput
-}
-
-type TodoImage {
-  id: ID!
-  image: ImageFieldOutput
-  imagePath: String
-  altText: String
-  todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  todosCount(where: TodoWhereInput! = {}): Int
-  metadata: JSON
-}
-
-input TodoImageWhereUniqueInput {
-  id: ID
-}
-
-input TodoImageWhereInput {
-  AND: [TodoImageWhereInput!]
-  OR: [TodoImageWhereInput!]
-  NOT: [TodoImageWhereInput!]
-  id: IDFilter
-  imagePath: StringFilter
-  altText: StringFilter
-  todos: TodoManyRelationFilter
-}
-
-input TodoImageOrderByInput {
-  id: OrderDirection
-  imagePath: OrderDirection
-  altText: OrderDirection
-}
-
-input TodoImageUpdateInput {
-  image: ImageFieldInput
-  imagePath: String
-  altText: String
-  todos: TodoRelateToManyForUpdateInput
-  metadata: JSON
-}
-
-input TodoImageUpdateArgs {
-  where: TodoImageWhereUniqueInput!
-  data: TodoImageUpdateInput!
-}
-
-input TodoImageCreateInput {
-  image: ImageFieldInput
-  imagePath: String
-  altText: String
-  todos: TodoRelateToManyForCreateInput
-  metadata: JSON
 }
 
 type OAuthApp {
@@ -580,17 +554,6 @@ input OAuthAppWhereInput {
   supportUrl: StringFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
-}
-
-input DateTimeFilter {
-  equals: DateTime
-  in: [DateTime!]
-  notIn: [DateTime!]
-  lt: DateTime
-  lte: DateTime
-  gt: DateTime
-  gte: DateTime
-  not: DateTimeFilter
 }
 
 input OAuthAppOrderByInput {
@@ -747,6 +710,12 @@ input OAuthTokenUpdateInput {
   updatedAt: DateTime
 }
 
+input UserRelateToOneForUpdateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+  disconnect: Boolean
+}
+
 input OAuthTokenUpdateArgs {
   where: OAuthTokenWhereUniqueInput!
   data: OAuthTokenUpdateInput!
@@ -772,6 +741,3726 @@ input OAuthTokenCreateInput {
   updatedAt: DateTime
 }
 
+input UserRelateToOneForCreateInput {
+  create: UserCreateInput
+  connect: UserWhereUniqueInput
+}
+
+type Client {
+  id: ID!
+  name: String
+  email: String
+  phone: String
+  address: String
+  preferences: String
+  source: String
+  preferenceTags: JSON
+  loyaltyNumbers: JSON
+  marketingConsent: Boolean
+  travelers(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
+  travelersCount(where: TravelerWhereInput! = {}): Int
+  inquiries(where: InquiryWhereInput! = {}, orderBy: [InquiryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InquiryWhereUniqueInput): [Inquiry!]
+  inquiriesCount(where: InquiryWhereInput! = {}): Int
+  trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
+  tripsCount(where: TripWhereInput! = {}): Int
+  lifetimeValueCents: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientWhereUniqueInput {
+  id: ID
+}
+
+input ClientWhereInput {
+  AND: [ClientWhereInput!]
+  OR: [ClientWhereInput!]
+  NOT: [ClientWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  email: StringFilter
+  phone: StringFilter
+  address: StringFilter
+  preferences: StringFilter
+  source: StringFilter
+  marketingConsent: BooleanFilter
+  travelers: TravelerManyRelationFilter
+  inquiries: InquiryManyRelationFilter
+  trips: TripManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input TravelerManyRelationFilter {
+  every: TravelerWhereInput
+  some: TravelerWhereInput
+  none: TravelerWhereInput
+}
+
+input ClientOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  email: OrderDirection
+  phone: OrderDirection
+  address: OrderDirection
+  preferences: OrderDirection
+  source: OrderDirection
+  marketingConsent: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ClientUpdateInput {
+  name: String
+  email: String
+  phone: String
+  address: String
+  preferences: String
+  source: String
+  preferenceTags: JSON
+  loyaltyNumbers: JSON
+  marketingConsent: Boolean
+  travelers: TravelerRelateToManyForUpdateInput
+  inquiries: InquiryRelateToManyForUpdateInput
+  trips: TripRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TravelerRelateToManyForUpdateInput {
+  disconnect: [TravelerWhereUniqueInput!]
+  set: [TravelerWhereUniqueInput!]
+  create: [TravelerCreateInput!]
+  connect: [TravelerWhereUniqueInput!]
+}
+
+input ClientUpdateArgs {
+  where: ClientWhereUniqueInput!
+  data: ClientUpdateInput!
+}
+
+input ClientCreateInput {
+  name: String
+  email: String
+  phone: String
+  address: String
+  preferences: String
+  source: String
+  preferenceTags: JSON
+  loyaltyNumbers: JSON
+  marketingConsent: Boolean
+  travelers: TravelerRelateToManyForCreateInput
+  inquiries: InquiryRelateToManyForCreateInput
+  trips: TripRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TravelerRelateToManyForCreateInput {
+  create: [TravelerCreateInput!]
+  connect: [TravelerWhereUniqueInput!]
+}
+
+type Traveler {
+  id: ID!
+  firstName: String
+  lastName: String
+  knownTravelerNumber: String
+  nationality: String
+  notes: String
+  dateOfBirth: DateTime
+  passportExpiresAt: DateTime
+  passportOnFile: Boolean
+  client: Client
+  trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
+  tripsCount(where: TripWhereInput! = {}): Int
+  components(where: TripComponentWhereInput! = {}, orderBy: [TripComponentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripComponentWhereUniqueInput): [TripComponent!]
+  componentsCount(where: TripComponentWhereInput! = {}): Int
+  documents(where: DocumentWhereInput! = {}, orderBy: [DocumentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: DocumentWhereUniqueInput): [Document!]
+  documentsCount(where: DocumentWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TravelerWhereUniqueInput {
+  id: ID
+}
+
+input TravelerWhereInput {
+  AND: [TravelerWhereInput!]
+  OR: [TravelerWhereInput!]
+  NOT: [TravelerWhereInput!]
+  id: IDFilter
+  firstName: StringFilter
+  lastName: StringFilter
+  knownTravelerNumber: StringFilter
+  nationality: StringFilter
+  notes: StringFilter
+  dateOfBirth: DateTimeNullableFilter
+  passportExpiresAt: DateTimeNullableFilter
+  passportOnFile: BooleanFilter
+  client: ClientWhereInput
+  trips: TripManyRelationFilter
+  components: TripComponentManyRelationFilter
+  documents: DocumentManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input TripComponentManyRelationFilter {
+  every: TripComponentWhereInput
+  some: TripComponentWhereInput
+  none: TripComponentWhereInput
+}
+
+input DocumentManyRelationFilter {
+  every: DocumentWhereInput
+  some: DocumentWhereInput
+  none: DocumentWhereInput
+}
+
+input TravelerOrderByInput {
+  id: OrderDirection
+  firstName: OrderDirection
+  lastName: OrderDirection
+  knownTravelerNumber: OrderDirection
+  nationality: OrderDirection
+  notes: OrderDirection
+  dateOfBirth: OrderDirection
+  passportExpiresAt: OrderDirection
+  passportOnFile: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input TravelerUpdateInput {
+  firstName: String
+  lastName: String
+  knownTravelerNumber: String
+  nationality: String
+  notes: String
+  dateOfBirth: DateTime
+  passportExpiresAt: DateTime
+  passportOnFile: Boolean
+  client: ClientRelateToOneForUpdateInput
+  trips: TripRelateToManyForUpdateInput
+  components: TripComponentRelateToManyForUpdateInput
+  documents: DocumentRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientRelateToOneForUpdateInput {
+  create: ClientCreateInput
+  connect: ClientWhereUniqueInput
+  disconnect: Boolean
+}
+
+input TripComponentRelateToManyForUpdateInput {
+  disconnect: [TripComponentWhereUniqueInput!]
+  set: [TripComponentWhereUniqueInput!]
+  create: [TripComponentCreateInput!]
+  connect: [TripComponentWhereUniqueInput!]
+}
+
+input DocumentRelateToManyForUpdateInput {
+  disconnect: [DocumentWhereUniqueInput!]
+  set: [DocumentWhereUniqueInput!]
+  create: [DocumentCreateInput!]
+  connect: [DocumentWhereUniqueInput!]
+}
+
+input TravelerUpdateArgs {
+  where: TravelerWhereUniqueInput!
+  data: TravelerUpdateInput!
+}
+
+input TravelerCreateInput {
+  firstName: String
+  lastName: String
+  knownTravelerNumber: String
+  nationality: String
+  notes: String
+  dateOfBirth: DateTime
+  passportExpiresAt: DateTime
+  passportOnFile: Boolean
+  client: ClientRelateToOneForCreateInput
+  trips: TripRelateToManyForCreateInput
+  components: TripComponentRelateToManyForCreateInput
+  documents: DocumentRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientRelateToOneForCreateInput {
+  create: ClientCreateInput
+  connect: ClientWhereUniqueInput
+}
+
+input TripComponentRelateToManyForCreateInput {
+  create: [TripComponentCreateInput!]
+  connect: [TripComponentWhereUniqueInput!]
+}
+
+input DocumentRelateToManyForCreateInput {
+  create: [DocumentCreateInput!]
+  connect: [DocumentWhereUniqueInput!]
+}
+
+type Inquiry {
+  id: ID!
+  name: String
+  email: String
+  phone: String
+  destinations: String
+  source: String
+  budgetCents: Int
+  travelWindowStart: DateTime
+  travelWindowEnd: DateTime
+  client: Client
+  assignedAdvisor: User
+  tripType: InquiryTripTypeType
+  partySize: Int
+  status: InquiryStatusType
+  trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
+  tripsCount(where: TripWhereInput! = {}): Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum InquiryTripTypeType {
+  honeymoon
+  family
+  group
+  corporate
+  cruise
+  adventure
+}
+
+enum InquiryStatusType {
+  new
+  qualifying
+  proposal
+  won
+  lost
+}
+
+input InquiryWhereUniqueInput {
+  id: ID
+}
+
+input InquiryWhereInput {
+  AND: [InquiryWhereInput!]
+  OR: [InquiryWhereInput!]
+  NOT: [InquiryWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  email: StringFilter
+  phone: StringFilter
+  destinations: StringFilter
+  source: StringFilter
+  budgetCents: IntNullableFilter
+  travelWindowStart: DateTimeNullableFilter
+  travelWindowEnd: DateTimeNullableFilter
+  client: ClientWhereInput
+  assignedAdvisor: UserWhereInput
+  tripType: InquiryTripTypeTypeNullableFilter
+  partySize: IntNullableFilter
+  status: InquiryStatusTypeNullableFilter
+  trips: TripManyRelationFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input IntNullableFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntNullableFilter
+}
+
+input InquiryTripTypeTypeNullableFilter {
+  equals: InquiryTripTypeType
+  in: [InquiryTripTypeType!]
+  notIn: [InquiryTripTypeType!]
+  not: InquiryTripTypeTypeNullableFilter
+}
+
+input InquiryStatusTypeNullableFilter {
+  equals: InquiryStatusType
+  in: [InquiryStatusType!]
+  notIn: [InquiryStatusType!]
+  not: InquiryStatusTypeNullableFilter
+}
+
+input InquiryOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  email: OrderDirection
+  phone: OrderDirection
+  destinations: OrderDirection
+  source: OrderDirection
+  budgetCents: OrderDirection
+  travelWindowStart: OrderDirection
+  travelWindowEnd: OrderDirection
+  tripType: OrderDirection
+  partySize: OrderDirection
+  status: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input InquiryUpdateInput {
+  name: String
+  email: String
+  phone: String
+  destinations: String
+  source: String
+  budgetCents: Int
+  travelWindowStart: DateTime
+  travelWindowEnd: DateTime
+  client: ClientRelateToOneForUpdateInput
+  assignedAdvisor: UserRelateToOneForUpdateInput
+  tripType: InquiryTripTypeType
+  partySize: Int
+  status: InquiryStatusType
+  trips: TripRelateToManyForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input InquiryUpdateArgs {
+  where: InquiryWhereUniqueInput!
+  data: InquiryUpdateInput!
+}
+
+input InquiryCreateInput {
+  name: String
+  email: String
+  phone: String
+  destinations: String
+  source: String
+  budgetCents: Int
+  travelWindowStart: DateTime
+  travelWindowEnd: DateTime
+  client: ClientRelateToOneForCreateInput
+  assignedAdvisor: UserRelateToOneForCreateInput
+  tripType: InquiryTripTypeType
+  partySize: Int
+  status: InquiryStatusType
+  trips: TripRelateToManyForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type Destination {
+  id: ID!
+  name: String
+  slug: String
+  country: String
+  specialty: String
+  trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
+  tripsCount(where: TripWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input DestinationWhereUniqueInput {
+  id: ID
+}
+
+input DestinationWhereInput {
+  AND: [DestinationWhereInput!]
+  OR: [DestinationWhereInput!]
+  NOT: [DestinationWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  slug: StringFilter
+  country: StringFilter
+  specialty: StringFilter
+  trips: TripManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input DestinationOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  slug: OrderDirection
+  country: OrderDirection
+  specialty: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input DestinationUpdateInput {
+  name: String
+  slug: String
+  country: String
+  specialty: String
+  trips: TripRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input DestinationUpdateArgs {
+  where: DestinationWhereUniqueInput!
+  data: DestinationUpdateInput!
+}
+
+input DestinationCreateInput {
+  name: String
+  slug: String
+  country: String
+  specialty: String
+  trips: TripRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type Trip {
+  id: ID!
+  title: String
+  planningFeeCents: Int
+  startDate: DateTime
+  endDate: DateTime
+  tripNumber: String
+  client: Client
+  advisor: User
+  inquiry: Inquiry
+  destinations(where: DestinationWhereInput! = {}, orderBy: [DestinationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: DestinationWhereUniqueInput): [Destination!]
+  destinationsCount(where: DestinationWhereInput! = {}): Int
+  status: TripStatusType
+  travelers(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
+  travelersCount(where: TravelerWhereInput! = {}): Int
+  proposals(where: ProposalWhereInput! = {}, orderBy: [ProposalOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalWhereUniqueInput): [Proposal!]
+  proposalsCount(where: ProposalWhereInput! = {}): Int
+  components(where: TripComponentWhereInput! = {}, orderBy: [TripComponentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripComponentWhereUniqueInput): [TripComponent!]
+  componentsCount(where: TripComponentWhereInput! = {}): Int
+  days(where: ItineraryDayWhereInput! = {}, orderBy: [ItineraryDayOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ItineraryDayWhereUniqueInput): [ItineraryDay!]
+  daysCount(where: ItineraryDayWhereInput! = {}): Int
+  invoices(where: ClientInvoiceWhereInput! = {}, orderBy: [ClientInvoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceWhereUniqueInput): [ClientInvoice!]
+  invoicesCount(where: ClientInvoiceWhereInput! = {}): Int
+  schedule(where: PaymentScheduleWhereInput! = {}, orderBy: [PaymentScheduleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentScheduleWhereUniqueInput): [PaymentSchedule!]
+  scheduleCount(where: PaymentScheduleWhereInput! = {}): Int
+  funds(where: ClientFundsEntryWhereInput! = {}, orderBy: [ClientFundsEntryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientFundsEntryWhereUniqueInput): [ClientFundsEntry!]
+  fundsCount(where: ClientFundsEntryWhereInput! = {}): Int
+  tasks(where: TaskWhereInput! = {}, orderBy: [TaskOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TaskWhereUniqueInput): [Task!]
+  tasksCount(where: TaskWhereInput! = {}): Int
+  documents(where: DocumentWhereInput! = {}, orderBy: [DocumentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: DocumentWhereUniqueInput): [Document!]
+  documentsCount(where: DocumentWhereInput! = {}): Int
+  itineraryToken: String
+  currencyCode: String
+  totalSellCents: Int
+  totalCollectedCents: Int
+  balanceDueCents: Int
+  expectedCommissionCents: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum TripStatusType {
+  planning
+  proposal_sent
+  accepted
+  booked
+  final_payment_due
+  paid_in_full
+  traveling
+  completed
+  cancelled
+}
+
+input TripWhereUniqueInput {
+  id: ID
+  tripNumber: String
+}
+
+input TripWhereInput {
+  AND: [TripWhereInput!]
+  OR: [TripWhereInput!]
+  NOT: [TripWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  planningFeeCents: IntNullableFilter
+  startDate: DateTimeNullableFilter
+  endDate: DateTimeNullableFilter
+  tripNumber: StringFilter
+  client: ClientWhereInput
+  advisor: UserWhereInput
+  inquiry: InquiryWhereInput
+  destinations: DestinationManyRelationFilter
+  status: TripStatusTypeNullableFilter
+  travelers: TravelerManyRelationFilter
+  proposals: ProposalManyRelationFilter
+  components: TripComponentManyRelationFilter
+  days: ItineraryDayManyRelationFilter
+  invoices: ClientInvoiceManyRelationFilter
+  schedule: PaymentScheduleManyRelationFilter
+  funds: ClientFundsEntryManyRelationFilter
+  tasks: TaskManyRelationFilter
+  documents: DocumentManyRelationFilter
+  itineraryToken: StringFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input DestinationManyRelationFilter {
+  every: DestinationWhereInput
+  some: DestinationWhereInput
+  none: DestinationWhereInput
+}
+
+input TripStatusTypeNullableFilter {
+  equals: TripStatusType
+  in: [TripStatusType!]
+  notIn: [TripStatusType!]
+  not: TripStatusTypeNullableFilter
+}
+
+input ProposalManyRelationFilter {
+  every: ProposalWhereInput
+  some: ProposalWhereInput
+  none: ProposalWhereInput
+}
+
+input ItineraryDayManyRelationFilter {
+  every: ItineraryDayWhereInput
+  some: ItineraryDayWhereInput
+  none: ItineraryDayWhereInput
+}
+
+input ClientInvoiceManyRelationFilter {
+  every: ClientInvoiceWhereInput
+  some: ClientInvoiceWhereInput
+  none: ClientInvoiceWhereInput
+}
+
+input PaymentScheduleManyRelationFilter {
+  every: PaymentScheduleWhereInput
+  some: PaymentScheduleWhereInput
+  none: PaymentScheduleWhereInput
+}
+
+input ClientFundsEntryManyRelationFilter {
+  every: ClientFundsEntryWhereInput
+  some: ClientFundsEntryWhereInput
+  none: ClientFundsEntryWhereInput
+}
+
+input TripOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  planningFeeCents: OrderDirection
+  startDate: OrderDirection
+  endDate: OrderDirection
+  tripNumber: OrderDirection
+  status: OrderDirection
+  itineraryToken: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input TripUpdateInput {
+  title: String
+  planningFeeCents: Int
+  startDate: DateTime
+  endDate: DateTime
+  tripNumber: String
+  client: ClientRelateToOneForUpdateInput
+  advisor: UserRelateToOneForUpdateInput
+  inquiry: InquiryRelateToOneForUpdateInput
+  destinations: DestinationRelateToManyForUpdateInput
+  status: TripStatusType
+  travelers: TravelerRelateToManyForUpdateInput
+  proposals: ProposalRelateToManyForUpdateInput
+  components: TripComponentRelateToManyForUpdateInput
+  days: ItineraryDayRelateToManyForUpdateInput
+  invoices: ClientInvoiceRelateToManyForUpdateInput
+  schedule: PaymentScheduleRelateToManyForUpdateInput
+  funds: ClientFundsEntryRelateToManyForUpdateInput
+  tasks: TaskRelateToManyForUpdateInput
+  documents: DocumentRelateToManyForUpdateInput
+  itineraryToken: String
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input InquiryRelateToOneForUpdateInput {
+  create: InquiryCreateInput
+  connect: InquiryWhereUniqueInput
+  disconnect: Boolean
+}
+
+input DestinationRelateToManyForUpdateInput {
+  disconnect: [DestinationWhereUniqueInput!]
+  set: [DestinationWhereUniqueInput!]
+  create: [DestinationCreateInput!]
+  connect: [DestinationWhereUniqueInput!]
+}
+
+input ProposalRelateToManyForUpdateInput {
+  disconnect: [ProposalWhereUniqueInput!]
+  set: [ProposalWhereUniqueInput!]
+  create: [ProposalCreateInput!]
+  connect: [ProposalWhereUniqueInput!]
+}
+
+input ItineraryDayRelateToManyForUpdateInput {
+  disconnect: [ItineraryDayWhereUniqueInput!]
+  set: [ItineraryDayWhereUniqueInput!]
+  create: [ItineraryDayCreateInput!]
+  connect: [ItineraryDayWhereUniqueInput!]
+}
+
+input ClientInvoiceRelateToManyForUpdateInput {
+  disconnect: [ClientInvoiceWhereUniqueInput!]
+  set: [ClientInvoiceWhereUniqueInput!]
+  create: [ClientInvoiceCreateInput!]
+  connect: [ClientInvoiceWhereUniqueInput!]
+}
+
+input PaymentScheduleRelateToManyForUpdateInput {
+  disconnect: [PaymentScheduleWhereUniqueInput!]
+  set: [PaymentScheduleWhereUniqueInput!]
+  create: [PaymentScheduleCreateInput!]
+  connect: [PaymentScheduleWhereUniqueInput!]
+}
+
+input ClientFundsEntryRelateToManyForUpdateInput {
+  disconnect: [ClientFundsEntryWhereUniqueInput!]
+  set: [ClientFundsEntryWhereUniqueInput!]
+  create: [ClientFundsEntryCreateInput!]
+  connect: [ClientFundsEntryWhereUniqueInput!]
+}
+
+input TripUpdateArgs {
+  where: TripWhereUniqueInput!
+  data: TripUpdateInput!
+}
+
+input TripCreateInput {
+  title: String
+  planningFeeCents: Int
+  startDate: DateTime
+  endDate: DateTime
+  tripNumber: String
+  client: ClientRelateToOneForCreateInput
+  advisor: UserRelateToOneForCreateInput
+  inquiry: InquiryRelateToOneForCreateInput
+  destinations: DestinationRelateToManyForCreateInput
+  status: TripStatusType
+  travelers: TravelerRelateToManyForCreateInput
+  proposals: ProposalRelateToManyForCreateInput
+  components: TripComponentRelateToManyForCreateInput
+  days: ItineraryDayRelateToManyForCreateInput
+  invoices: ClientInvoiceRelateToManyForCreateInput
+  schedule: PaymentScheduleRelateToManyForCreateInput
+  funds: ClientFundsEntryRelateToManyForCreateInput
+  tasks: TaskRelateToManyForCreateInput
+  documents: DocumentRelateToManyForCreateInput
+  itineraryToken: String
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input InquiryRelateToOneForCreateInput {
+  create: InquiryCreateInput
+  connect: InquiryWhereUniqueInput
+}
+
+input DestinationRelateToManyForCreateInput {
+  create: [DestinationCreateInput!]
+  connect: [DestinationWhereUniqueInput!]
+}
+
+input ProposalRelateToManyForCreateInput {
+  create: [ProposalCreateInput!]
+  connect: [ProposalWhereUniqueInput!]
+}
+
+input ItineraryDayRelateToManyForCreateInput {
+  create: [ItineraryDayCreateInput!]
+  connect: [ItineraryDayWhereUniqueInput!]
+}
+
+input ClientInvoiceRelateToManyForCreateInput {
+  create: [ClientInvoiceCreateInput!]
+  connect: [ClientInvoiceWhereUniqueInput!]
+}
+
+input PaymentScheduleRelateToManyForCreateInput {
+  create: [PaymentScheduleCreateInput!]
+  connect: [PaymentScheduleWhereUniqueInput!]
+}
+
+input ClientFundsEntryRelateToManyForCreateInput {
+  create: [ClientFundsEntryCreateInput!]
+  connect: [ClientFundsEntryWhereUniqueInput!]
+}
+
+type Proposal {
+  id: ID!
+  introNote: String
+  acceptedByName: String
+  publicToken: String
+  acceptedSnapshotHash: String
+  sentAt: DateTime
+  acceptedAt: DateTime
+  acceptedSnapshot: JSON
+  version: Int
+  status: ProposalStatusType
+  trip: Trip
+  options(where: ProposalOptionWhereInput! = {}, orderBy: [ProposalOptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalOptionWhereUniqueInput): [ProposalOption!]
+  optionsCount(where: ProposalOptionWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum ProposalStatusType {
+  draft
+  sent
+  viewed
+  accepted
+  superseded
+  declined
+}
+
+input ProposalWhereUniqueInput {
+  id: ID
+}
+
+input ProposalWhereInput {
+  AND: [ProposalWhereInput!]
+  OR: [ProposalWhereInput!]
+  NOT: [ProposalWhereInput!]
+  id: IDFilter
+  introNote: StringFilter
+  acceptedByName: StringFilter
+  publicToken: StringFilter
+  acceptedSnapshotHash: StringFilter
+  sentAt: DateTimeNullableFilter
+  acceptedAt: DateTimeNullableFilter
+  version: IntNullableFilter
+  status: ProposalStatusTypeNullableFilter
+  trip: TripWhereInput
+  options: ProposalOptionManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ProposalStatusTypeNullableFilter {
+  equals: ProposalStatusType
+  in: [ProposalStatusType!]
+  notIn: [ProposalStatusType!]
+  not: ProposalStatusTypeNullableFilter
+}
+
+input ProposalOptionManyRelationFilter {
+  every: ProposalOptionWhereInput
+  some: ProposalOptionWhereInput
+  none: ProposalOptionWhereInput
+}
+
+input ProposalOrderByInput {
+  id: OrderDirection
+  introNote: OrderDirection
+  acceptedByName: OrderDirection
+  publicToken: OrderDirection
+  acceptedSnapshotHash: OrderDirection
+  sentAt: OrderDirection
+  acceptedAt: OrderDirection
+  version: OrderDirection
+  status: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ProposalUpdateInput {
+  introNote: String
+  acceptedByName: String
+  publicToken: String
+  acceptedSnapshotHash: String
+  sentAt: DateTime
+  acceptedAt: DateTime
+  acceptedSnapshot: JSON
+  version: Int
+  status: ProposalStatusType
+  trip: TripRelateToOneForUpdateInput
+  options: ProposalOptionRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TripRelateToOneForUpdateInput {
+  create: TripCreateInput
+  connect: TripWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ProposalOptionRelateToManyForUpdateInput {
+  disconnect: [ProposalOptionWhereUniqueInput!]
+  set: [ProposalOptionWhereUniqueInput!]
+  create: [ProposalOptionCreateInput!]
+  connect: [ProposalOptionWhereUniqueInput!]
+}
+
+input ProposalUpdateArgs {
+  where: ProposalWhereUniqueInput!
+  data: ProposalUpdateInput!
+}
+
+input ProposalCreateInput {
+  introNote: String
+  acceptedByName: String
+  publicToken: String
+  acceptedSnapshotHash: String
+  sentAt: DateTime
+  acceptedAt: DateTime
+  acceptedSnapshot: JSON
+  version: Int
+  status: ProposalStatusType
+  trip: TripRelateToOneForCreateInput
+  options: ProposalOptionRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TripRelateToOneForCreateInput {
+  create: TripCreateInput
+  connect: TripWhereUniqueInput
+}
+
+input ProposalOptionRelateToManyForCreateInput {
+  create: [ProposalOptionCreateInput!]
+  connect: [ProposalOptionWhereUniqueInput!]
+}
+
+type ProposalOption {
+  id: ID!
+  title: String
+  proposal: Proposal
+  items(where: ProposalItemWhereInput! = {}, orderBy: [ProposalItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalItemWhereUniqueInput): [ProposalItem!]
+  itemsCount(where: ProposalItemWhereInput! = {}): Int
+  sort: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ProposalOptionWhereUniqueInput {
+  id: ID
+}
+
+input ProposalOptionWhereInput {
+  AND: [ProposalOptionWhereInput!]
+  OR: [ProposalOptionWhereInput!]
+  NOT: [ProposalOptionWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  proposal: ProposalWhereInput
+  items: ProposalItemManyRelationFilter
+  sort: IntNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ProposalItemManyRelationFilter {
+  every: ProposalItemWhereInput
+  some: ProposalItemWhereInput
+  none: ProposalItemWhereInput
+}
+
+input ProposalOptionOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  sort: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ProposalOptionUpdateInput {
+  title: String
+  proposal: ProposalRelateToOneForUpdateInput
+  items: ProposalItemRelateToManyForUpdateInput
+  sort: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ProposalRelateToOneForUpdateInput {
+  create: ProposalCreateInput
+  connect: ProposalWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ProposalItemRelateToManyForUpdateInput {
+  disconnect: [ProposalItemWhereUniqueInput!]
+  set: [ProposalItemWhereUniqueInput!]
+  create: [ProposalItemCreateInput!]
+  connect: [ProposalItemWhereUniqueInput!]
+}
+
+input ProposalOptionUpdateArgs {
+  where: ProposalOptionWhereUniqueInput!
+  data: ProposalOptionUpdateInput!
+}
+
+input ProposalOptionCreateInput {
+  title: String
+  proposal: ProposalRelateToOneForCreateInput
+  items: ProposalItemRelateToManyForCreateInput
+  sort: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ProposalRelateToOneForCreateInput {
+  create: ProposalCreateInput
+  connect: ProposalWhereUniqueInput
+}
+
+input ProposalItemRelateToManyForCreateInput {
+  create: [ProposalItemCreateInput!]
+  connect: [ProposalItemWhereUniqueInput!]
+}
+
+type ProposalItem {
+  id: ID!
+  title: String
+  details: String
+  image: String
+  sellCents: Int
+  option: ProposalOption
+  kind: ProposalItemKindType
+  supplier: Supplier
+  estimatedCommissionBps: Int
+  sort: Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum ProposalItemKindType {
+  hotel
+  cruise
+  tour
+  flight
+  transfer
+  rail
+  insurance
+  activity
+  fee
+}
+
+input ProposalItemWhereUniqueInput {
+  id: ID
+}
+
+input ProposalItemWhereInput {
+  AND: [ProposalItemWhereInput!]
+  OR: [ProposalItemWhereInput!]
+  NOT: [ProposalItemWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  details: StringFilter
+  image: StringFilter
+  sellCents: IntNullableFilter
+  option: ProposalOptionWhereInput
+  kind: ProposalItemKindTypeNullableFilter
+  supplier: SupplierWhereInput
+  estimatedCommissionBps: IntNullableFilter
+  sort: IntNullableFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ProposalItemKindTypeNullableFilter {
+  equals: ProposalItemKindType
+  in: [ProposalItemKindType!]
+  notIn: [ProposalItemKindType!]
+  not: ProposalItemKindTypeNullableFilter
+}
+
+input ProposalItemOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  details: OrderDirection
+  image: OrderDirection
+  sellCents: OrderDirection
+  kind: OrderDirection
+  estimatedCommissionBps: OrderDirection
+  sort: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ProposalItemUpdateInput {
+  title: String
+  details: String
+  image: String
+  sellCents: Int
+  option: ProposalOptionRelateToOneForUpdateInput
+  kind: ProposalItemKindType
+  supplier: SupplierRelateToOneForUpdateInput
+  estimatedCommissionBps: Int
+  sort: Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ProposalOptionRelateToOneForUpdateInput {
+  create: ProposalOptionCreateInput
+  connect: ProposalOptionWhereUniqueInput
+  disconnect: Boolean
+}
+
+input SupplierRelateToOneForUpdateInput {
+  create: SupplierCreateInput
+  connect: SupplierWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ProposalItemUpdateArgs {
+  where: ProposalItemWhereUniqueInput!
+  data: ProposalItemUpdateInput!
+}
+
+input ProposalItemCreateInput {
+  title: String
+  details: String
+  image: String
+  sellCents: Int
+  option: ProposalOptionRelateToOneForCreateInput
+  kind: ProposalItemKindType
+  supplier: SupplierRelateToOneForCreateInput
+  estimatedCommissionBps: Int
+  sort: Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ProposalOptionRelateToOneForCreateInput {
+  create: ProposalOptionCreateInput
+  connect: ProposalOptionWhereUniqueInput
+}
+
+input SupplierRelateToOneForCreateInput {
+  create: SupplierCreateInput
+  connect: SupplierWhereUniqueInput
+}
+
+type TripComponent {
+  id: ID!
+  title: String
+  confirmationNumber: String
+  cancellationPolicy: String
+  sellCents: Int
+  netCostCents: Int
+  depositCents: Int
+  commissionCents: Int
+  startAt: DateTime
+  endAt: DateTime
+  depositDueAt: DateTime
+  finalDueAt: DateTime
+  cancelPenaltySchedule: JSON
+  purchaseSnapshot: JSON
+  trip: Trip
+  supplier: Supplier
+  kind: TripComponentKindType
+  bookingStatus: TripComponentBookingStatusType
+  paymentModel: TripComponentPaymentModelType
+  commissionBps: Int
+  commissionStatus: TripComponentCommissionStatusType
+  travelers(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
+  travelersCount(where: TravelerWhereInput! = {}): Int
+  itineraryItems(where: ItineraryItemWhereInput! = {}, orderBy: [ItineraryItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ItineraryItemWhereUniqueInput): [ItineraryItem!]
+  itineraryItemsCount(where: ItineraryItemWhereInput! = {}): Int
+  schedule(where: PaymentScheduleWhereInput! = {}, orderBy: [PaymentScheduleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentScheduleWhereUniqueInput): [PaymentSchedule!]
+  scheduleCount(where: PaymentScheduleWhereInput! = {}): Int
+  funds(where: ClientFundsEntryWhereInput! = {}, orderBy: [ClientFundsEntryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientFundsEntryWhereUniqueInput): [ClientFundsEntry!]
+  fundsCount(where: ClientFundsEntryWhereInput! = {}): Int
+  supplierPayments(where: SupplierPaymentWhereInput! = {}, orderBy: [SupplierPaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SupplierPaymentWhereUniqueInput): [SupplierPayment!]
+  supplierPaymentsCount(where: SupplierPaymentWhereInput! = {}): Int
+  allocations(where: CommissionAllocationWhereInput! = {}, orderBy: [CommissionAllocationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommissionAllocationWhereUniqueInput): [CommissionAllocation!]
+  allocationsCount(where: CommissionAllocationWhereInput! = {}): Int
+  advisorLedger(where: AdvisorCommissionLedgerWhereInput! = {}, orderBy: [AdvisorCommissionLedgerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdvisorCommissionLedgerWhereUniqueInput): [AdvisorCommissionLedger!]
+  advisorLedgerCount(where: AdvisorCommissionLedgerWhereInput! = {}): Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum TripComponentKindType {
+  hotel
+  cruise
+  tour
+  flight
+  transfer
+  rail
+  insurance
+  activity
+  fee
+}
+
+enum TripComponentBookingStatusType {
+  quoted
+  held
+  booked
+  ticketed
+  cancelled
+}
+
+enum TripComponentPaymentModelType {
+  client_pays_supplier
+  agency_collects
+}
+
+enum TripComponentCommissionStatusType {
+  expected
+  invoiced
+  received
+  short_paid
+  written_off
+}
+
+input TripComponentWhereUniqueInput {
+  id: ID
+}
+
+input TripComponentWhereInput {
+  AND: [TripComponentWhereInput!]
+  OR: [TripComponentWhereInput!]
+  NOT: [TripComponentWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  confirmationNumber: StringFilter
+  cancellationPolicy: StringFilter
+  sellCents: IntNullableFilter
+  netCostCents: IntNullableFilter
+  depositCents: IntNullableFilter
+  commissionCents: IntNullableFilter
+  startAt: DateTimeNullableFilter
+  endAt: DateTimeNullableFilter
+  depositDueAt: DateTimeNullableFilter
+  finalDueAt: DateTimeNullableFilter
+  trip: TripWhereInput
+  supplier: SupplierWhereInput
+  kind: TripComponentKindTypeNullableFilter
+  bookingStatus: TripComponentBookingStatusTypeNullableFilter
+  paymentModel: TripComponentPaymentModelTypeNullableFilter
+  commissionBps: IntNullableFilter
+  commissionStatus: TripComponentCommissionStatusTypeNullableFilter
+  travelers: TravelerManyRelationFilter
+  itineraryItems: ItineraryItemManyRelationFilter
+  schedule: PaymentScheduleManyRelationFilter
+  funds: ClientFundsEntryManyRelationFilter
+  supplierPayments: SupplierPaymentManyRelationFilter
+  allocations: CommissionAllocationManyRelationFilter
+  advisorLedger: AdvisorCommissionLedgerManyRelationFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input TripComponentKindTypeNullableFilter {
+  equals: TripComponentKindType
+  in: [TripComponentKindType!]
+  notIn: [TripComponentKindType!]
+  not: TripComponentKindTypeNullableFilter
+}
+
+input TripComponentBookingStatusTypeNullableFilter {
+  equals: TripComponentBookingStatusType
+  in: [TripComponentBookingStatusType!]
+  notIn: [TripComponentBookingStatusType!]
+  not: TripComponentBookingStatusTypeNullableFilter
+}
+
+input TripComponentPaymentModelTypeNullableFilter {
+  equals: TripComponentPaymentModelType
+  in: [TripComponentPaymentModelType!]
+  notIn: [TripComponentPaymentModelType!]
+  not: TripComponentPaymentModelTypeNullableFilter
+}
+
+input TripComponentCommissionStatusTypeNullableFilter {
+  equals: TripComponentCommissionStatusType
+  in: [TripComponentCommissionStatusType!]
+  notIn: [TripComponentCommissionStatusType!]
+  not: TripComponentCommissionStatusTypeNullableFilter
+}
+
+input ItineraryItemManyRelationFilter {
+  every: ItineraryItemWhereInput
+  some: ItineraryItemWhereInput
+  none: ItineraryItemWhereInput
+}
+
+input SupplierPaymentManyRelationFilter {
+  every: SupplierPaymentWhereInput
+  some: SupplierPaymentWhereInput
+  none: SupplierPaymentWhereInput
+}
+
+input CommissionAllocationManyRelationFilter {
+  every: CommissionAllocationWhereInput
+  some: CommissionAllocationWhereInput
+  none: CommissionAllocationWhereInput
+}
+
+input TripComponentOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  confirmationNumber: OrderDirection
+  cancellationPolicy: OrderDirection
+  sellCents: OrderDirection
+  netCostCents: OrderDirection
+  depositCents: OrderDirection
+  commissionCents: OrderDirection
+  startAt: OrderDirection
+  endAt: OrderDirection
+  depositDueAt: OrderDirection
+  finalDueAt: OrderDirection
+  kind: OrderDirection
+  bookingStatus: OrderDirection
+  paymentModel: OrderDirection
+  commissionBps: OrderDirection
+  commissionStatus: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input TripComponentUpdateInput {
+  title: String
+  confirmationNumber: String
+  cancellationPolicy: String
+  sellCents: Int
+  netCostCents: Int
+  depositCents: Int
+  commissionCents: Int
+  startAt: DateTime
+  endAt: DateTime
+  depositDueAt: DateTime
+  finalDueAt: DateTime
+  cancelPenaltySchedule: JSON
+  purchaseSnapshot: JSON
+  trip: TripRelateToOneForUpdateInput
+  supplier: SupplierRelateToOneForUpdateInput
+  kind: TripComponentKindType
+  bookingStatus: TripComponentBookingStatusType
+  paymentModel: TripComponentPaymentModelType
+  commissionBps: Int
+  commissionStatus: TripComponentCommissionStatusType
+  travelers: TravelerRelateToManyForUpdateInput
+  itineraryItems: ItineraryItemRelateToManyForUpdateInput
+  schedule: PaymentScheduleRelateToManyForUpdateInput
+  funds: ClientFundsEntryRelateToManyForUpdateInput
+  supplierPayments: SupplierPaymentRelateToManyForUpdateInput
+  allocations: CommissionAllocationRelateToManyForUpdateInput
+  advisorLedger: AdvisorCommissionLedgerRelateToManyForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ItineraryItemRelateToManyForUpdateInput {
+  disconnect: [ItineraryItemWhereUniqueInput!]
+  set: [ItineraryItemWhereUniqueInput!]
+  create: [ItineraryItemCreateInput!]
+  connect: [ItineraryItemWhereUniqueInput!]
+}
+
+input SupplierPaymentRelateToManyForUpdateInput {
+  disconnect: [SupplierPaymentWhereUniqueInput!]
+  set: [SupplierPaymentWhereUniqueInput!]
+  create: [SupplierPaymentCreateInput!]
+  connect: [SupplierPaymentWhereUniqueInput!]
+}
+
+input CommissionAllocationRelateToManyForUpdateInput {
+  disconnect: [CommissionAllocationWhereUniqueInput!]
+  set: [CommissionAllocationWhereUniqueInput!]
+  create: [CommissionAllocationCreateInput!]
+  connect: [CommissionAllocationWhereUniqueInput!]
+}
+
+input TripComponentUpdateArgs {
+  where: TripComponentWhereUniqueInput!
+  data: TripComponentUpdateInput!
+}
+
+input TripComponentCreateInput {
+  title: String
+  confirmationNumber: String
+  cancellationPolicy: String
+  sellCents: Int
+  netCostCents: Int
+  depositCents: Int
+  commissionCents: Int
+  startAt: DateTime
+  endAt: DateTime
+  depositDueAt: DateTime
+  finalDueAt: DateTime
+  cancelPenaltySchedule: JSON
+  purchaseSnapshot: JSON
+  trip: TripRelateToOneForCreateInput
+  supplier: SupplierRelateToOneForCreateInput
+  kind: TripComponentKindType
+  bookingStatus: TripComponentBookingStatusType
+  paymentModel: TripComponentPaymentModelType
+  commissionBps: Int
+  commissionStatus: TripComponentCommissionStatusType
+  travelers: TravelerRelateToManyForCreateInput
+  itineraryItems: ItineraryItemRelateToManyForCreateInput
+  schedule: PaymentScheduleRelateToManyForCreateInput
+  funds: ClientFundsEntryRelateToManyForCreateInput
+  supplierPayments: SupplierPaymentRelateToManyForCreateInput
+  allocations: CommissionAllocationRelateToManyForCreateInput
+  advisorLedger: AdvisorCommissionLedgerRelateToManyForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ItineraryItemRelateToManyForCreateInput {
+  create: [ItineraryItemCreateInput!]
+  connect: [ItineraryItemWhereUniqueInput!]
+}
+
+input SupplierPaymentRelateToManyForCreateInput {
+  create: [SupplierPaymentCreateInput!]
+  connect: [SupplierPaymentWhereUniqueInput!]
+}
+
+input CommissionAllocationRelateToManyForCreateInput {
+  create: [CommissionAllocationCreateInput!]
+  connect: [CommissionAllocationWhereUniqueInput!]
+}
+
+type ItineraryDay {
+  id: ID!
+  title: String
+  date: DateTime
+  trip: Trip
+  items(where: ItineraryItemWhereInput! = {}, orderBy: [ItineraryItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ItineraryItemWhereUniqueInput): [ItineraryItem!]
+  itemsCount(where: ItineraryItemWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ItineraryDayWhereUniqueInput {
+  id: ID
+}
+
+input ItineraryDayWhereInput {
+  AND: [ItineraryDayWhereInput!]
+  OR: [ItineraryDayWhereInput!]
+  NOT: [ItineraryDayWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  date: DateTimeNullableFilter
+  trip: TripWhereInput
+  items: ItineraryItemManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ItineraryDayOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  date: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ItineraryDayUpdateInput {
+  title: String
+  date: DateTime
+  trip: TripRelateToOneForUpdateInput
+  items: ItineraryItemRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ItineraryDayUpdateArgs {
+  where: ItineraryDayWhereUniqueInput!
+  data: ItineraryDayUpdateInput!
+}
+
+input ItineraryDayCreateInput {
+  title: String
+  date: DateTime
+  trip: TripRelateToOneForCreateInput
+  items: ItineraryItemRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type ItineraryItem {
+  id: ID!
+  title: String
+  time: String
+  location: String
+  notes: String
+  day: ItineraryDay
+  component: TripComponent
+  sort: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ItineraryItemWhereUniqueInput {
+  id: ID
+}
+
+input ItineraryItemWhereInput {
+  AND: [ItineraryItemWhereInput!]
+  OR: [ItineraryItemWhereInput!]
+  NOT: [ItineraryItemWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  time: StringFilter
+  location: StringFilter
+  notes: StringFilter
+  day: ItineraryDayWhereInput
+  component: TripComponentWhereInput
+  sort: IntNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ItineraryItemOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  time: OrderDirection
+  location: OrderDirection
+  notes: OrderDirection
+  sort: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ItineraryItemUpdateInput {
+  title: String
+  time: String
+  location: String
+  notes: String
+  day: ItineraryDayRelateToOneForUpdateInput
+  component: TripComponentRelateToOneForUpdateInput
+  sort: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ItineraryDayRelateToOneForUpdateInput {
+  create: ItineraryDayCreateInput
+  connect: ItineraryDayWhereUniqueInput
+  disconnect: Boolean
+}
+
+input TripComponentRelateToOneForUpdateInput {
+  create: TripComponentCreateInput
+  connect: TripComponentWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ItineraryItemUpdateArgs {
+  where: ItineraryItemWhereUniqueInput!
+  data: ItineraryItemUpdateInput!
+}
+
+input ItineraryItemCreateInput {
+  title: String
+  time: String
+  location: String
+  notes: String
+  day: ItineraryDayRelateToOneForCreateInput
+  component: TripComponentRelateToOneForCreateInput
+  sort: Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ItineraryDayRelateToOneForCreateInput {
+  create: ItineraryDayCreateInput
+  connect: ItineraryDayWhereUniqueInput
+}
+
+input TripComponentRelateToOneForCreateInput {
+  create: TripComponentCreateInput
+  connect: TripComponentWhereUniqueInput
+}
+
+type Supplier {
+  id: ID!
+  name: String
+  hostAgencyRelation: String
+  bookingPortalUrl: String
+  iataCliaNotes: String
+  kind: SupplierKindType
+  defaultCommissionBps: Int
+  commissionPaymentTermsDays: Int
+  contacts(where: SupplierContactWhereInput! = {}, orderBy: [SupplierContactOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SupplierContactWhereUniqueInput): [SupplierContact!]
+  contactsCount(where: SupplierContactWhereInput! = {}): Int
+  proposalItems(where: ProposalItemWhereInput! = {}, orderBy: [ProposalItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalItemWhereUniqueInput): [ProposalItem!]
+  proposalItemsCount(where: ProposalItemWhereInput! = {}): Int
+  components(where: TripComponentWhereInput! = {}, orderBy: [TripComponentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripComponentWhereUniqueInput): [TripComponent!]
+  componentsCount(where: TripComponentWhereInput! = {}): Int
+  receipts(where: CommissionReceiptWhereInput! = {}, orderBy: [CommissionReceiptOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommissionReceiptWhereUniqueInput): [CommissionReceipt!]
+  receiptsCount(where: CommissionReceiptWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum SupplierKindType {
+  hotel
+  cruise_line
+  tour_operator
+  dmc
+  airline
+  consolidator
+  insurer
+  transfer
+}
+
+input SupplierWhereUniqueInput {
+  id: ID
+}
+
+input SupplierWhereInput {
+  AND: [SupplierWhereInput!]
+  OR: [SupplierWhereInput!]
+  NOT: [SupplierWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  hostAgencyRelation: StringFilter
+  bookingPortalUrl: StringFilter
+  iataCliaNotes: StringFilter
+  kind: SupplierKindTypeNullableFilter
+  defaultCommissionBps: IntNullableFilter
+  commissionPaymentTermsDays: IntNullableFilter
+  contacts: SupplierContactManyRelationFilter
+  proposalItems: ProposalItemManyRelationFilter
+  components: TripComponentManyRelationFilter
+  receipts: CommissionReceiptManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input SupplierKindTypeNullableFilter {
+  equals: SupplierKindType
+  in: [SupplierKindType!]
+  notIn: [SupplierKindType!]
+  not: SupplierKindTypeNullableFilter
+}
+
+input SupplierContactManyRelationFilter {
+  every: SupplierContactWhereInput
+  some: SupplierContactWhereInput
+  none: SupplierContactWhereInput
+}
+
+input CommissionReceiptManyRelationFilter {
+  every: CommissionReceiptWhereInput
+  some: CommissionReceiptWhereInput
+  none: CommissionReceiptWhereInput
+}
+
+input SupplierOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  hostAgencyRelation: OrderDirection
+  bookingPortalUrl: OrderDirection
+  iataCliaNotes: OrderDirection
+  kind: OrderDirection
+  defaultCommissionBps: OrderDirection
+  commissionPaymentTermsDays: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input SupplierUpdateInput {
+  name: String
+  hostAgencyRelation: String
+  bookingPortalUrl: String
+  iataCliaNotes: String
+  kind: SupplierKindType
+  defaultCommissionBps: Int
+  commissionPaymentTermsDays: Int
+  contacts: SupplierContactRelateToManyForUpdateInput
+  proposalItems: ProposalItemRelateToManyForUpdateInput
+  components: TripComponentRelateToManyForUpdateInput
+  receipts: CommissionReceiptRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierContactRelateToManyForUpdateInput {
+  disconnect: [SupplierContactWhereUniqueInput!]
+  set: [SupplierContactWhereUniqueInput!]
+  create: [SupplierContactCreateInput!]
+  connect: [SupplierContactWhereUniqueInput!]
+}
+
+input CommissionReceiptRelateToManyForUpdateInput {
+  disconnect: [CommissionReceiptWhereUniqueInput!]
+  set: [CommissionReceiptWhereUniqueInput!]
+  create: [CommissionReceiptCreateInput!]
+  connect: [CommissionReceiptWhereUniqueInput!]
+}
+
+input SupplierUpdateArgs {
+  where: SupplierWhereUniqueInput!
+  data: SupplierUpdateInput!
+}
+
+input SupplierCreateInput {
+  name: String
+  hostAgencyRelation: String
+  bookingPortalUrl: String
+  iataCliaNotes: String
+  kind: SupplierKindType
+  defaultCommissionBps: Int
+  commissionPaymentTermsDays: Int
+  contacts: SupplierContactRelateToManyForCreateInput
+  proposalItems: ProposalItemRelateToManyForCreateInput
+  components: TripComponentRelateToManyForCreateInput
+  receipts: CommissionReceiptRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierContactRelateToManyForCreateInput {
+  create: [SupplierContactCreateInput!]
+  connect: [SupplierContactWhereUniqueInput!]
+}
+
+input CommissionReceiptRelateToManyForCreateInput {
+  create: [CommissionReceiptCreateInput!]
+  connect: [CommissionReceiptWhereUniqueInput!]
+}
+
+type SupplierContact {
+  id: ID!
+  name: String
+  email: String
+  phone: String
+  title: String
+  supplier: Supplier
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierContactWhereUniqueInput {
+  id: ID
+}
+
+input SupplierContactWhereInput {
+  AND: [SupplierContactWhereInput!]
+  OR: [SupplierContactWhereInput!]
+  NOT: [SupplierContactWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  email: StringFilter
+  phone: StringFilter
+  title: StringFilter
+  supplier: SupplierWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input SupplierContactOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  email: OrderDirection
+  phone: OrderDirection
+  title: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input SupplierContactUpdateInput {
+  name: String
+  email: String
+  phone: String
+  title: String
+  supplier: SupplierRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierContactUpdateArgs {
+  where: SupplierContactWhereUniqueInput!
+  data: SupplierContactUpdateInput!
+}
+
+input SupplierContactCreateInput {
+  name: String
+  email: String
+  phone: String
+  title: String
+  supplier: SupplierRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type ClientInvoice {
+  id: ID!
+  publicToken: String
+  totalCents: Int
+  collectedCents: Int
+  dueAt: DateTime
+  number: String
+  trip: Trip
+  lines(where: ClientInvoiceLineWhereInput! = {}, orderBy: [ClientInvoiceLineOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceLineWhereUniqueInput): [ClientInvoiceLine!]
+  linesCount(where: ClientInvoiceLineWhereInput! = {}): Int
+  status: ClientInvoiceStatusType
+  paymentCollection: PaymentCollection
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  refunds(where: RefundWhereInput! = {}, orderBy: [RefundOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RefundWhereUniqueInput): [Refund!]
+  refundsCount(where: RefundWhereInput! = {}): Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum ClientInvoiceStatusType {
+  draft
+  sent
+  partially_paid
+  paid
+  void
+}
+
+input ClientInvoiceWhereUniqueInput {
+  id: ID
+  number: String
+  paymentCollection: PaymentCollectionWhereUniqueInput
+}
+
+input ClientInvoiceWhereInput {
+  AND: [ClientInvoiceWhereInput!]
+  OR: [ClientInvoiceWhereInput!]
+  NOT: [ClientInvoiceWhereInput!]
+  id: IDFilter
+  publicToken: StringFilter
+  totalCents: IntNullableFilter
+  collectedCents: IntNullableFilter
+  dueAt: DateTimeNullableFilter
+  number: StringFilter
+  trip: TripWhereInput
+  lines: ClientInvoiceLineManyRelationFilter
+  status: ClientInvoiceStatusTypeNullableFilter
+  paymentCollection: PaymentCollectionWhereInput
+  payments: PaymentManyRelationFilter
+  refunds: RefundManyRelationFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ClientInvoiceLineManyRelationFilter {
+  every: ClientInvoiceLineWhereInput
+  some: ClientInvoiceLineWhereInput
+  none: ClientInvoiceLineWhereInput
+}
+
+input ClientInvoiceStatusTypeNullableFilter {
+  equals: ClientInvoiceStatusType
+  in: [ClientInvoiceStatusType!]
+  notIn: [ClientInvoiceStatusType!]
+  not: ClientInvoiceStatusTypeNullableFilter
+}
+
+input ClientInvoiceOrderByInput {
+  id: OrderDirection
+  publicToken: OrderDirection
+  totalCents: OrderDirection
+  collectedCents: OrderDirection
+  dueAt: OrderDirection
+  number: OrderDirection
+  status: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ClientInvoiceUpdateInput {
+  publicToken: String
+  totalCents: Int
+  collectedCents: Int
+  dueAt: DateTime
+  number: String
+  trip: TripRelateToOneForUpdateInput
+  lines: ClientInvoiceLineRelateToManyForUpdateInput
+  status: ClientInvoiceStatusType
+  paymentCollection: PaymentCollectionRelateToOneForUpdateInput
+  payments: PaymentRelateToManyForUpdateInput
+  refunds: RefundRelateToManyForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientInvoiceLineRelateToManyForUpdateInput {
+  disconnect: [ClientInvoiceLineWhereUniqueInput!]
+  set: [ClientInvoiceLineWhereUniqueInput!]
+  create: [ClientInvoiceLineCreateInput!]
+  connect: [ClientInvoiceLineWhereUniqueInput!]
+}
+
+input PaymentCollectionRelateToOneForUpdateInput {
+  create: PaymentCollectionCreateInput
+  connect: PaymentCollectionWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ClientInvoiceUpdateArgs {
+  where: ClientInvoiceWhereUniqueInput!
+  data: ClientInvoiceUpdateInput!
+}
+
+input ClientInvoiceCreateInput {
+  publicToken: String
+  totalCents: Int
+  collectedCents: Int
+  dueAt: DateTime
+  number: String
+  trip: TripRelateToOneForCreateInput
+  lines: ClientInvoiceLineRelateToManyForCreateInput
+  status: ClientInvoiceStatusType
+  paymentCollection: PaymentCollectionRelateToOneForCreateInput
+  payments: PaymentRelateToManyForCreateInput
+  refunds: RefundRelateToManyForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientInvoiceLineRelateToManyForCreateInput {
+  create: [ClientInvoiceLineCreateInput!]
+  connect: [ClientInvoiceLineWhereUniqueInput!]
+}
+
+input PaymentCollectionRelateToOneForCreateInput {
+  create: PaymentCollectionCreateInput
+  connect: PaymentCollectionWhereUniqueInput
+}
+
+type ClientInvoiceLine {
+  id: ID!
+  description: String
+  amountCents: Int
+  unitPriceCents: Int
+  feesCents: Int
+  taxCents: Int
+  snapshot: JSON
+  quantity: Int
+  kind: ClientInvoiceLineKindType
+  invoice: ClientInvoice
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum ClientInvoiceLineKindType {
+  planning_fee
+  component_deposit
+  component_final
+  insurance
+}
+
+input ClientInvoiceLineWhereUniqueInput {
+  id: ID
+}
+
+input ClientInvoiceLineWhereInput {
+  AND: [ClientInvoiceLineWhereInput!]
+  OR: [ClientInvoiceLineWhereInput!]
+  NOT: [ClientInvoiceLineWhereInput!]
+  id: IDFilter
+  description: StringFilter
+  amountCents: IntNullableFilter
+  unitPriceCents: IntNullableFilter
+  feesCents: IntNullableFilter
+  taxCents: IntNullableFilter
+  quantity: IntNullableFilter
+  kind: ClientInvoiceLineKindTypeNullableFilter
+  invoice: ClientInvoiceWhereInput
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ClientInvoiceLineKindTypeNullableFilter {
+  equals: ClientInvoiceLineKindType
+  in: [ClientInvoiceLineKindType!]
+  notIn: [ClientInvoiceLineKindType!]
+  not: ClientInvoiceLineKindTypeNullableFilter
+}
+
+input ClientInvoiceLineOrderByInput {
+  id: OrderDirection
+  description: OrderDirection
+  amountCents: OrderDirection
+  unitPriceCents: OrderDirection
+  feesCents: OrderDirection
+  taxCents: OrderDirection
+  quantity: OrderDirection
+  kind: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ClientInvoiceLineUpdateInput {
+  description: String
+  amountCents: Int
+  unitPriceCents: Int
+  feesCents: Int
+  taxCents: Int
+  snapshot: JSON
+  quantity: Int
+  kind: ClientInvoiceLineKindType
+  invoice: ClientInvoiceRelateToOneForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientInvoiceRelateToOneForUpdateInput {
+  create: ClientInvoiceCreateInput
+  connect: ClientInvoiceWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ClientInvoiceLineUpdateArgs {
+  where: ClientInvoiceLineWhereUniqueInput!
+  data: ClientInvoiceLineUpdateInput!
+}
+
+input ClientInvoiceLineCreateInput {
+  description: String
+  amountCents: Int
+  unitPriceCents: Int
+  feesCents: Int
+  taxCents: Int
+  snapshot: JSON
+  quantity: Int
+  kind: ClientInvoiceLineKindType
+  invoice: ClientInvoiceRelateToOneForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientInvoiceRelateToOneForCreateInput {
+  create: ClientInvoiceCreateInput
+  connect: ClientInvoiceWhereUniqueInput
+}
+
+type PaymentSchedule {
+  id: ID!
+  scheduleKey: String
+  amountCents: Int
+  dueAt: DateTime
+  kind: PaymentScheduleKindType
+  trip: Trip
+  component: TripComponent
+  status: PaymentScheduleStatusType
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum PaymentScheduleKindType {
+  planning_fee
+  component_deposit
+  component_final
+}
+
+enum PaymentScheduleStatusType {
+  due
+  invoiced
+  paid
+  cancelled
+}
+
+input PaymentScheduleWhereUniqueInput {
+  id: ID
+  scheduleKey: String
+}
+
+input PaymentScheduleWhereInput {
+  AND: [PaymentScheduleWhereInput!]
+  OR: [PaymentScheduleWhereInput!]
+  NOT: [PaymentScheduleWhereInput!]
+  id: IDFilter
+  scheduleKey: StringFilter
+  amountCents: IntNullableFilter
+  dueAt: DateTimeNullableFilter
+  kind: PaymentScheduleKindTypeNullableFilter
+  trip: TripWhereInput
+  component: TripComponentWhereInput
+  status: PaymentScheduleStatusTypeNullableFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentScheduleKindTypeNullableFilter {
+  equals: PaymentScheduleKindType
+  in: [PaymentScheduleKindType!]
+  notIn: [PaymentScheduleKindType!]
+  not: PaymentScheduleKindTypeNullableFilter
+}
+
+input PaymentScheduleStatusTypeNullableFilter {
+  equals: PaymentScheduleStatusType
+  in: [PaymentScheduleStatusType!]
+  notIn: [PaymentScheduleStatusType!]
+  not: PaymentScheduleStatusTypeNullableFilter
+}
+
+input PaymentScheduleOrderByInput {
+  id: OrderDirection
+  scheduleKey: OrderDirection
+  amountCents: OrderDirection
+  dueAt: OrderDirection
+  kind: OrderDirection
+  status: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentScheduleUpdateInput {
+  scheduleKey: String
+  amountCents: Int
+  dueAt: DateTime
+  kind: PaymentScheduleKindType
+  trip: TripRelateToOneForUpdateInput
+  component: TripComponentRelateToOneForUpdateInput
+  status: PaymentScheduleStatusType
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentScheduleUpdateArgs {
+  where: PaymentScheduleWhereUniqueInput!
+  data: PaymentScheduleUpdateInput!
+}
+
+input PaymentScheduleCreateInput {
+  scheduleKey: String
+  amountCents: Int
+  dueAt: DateTime
+  kind: PaymentScheduleKindType
+  trip: TripRelateToOneForCreateInput
+  component: TripComponentRelateToOneForCreateInput
+  status: PaymentScheduleStatusType
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type ClientFundsEntry {
+  id: ID!
+  reference: String
+  reason: String
+  amountCents: Int
+  occurredAt: DateTime
+  trip: Trip
+  component: TripComponent
+  entryType: ClientFundsEntryEntryTypeType
+  reverses: ClientFundsEntry
+  reversedBy: ClientFundsEntry
+  entryKey: String
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum ClientFundsEntryEntryTypeType {
+  receipt
+  supplier_payment
+  refund_to_client
+  transfer_planning_fee
+  reversal
+}
+
+input ClientFundsEntryWhereUniqueInput {
+  id: ID
+  reverses: ClientFundsEntryWhereUniqueInput
+  reversedBy: ClientFundsEntryWhereUniqueInput
+  entryKey: String
+}
+
+input ClientFundsEntryWhereInput {
+  AND: [ClientFundsEntryWhereInput!]
+  OR: [ClientFundsEntryWhereInput!]
+  NOT: [ClientFundsEntryWhereInput!]
+  id: IDFilter
+  reference: StringFilter
+  reason: StringFilter
+  amountCents: IntNullableFilter
+  occurredAt: DateTimeNullableFilter
+  trip: TripWhereInput
+  component: TripComponentWhereInput
+  entryType: ClientFundsEntryEntryTypeTypeNullableFilter
+  reverses: ClientFundsEntryWhereInput
+  reversedBy: ClientFundsEntryWhereInput
+  entryKey: StringFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input ClientFundsEntryEntryTypeTypeNullableFilter {
+  equals: ClientFundsEntryEntryTypeType
+  in: [ClientFundsEntryEntryTypeType!]
+  notIn: [ClientFundsEntryEntryTypeType!]
+  not: ClientFundsEntryEntryTypeTypeNullableFilter
+}
+
+input ClientFundsEntryOrderByInput {
+  id: OrderDirection
+  reference: OrderDirection
+  reason: OrderDirection
+  amountCents: OrderDirection
+  occurredAt: OrderDirection
+  entryType: OrderDirection
+  entryKey: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input ClientFundsEntryUpdateInput {
+  reference: String
+  reason: String
+  amountCents: Int
+  occurredAt: DateTime
+  trip: TripRelateToOneForUpdateInput
+  component: TripComponentRelateToOneForUpdateInput
+  entryType: ClientFundsEntryEntryTypeType
+  reverses: ClientFundsEntryRelateToOneForUpdateInput
+  reversedBy: ClientFundsEntryRelateToOneForUpdateInput
+  entryKey: String
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientFundsEntryRelateToOneForUpdateInput {
+  create: ClientFundsEntryCreateInput
+  connect: ClientFundsEntryWhereUniqueInput
+  disconnect: Boolean
+}
+
+input ClientFundsEntryUpdateArgs {
+  where: ClientFundsEntryWhereUniqueInput!
+  data: ClientFundsEntryUpdateInput!
+}
+
+input ClientFundsEntryCreateInput {
+  reference: String
+  reason: String
+  amountCents: Int
+  occurredAt: DateTime
+  trip: TripRelateToOneForCreateInput
+  component: TripComponentRelateToOneForCreateInput
+  entryType: ClientFundsEntryEntryTypeType
+  reverses: ClientFundsEntryRelateToOneForCreateInput
+  reversedBy: ClientFundsEntryRelateToOneForCreateInput
+  entryKey: String
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input ClientFundsEntryRelateToOneForCreateInput {
+  create: ClientFundsEntryCreateInput
+  connect: ClientFundsEntryWhereUniqueInput
+}
+
+type SupplierPayment {
+  id: ID!
+  method: String
+  reference: String
+  amountCents: Int
+  paidAt: DateTime
+  component: TripComponent
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierPaymentWhereUniqueInput {
+  id: ID
+}
+
+input SupplierPaymentWhereInput {
+  AND: [SupplierPaymentWhereInput!]
+  OR: [SupplierPaymentWhereInput!]
+  NOT: [SupplierPaymentWhereInput!]
+  id: IDFilter
+  method: StringFilter
+  reference: StringFilter
+  amountCents: IntNullableFilter
+  paidAt: DateTimeNullableFilter
+  component: TripComponentWhereInput
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input SupplierPaymentOrderByInput {
+  id: OrderDirection
+  method: OrderDirection
+  reference: OrderDirection
+  amountCents: OrderDirection
+  paidAt: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input SupplierPaymentUpdateInput {
+  method: String
+  reference: String
+  amountCents: Int
+  paidAt: DateTime
+  component: TripComponentRelateToOneForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input SupplierPaymentUpdateArgs {
+  where: SupplierPaymentWhereUniqueInput!
+  data: SupplierPaymentUpdateInput!
+}
+
+input SupplierPaymentCreateInput {
+  method: String
+  reference: String
+  amountCents: Int
+  paidAt: DateTime
+  component: TripComponentRelateToOneForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type CommissionReceipt {
+  id: ID!
+  reference: String
+  amountCents: Int
+  receivedAt: DateTime
+  supplier: Supplier
+  allocations(where: CommissionAllocationWhereInput! = {}, orderBy: [CommissionAllocationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommissionAllocationWhereUniqueInput): [CommissionAllocation!]
+  allocationsCount(where: CommissionAllocationWhereInput! = {}): Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CommissionReceiptWhereUniqueInput {
+  id: ID
+}
+
+input CommissionReceiptWhereInput {
+  AND: [CommissionReceiptWhereInput!]
+  OR: [CommissionReceiptWhereInput!]
+  NOT: [CommissionReceiptWhereInput!]
+  id: IDFilter
+  reference: StringFilter
+  amountCents: IntNullableFilter
+  receivedAt: DateTimeNullableFilter
+  supplier: SupplierWhereInput
+  allocations: CommissionAllocationManyRelationFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input CommissionReceiptOrderByInput {
+  id: OrderDirection
+  reference: OrderDirection
+  amountCents: OrderDirection
+  receivedAt: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CommissionReceiptUpdateInput {
+  reference: String
+  amountCents: Int
+  receivedAt: DateTime
+  supplier: SupplierRelateToOneForUpdateInput
+  allocations: CommissionAllocationRelateToManyForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CommissionReceiptUpdateArgs {
+  where: CommissionReceiptWhereUniqueInput!
+  data: CommissionReceiptUpdateInput!
+}
+
+input CommissionReceiptCreateInput {
+  reference: String
+  amountCents: Int
+  receivedAt: DateTime
+  supplier: SupplierRelateToOneForCreateInput
+  allocations: CommissionAllocationRelateToManyForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type CommissionAllocation {
+  id: ID!
+  amountCents: Int
+  component: TripComponent
+  receipt: CommissionReceipt
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CommissionAllocationWhereUniqueInput {
+  id: ID
+}
+
+input CommissionAllocationWhereInput {
+  AND: [CommissionAllocationWhereInput!]
+  OR: [CommissionAllocationWhereInput!]
+  NOT: [CommissionAllocationWhereInput!]
+  id: IDFilter
+  amountCents: IntNullableFilter
+  component: TripComponentWhereInput
+  receipt: CommissionReceiptWhereInput
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input CommissionAllocationOrderByInput {
+  id: OrderDirection
+  amountCents: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input CommissionAllocationUpdateInput {
+  amountCents: Int
+  component: TripComponentRelateToOneForUpdateInput
+  receipt: CommissionReceiptRelateToOneForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CommissionReceiptRelateToOneForUpdateInput {
+  create: CommissionReceiptCreateInput
+  connect: CommissionReceiptWhereUniqueInput
+  disconnect: Boolean
+}
+
+input CommissionAllocationUpdateArgs {
+  where: CommissionAllocationWhereUniqueInput!
+  data: CommissionAllocationUpdateInput!
+}
+
+input CommissionAllocationCreateInput {
+  amountCents: Int
+  component: TripComponentRelateToOneForCreateInput
+  receipt: CommissionReceiptRelateToOneForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input CommissionReceiptRelateToOneForCreateInput {
+  create: CommissionReceiptCreateInput
+  connect: CommissionReceiptWhereUniqueInput
+}
+
+type AdvisorCommissionLedger {
+  id: ID!
+  reference: String
+  reason: String
+  amountCents: Int
+  occurredAt: DateTime
+  entryType: AdvisorCommissionLedgerEntryTypeType
+  advisor: User
+  component: TripComponent
+  reverses: AdvisorCommissionLedger
+  reversedBy: AdvisorCommissionLedger
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum AdvisorCommissionLedgerEntryTypeType {
+  allocation
+  reversal
+}
+
+input AdvisorCommissionLedgerWhereUniqueInput {
+  id: ID
+  reverses: AdvisorCommissionLedgerWhereUniqueInput
+  reversedBy: AdvisorCommissionLedgerWhereUniqueInput
+}
+
+input AdvisorCommissionLedgerWhereInput {
+  AND: [AdvisorCommissionLedgerWhereInput!]
+  OR: [AdvisorCommissionLedgerWhereInput!]
+  NOT: [AdvisorCommissionLedgerWhereInput!]
+  id: IDFilter
+  reference: StringFilter
+  reason: StringFilter
+  amountCents: IntNullableFilter
+  occurredAt: DateTimeNullableFilter
+  entryType: AdvisorCommissionLedgerEntryTypeTypeNullableFilter
+  advisor: UserWhereInput
+  component: TripComponentWhereInput
+  reverses: AdvisorCommissionLedgerWhereInput
+  reversedBy: AdvisorCommissionLedgerWhereInput
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input AdvisorCommissionLedgerEntryTypeTypeNullableFilter {
+  equals: AdvisorCommissionLedgerEntryTypeType
+  in: [AdvisorCommissionLedgerEntryTypeType!]
+  notIn: [AdvisorCommissionLedgerEntryTypeType!]
+  not: AdvisorCommissionLedgerEntryTypeTypeNullableFilter
+}
+
+input AdvisorCommissionLedgerOrderByInput {
+  id: OrderDirection
+  reference: OrderDirection
+  reason: OrderDirection
+  amountCents: OrderDirection
+  occurredAt: OrderDirection
+  entryType: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input AdvisorCommissionLedgerUpdateInput {
+  reference: String
+  reason: String
+  amountCents: Int
+  occurredAt: DateTime
+  entryType: AdvisorCommissionLedgerEntryTypeType
+  advisor: UserRelateToOneForUpdateInput
+  component: TripComponentRelateToOneForUpdateInput
+  reverses: AdvisorCommissionLedgerRelateToOneForUpdateInput
+  reversedBy: AdvisorCommissionLedgerRelateToOneForUpdateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AdvisorCommissionLedgerRelateToOneForUpdateInput {
+  create: AdvisorCommissionLedgerCreateInput
+  connect: AdvisorCommissionLedgerWhereUniqueInput
+  disconnect: Boolean
+}
+
+input AdvisorCommissionLedgerUpdateArgs {
+  where: AdvisorCommissionLedgerWhereUniqueInput!
+  data: AdvisorCommissionLedgerUpdateInput!
+}
+
+input AdvisorCommissionLedgerCreateInput {
+  reference: String
+  reason: String
+  amountCents: Int
+  occurredAt: DateTime
+  entryType: AdvisorCommissionLedgerEntryTypeType
+  advisor: UserRelateToOneForCreateInput
+  component: TripComponentRelateToOneForCreateInput
+  reverses: AdvisorCommissionLedgerRelateToOneForCreateInput
+  reversedBy: AdvisorCommissionLedgerRelateToOneForCreateInput
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AdvisorCommissionLedgerRelateToOneForCreateInput {
+  create: AdvisorCommissionLedgerCreateInput
+  connect: AdvisorCommissionLedgerWhereUniqueInput
+}
+
+type Document {
+  id: ID!
+  title: String
+  storageKey: String
+  mimeType: String
+  checksumSha256: String
+  verifiedAt: DateTime
+  byteSize: Int
+  kind: DocumentKindType
+  trip: Trip
+  traveler: Traveler
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum DocumentKindType {
+  passport
+  visa
+  insurance
+  supplier_confirmation
+  signed_terms
+}
+
+input DocumentWhereUniqueInput {
+  id: ID
+}
+
+input DocumentWhereInput {
+  AND: [DocumentWhereInput!]
+  OR: [DocumentWhereInput!]
+  NOT: [DocumentWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  storageKey: StringFilter
+  mimeType: StringFilter
+  checksumSha256: StringFilter
+  verifiedAt: DateTimeNullableFilter
+  byteSize: IntNullableFilter
+  kind: DocumentKindTypeNullableFilter
+  trip: TripWhereInput
+  traveler: TravelerWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input DocumentKindTypeNullableFilter {
+  equals: DocumentKindType
+  in: [DocumentKindType!]
+  notIn: [DocumentKindType!]
+  not: DocumentKindTypeNullableFilter
+}
+
+input DocumentOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  storageKey: OrderDirection
+  mimeType: OrderDirection
+  checksumSha256: OrderDirection
+  verifiedAt: OrderDirection
+  byteSize: OrderDirection
+  kind: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input DocumentUpdateInput {
+  title: String
+  storageKey: String
+  mimeType: String
+  checksumSha256: String
+  verifiedAt: DateTime
+  byteSize: Int
+  kind: DocumentKindType
+  trip: TripRelateToOneForUpdateInput
+  traveler: TravelerRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TravelerRelateToOneForUpdateInput {
+  create: TravelerCreateInput
+  connect: TravelerWhereUniqueInput
+  disconnect: Boolean
+}
+
+input DocumentUpdateArgs {
+  where: DocumentWhereUniqueInput!
+  data: DocumentUpdateInput!
+}
+
+input DocumentCreateInput {
+  title: String
+  storageKey: String
+  mimeType: String
+  checksumSha256: String
+  verifiedAt: DateTime
+  byteSize: Int
+  kind: DocumentKindType
+  trip: TripRelateToOneForCreateInput
+  traveler: TravelerRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TravelerRelateToOneForCreateInput {
+  create: TravelerCreateInput
+  connect: TravelerWhereUniqueInput
+}
+
+type Task {
+  id: ID!
+  title: String
+  taskKey: String
+  dueAt: DateTime
+  trip: Trip
+  assignee: User
+  type: TaskTypeType
+  status: TaskStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum TaskTypeType {
+  deposit_due
+  final_due
+  passport_expiring
+  commission_overdue
+  follow_up
+}
+
+enum TaskStatusType {
+  open
+  completed
+  cancelled
+}
+
+input TaskWhereUniqueInput {
+  id: ID
+  taskKey: String
+}
+
+input TaskWhereInput {
+  AND: [TaskWhereInput!]
+  OR: [TaskWhereInput!]
+  NOT: [TaskWhereInput!]
+  id: IDFilter
+  title: StringFilter
+  taskKey: StringFilter
+  dueAt: DateTimeNullableFilter
+  trip: TripWhereInput
+  assignee: UserWhereInput
+  type: TaskTypeTypeNullableFilter
+  status: TaskStatusTypeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input TaskTypeTypeNullableFilter {
+  equals: TaskTypeType
+  in: [TaskTypeType!]
+  notIn: [TaskTypeType!]
+  not: TaskTypeTypeNullableFilter
+}
+
+input TaskStatusTypeNullableFilter {
+  equals: TaskStatusType
+  in: [TaskStatusType!]
+  notIn: [TaskStatusType!]
+  not: TaskStatusTypeNullableFilter
+}
+
+input TaskOrderByInput {
+  id: OrderDirection
+  title: OrderDirection
+  taskKey: OrderDirection
+  dueAt: OrderDirection
+  type: OrderDirection
+  status: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input TaskUpdateInput {
+  title: String
+  taskKey: String
+  dueAt: DateTime
+  trip: TripRelateToOneForUpdateInput
+  assignee: UserRelateToOneForUpdateInput
+  type: TaskTypeType
+  status: TaskStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TaskUpdateArgs {
+  where: TaskWhereUniqueInput!
+  data: TaskUpdateInput!
+}
+
+input TaskCreateInput {
+  title: String
+  taskKey: String
+  dueAt: DateTime
+  trip: TripRelateToOneForCreateInput
+  assignee: UserRelateToOneForCreateInput
+  type: TaskTypeType
+  status: TaskStatusType
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type AgencySettings {
+  id: ID!
+  name: String
+  address: String
+  email: String
+  phone: String
+  defaultPlanningFeeCents: Int
+  refundApprovalThresholdCents: Int
+  hostAgencySplitBps: Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AgencySettingsWhereUniqueInput {
+  id: ID
+}
+
+input AgencySettingsWhereInput {
+  AND: [AgencySettingsWhereInput!]
+  OR: [AgencySettingsWhereInput!]
+  NOT: [AgencySettingsWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  address: StringFilter
+  email: StringFilter
+  phone: StringFilter
+  defaultPlanningFeeCents: IntNullableFilter
+  refundApprovalThresholdCents: IntNullableFilter
+  hostAgencySplitBps: IntNullableFilter
+  currencyCode: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input AgencySettingsOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  address: OrderDirection
+  email: OrderDirection
+  phone: OrderDirection
+  defaultPlanningFeeCents: OrderDirection
+  refundApprovalThresholdCents: OrderDirection
+  hostAgencySplitBps: OrderDirection
+  currencyCode: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input AgencySettingsUpdateInput {
+  name: String
+  address: String
+  email: String
+  phone: String
+  defaultPlanningFeeCents: Int
+  refundApprovalThresholdCents: Int
+  hostAgencySplitBps: Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AgencySettingsUpdateArgs {
+  where: AgencySettingsWhereUniqueInput!
+  data: AgencySettingsUpdateInput!
+}
+
+input AgencySettingsCreateInput {
+  name: String
+  address: String
+  email: String
+  phone: String
+  defaultPlanningFeeCents: Int
+  refundApprovalThresholdCents: Int
+  hostAgencySplitBps: Int
+  currencyCode: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type AuditEvent {
+  id: ID!
+  action: String
+  targetList: String
+  targetId: String
+  reason: String
+  requestId: String
+  before: JSON
+  after: JSON
+  actor: User
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AuditEventWhereUniqueInput {
+  id: ID
+}
+
+input AuditEventWhereInput {
+  AND: [AuditEventWhereInput!]
+  OR: [AuditEventWhereInput!]
+  NOT: [AuditEventWhereInput!]
+  id: IDFilter
+  action: StringFilter
+  targetList: StringFilter
+  targetId: StringFilter
+  reason: StringFilter
+  requestId: StringFilter
+  actor: UserWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input AuditEventOrderByInput {
+  id: OrderDirection
+  action: OrderDirection
+  targetList: OrderDirection
+  targetId: OrderDirection
+  reason: OrderDirection
+  requestId: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input AuditEventUpdateInput {
+  action: String
+  targetList: String
+  targetId: String
+  reason: String
+  requestId: String
+  before: JSON
+  after: JSON
+  actor: UserRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input AuditEventUpdateArgs {
+  where: AuditEventWhereUniqueInput!
+  data: AuditEventUpdateInput!
+}
+
+input AuditEventCreateInput {
+  action: String
+  targetList: String
+  targetId: String
+  reason: String
+  requestId: String
+  before: JSON
+  after: JSON
+  actor: UserRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type PaymentProvider {
+  id: ID!
+  name: String
+  code: String
+  isInstalled: Boolean
+  credentials: JSON
+  metadata: JSON
+  createPaymentFunction: String
+  capturePaymentFunction: String
+  refundPaymentFunction: String
+  getPaymentStatusFunction: String
+  generatePaymentLinkFunction: String
+  handleWebhookFunction: String
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  sessions(where: PaymentSessionWhereInput! = {}, orderBy: [PaymentSessionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentSessionWhereUniqueInput): [PaymentSession!]
+  sessionsCount(where: PaymentSessionWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderWhereUniqueInput {
+  id: ID
+  code: String
+}
+
+input PaymentProviderWhereInput {
+  AND: [PaymentProviderWhereInput!]
+  OR: [PaymentProviderWhereInput!]
+  NOT: [PaymentProviderWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  code: StringFilter
+  isInstalled: BooleanFilter
+  createPaymentFunction: StringFilter
+  capturePaymentFunction: StringFilter
+  refundPaymentFunction: StringFilter
+  getPaymentStatusFunction: StringFilter
+  generatePaymentLinkFunction: StringFilter
+  handleWebhookFunction: StringFilter
+  payments: PaymentManyRelationFilter
+  sessions: PaymentSessionManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentSessionManyRelationFilter {
+  every: PaymentSessionWhereInput
+  some: PaymentSessionWhereInput
+  none: PaymentSessionWhereInput
+}
+
+input PaymentProviderOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  code: OrderDirection
+  isInstalled: OrderDirection
+  createPaymentFunction: OrderDirection
+  capturePaymentFunction: OrderDirection
+  refundPaymentFunction: OrderDirection
+  getPaymentStatusFunction: OrderDirection
+  generatePaymentLinkFunction: OrderDirection
+  handleWebhookFunction: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentProviderUpdateInput {
+  name: String
+  code: String
+  isInstalled: Boolean
+  credentials: JSON
+  metadata: JSON
+  createPaymentFunction: String
+  capturePaymentFunction: String
+  refundPaymentFunction: String
+  getPaymentStatusFunction: String
+  generatePaymentLinkFunction: String
+  handleWebhookFunction: String
+  payments: PaymentRelateToManyForUpdateInput
+  sessions: PaymentSessionRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentSessionRelateToManyForUpdateInput {
+  disconnect: [PaymentSessionWhereUniqueInput!]
+  set: [PaymentSessionWhereUniqueInput!]
+  create: [PaymentSessionCreateInput!]
+  connect: [PaymentSessionWhereUniqueInput!]
+}
+
+input PaymentProviderUpdateArgs {
+  where: PaymentProviderWhereUniqueInput!
+  data: PaymentProviderUpdateInput!
+}
+
+input PaymentProviderCreateInput {
+  name: String
+  code: String
+  isInstalled: Boolean
+  credentials: JSON
+  metadata: JSON
+  createPaymentFunction: String
+  capturePaymentFunction: String
+  refundPaymentFunction: String
+  getPaymentStatusFunction: String
+  generatePaymentLinkFunction: String
+  handleWebhookFunction: String
+  payments: PaymentRelateToManyForCreateInput
+  sessions: PaymentSessionRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentSessionRelateToManyForCreateInput {
+  create: [PaymentSessionCreateInput!]
+  connect: [PaymentSessionWhereUniqueInput!]
+}
+
+type PaymentCollection {
+  id: ID!
+  currencyCode: String
+  description: PaymentCollectionDescriptionType
+  amount: Int
+  authorizedAmount: Int
+  refundedAmount: Int
+  metadata: JSON
+  paymentSessions(where: PaymentSessionWhereInput! = {}, orderBy: [PaymentSessionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentSessionWhereUniqueInput): [PaymentSession!]
+  paymentSessionsCount(where: PaymentSessionWhereInput! = {}): Int
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  invoice: ClientInvoice
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+enum PaymentCollectionDescriptionType {
+  default
+  refund
+}
+
+input PaymentCollectionWhereUniqueInput {
+  id: ID
+  invoice: ClientInvoiceWhereUniqueInput
+}
+
+input PaymentCollectionWhereInput {
+  AND: [PaymentCollectionWhereInput!]
+  OR: [PaymentCollectionWhereInput!]
+  NOT: [PaymentCollectionWhereInput!]
+  id: IDFilter
+  currencyCode: StringFilter
+  description: PaymentCollectionDescriptionTypeNullableFilter
+  amount: IntFilter
+  authorizedAmount: IntNullableFilter
+  refundedAmount: IntNullableFilter
+  paymentSessions: PaymentSessionManyRelationFilter
+  payments: PaymentManyRelationFilter
+  invoice: ClientInvoiceWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentCollectionDescriptionTypeNullableFilter {
+  equals: PaymentCollectionDescriptionType
+  in: [PaymentCollectionDescriptionType!]
+  notIn: [PaymentCollectionDescriptionType!]
+  not: PaymentCollectionDescriptionTypeNullableFilter
+}
+
+input IntFilter {
+  equals: Int
+  in: [Int!]
+  notIn: [Int!]
+  lt: Int
+  lte: Int
+  gt: Int
+  gte: Int
+  not: IntFilter
+}
+
+input PaymentCollectionOrderByInput {
+  id: OrderDirection
+  currencyCode: OrderDirection
+  description: OrderDirection
+  amount: OrderDirection
+  authorizedAmount: OrderDirection
+  refundedAmount: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentCollectionUpdateInput {
+  currencyCode: String
+  description: PaymentCollectionDescriptionType
+  amount: Int
+  authorizedAmount: Int
+  refundedAmount: Int
+  metadata: JSON
+  paymentSessions: PaymentSessionRelateToManyForUpdateInput
+  payments: PaymentRelateToManyForUpdateInput
+  invoice: ClientInvoiceRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentCollectionUpdateArgs {
+  where: PaymentCollectionWhereUniqueInput!
+  data: PaymentCollectionUpdateInput!
+}
+
+input PaymentCollectionCreateInput {
+  currencyCode: String
+  description: PaymentCollectionDescriptionType
+  amount: Int
+  authorizedAmount: Int
+  refundedAmount: Int
+  metadata: JSON
+  paymentSessions: PaymentSessionRelateToManyForCreateInput
+  payments: PaymentRelateToManyForCreateInput
+  invoice: ClientInvoiceRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type PaymentSession {
+  id: ID!
+  currencyCode: String
+  isSelected: Boolean
+  isInitiated: Boolean
+  amount: Int
+  data: JSON
+  idempotencyKey: String
+  paymentCollection: PaymentCollection
+  paymentProvider: PaymentProvider
+  paymentAuthorizedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentSessionWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+}
+
+input PaymentSessionWhereInput {
+  AND: [PaymentSessionWhereInput!]
+  OR: [PaymentSessionWhereInput!]
+  NOT: [PaymentSessionWhereInput!]
+  id: IDFilter
+  currencyCode: StringFilter
+  isSelected: BooleanFilter
+  isInitiated: BooleanFilter
+  amount: IntFilter
+  idempotencyKey: StringFilter
+  paymentCollection: PaymentCollectionWhereInput
+  paymentProvider: PaymentProviderWhereInput
+  paymentAuthorizedAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentSessionOrderByInput {
+  id: OrderDirection
+  currencyCode: OrderDirection
+  isSelected: OrderDirection
+  isInitiated: OrderDirection
+  amount: OrderDirection
+  idempotencyKey: OrderDirection
+  paymentAuthorizedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentSessionUpdateInput {
+  currencyCode: String
+  isSelected: Boolean
+  isInitiated: Boolean
+  amount: Int
+  data: JSON
+  idempotencyKey: String
+  paymentCollection: PaymentCollectionRelateToOneForUpdateInput
+  paymentProvider: PaymentProviderRelateToOneForUpdateInput
+  paymentAuthorizedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderRelateToOneForUpdateInput {
+  create: PaymentProviderCreateInput
+  connect: PaymentProviderWhereUniqueInput
+  disconnect: Boolean
+}
+
+input PaymentSessionUpdateArgs {
+  where: PaymentSessionWhereUniqueInput!
+  data: PaymentSessionUpdateInput!
+}
+
+input PaymentSessionCreateInput {
+  currencyCode: String
+  isSelected: Boolean
+  isInitiated: Boolean
+  amount: Int
+  data: JSON
+  idempotencyKey: String
+  paymentCollection: PaymentCollectionRelateToOneForCreateInput
+  paymentProvider: PaymentProviderRelateToOneForCreateInput
+  paymentAuthorizedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentProviderRelateToOneForCreateInput {
+  create: PaymentProviderCreateInput
+  connect: PaymentProviderWhereUniqueInput
+}
+
+type Payment {
+  id: ID!
+  refunds(where: RefundWhereInput! = {}, orderBy: [RefundOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RefundWhereUniqueInput): [Refund!]
+  refundsCount(where: RefundWhereInput! = {}): Int
+  webhookEvents(where: PaymentWebhookEventWhereInput! = {}, orderBy: [PaymentWebhookEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWebhookEventWhereUniqueInput): [PaymentWebhookEvent!]
+  webhookEventsCount(where: PaymentWebhookEventWhereInput! = {}): Int
+  idempotencyKey: String
+  reservedAt: DateTime
+  refundedAmount: Int
+  amount: Int
+  data: JSON
+  currencyCode: String
+  status: String
+  paymentMethod: String
+  paymentProvider: PaymentProvider
+  providerPaymentId: String
+  cardLast4: String
+  cardBrand: String
+  tipAmount: Int
+  isSplitPayment: Boolean
+  splitPaymentIndex: Int
+  splitTotal: Int
+  processedAt: DateTime
+  errorMessage: String
+  notes: String
+  order: ClientInvoice
+  paymentCollection: PaymentCollection
+  processedBy: User
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+}
+
+input PaymentWhereInput {
+  AND: [PaymentWhereInput!]
+  OR: [PaymentWhereInput!]
+  NOT: [PaymentWhereInput!]
+  id: IDFilter
+  refunds: RefundManyRelationFilter
+  webhookEvents: PaymentWebhookEventManyRelationFilter
+  idempotencyKey: StringFilter
+  reservedAt: DateTimeNullableFilter
+  refundedAmount: IntNullableFilter
+  amount: IntFilter
+  currencyCode: StringFilter
+  status: StringFilter
+  paymentMethod: StringNullableFilter
+  paymentProvider: PaymentProviderWhereInput
+  providerPaymentId: StringFilter
+  cardLast4: StringFilter
+  cardBrand: StringFilter
+  tipAmount: IntNullableFilter
+  isSplitPayment: BooleanFilter
+  splitPaymentIndex: IntNullableFilter
+  splitTotal: IntNullableFilter
+  processedAt: DateTimeNullableFilter
+  errorMessage: StringFilter
+  notes: StringFilter
+  order: ClientInvoiceWhereInput
+  paymentCollection: PaymentCollectionWhereInput
+  processedBy: UserWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentWebhookEventManyRelationFilter {
+  every: PaymentWebhookEventWhereInput
+  some: PaymentWebhookEventWhereInput
+  none: PaymentWebhookEventWhereInput
+}
+
+input PaymentOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  reservedAt: OrderDirection
+  refundedAmount: OrderDirection
+  amount: OrderDirection
+  currencyCode: OrderDirection
+  status: OrderDirection
+  paymentMethod: OrderDirection
+  providerPaymentId: OrderDirection
+  cardLast4: OrderDirection
+  cardBrand: OrderDirection
+  tipAmount: OrderDirection
+  isSplitPayment: OrderDirection
+  splitPaymentIndex: OrderDirection
+  splitTotal: OrderDirection
+  processedAt: OrderDirection
+  errorMessage: OrderDirection
+  notes: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentUpdateInput {
+  refunds: RefundRelateToManyForUpdateInput
+  webhookEvents: PaymentWebhookEventRelateToManyForUpdateInput
+  idempotencyKey: String
+  reservedAt: DateTime
+  refundedAmount: Int
+  amount: Int
+  data: JSON
+  currencyCode: String
+  status: String
+  paymentMethod: String
+  paymentProvider: PaymentProviderRelateToOneForUpdateInput
+  providerPaymentId: String
+  cardLast4: String
+  cardBrand: String
+  tipAmount: Int
+  isSplitPayment: Boolean
+  splitPaymentIndex: Int
+  splitTotal: Int
+  processedAt: DateTime
+  errorMessage: String
+  notes: String
+  order: ClientInvoiceRelateToOneForUpdateInput
+  paymentCollection: PaymentCollectionRelateToOneForUpdateInput
+  processedBy: UserRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentWebhookEventRelateToManyForUpdateInput {
+  disconnect: [PaymentWebhookEventWhereUniqueInput!]
+  set: [PaymentWebhookEventWhereUniqueInput!]
+  create: [PaymentWebhookEventCreateInput!]
+  connect: [PaymentWebhookEventWhereUniqueInput!]
+}
+
+input PaymentUpdateArgs {
+  where: PaymentWhereUniqueInput!
+  data: PaymentUpdateInput!
+}
+
+input PaymentCreateInput {
+  refunds: RefundRelateToManyForCreateInput
+  webhookEvents: PaymentWebhookEventRelateToManyForCreateInput
+  idempotencyKey: String
+  reservedAt: DateTime
+  refundedAmount: Int
+  amount: Int
+  data: JSON
+  currencyCode: String
+  status: String
+  paymentMethod: String
+  paymentProvider: PaymentProviderRelateToOneForCreateInput
+  providerPaymentId: String
+  cardLast4: String
+  cardBrand: String
+  tipAmount: Int
+  isSplitPayment: Boolean
+  splitPaymentIndex: Int
+  splitTotal: Int
+  processedAt: DateTime
+  errorMessage: String
+  notes: String
+  order: ClientInvoiceRelateToOneForCreateInput
+  paymentCollection: PaymentCollectionRelateToOneForCreateInput
+  processedBy: UserRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentWebhookEventRelateToManyForCreateInput {
+  create: [PaymentWebhookEventCreateInput!]
+  connect: [PaymentWebhookEventWhereUniqueInput!]
+}
+
+type Refund {
+  id: ID!
+  idempotencyKey: String
+  amount: Int
+  currencyCode: String
+  status: String
+  reason: String
+  providerRefundId: String
+  providerData: JSON
+  processedAt: DateTime
+  payment: Payment
+  order: ClientInvoice
+  requestedBy: User
+  approvedBy: User
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input RefundWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+}
+
+input RefundWhereInput {
+  AND: [RefundWhereInput!]
+  OR: [RefundWhereInput!]
+  NOT: [RefundWhereInput!]
+  id: IDFilter
+  idempotencyKey: StringFilter
+  amount: IntFilter
+  currencyCode: StringFilter
+  status: StringFilter
+  reason: StringFilter
+  providerRefundId: StringFilter
+  processedAt: DateTimeNullableFilter
+  payment: PaymentWhereInput
+  order: ClientInvoiceWhereInput
+  requestedBy: UserWhereInput
+  approvedBy: UserWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input RefundOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  amount: OrderDirection
+  currencyCode: OrderDirection
+  status: OrderDirection
+  reason: OrderDirection
+  providerRefundId: OrderDirection
+  processedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input RefundUpdateInput {
+  idempotencyKey: String
+  amount: Int
+  currencyCode: String
+  status: String
+  reason: String
+  providerRefundId: String
+  providerData: JSON
+  processedAt: DateTime
+  payment: PaymentRelateToOneForUpdateInput
+  order: ClientInvoiceRelateToOneForUpdateInput
+  requestedBy: UserRelateToOneForUpdateInput
+  approvedBy: UserRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentRelateToOneForUpdateInput {
+  create: PaymentCreateInput
+  connect: PaymentWhereUniqueInput
+  disconnect: Boolean
+}
+
+input RefundUpdateArgs {
+  where: RefundWhereUniqueInput!
+  data: RefundUpdateInput!
+}
+
+input RefundCreateInput {
+  idempotencyKey: String
+  amount: Int
+  currencyCode: String
+  status: String
+  reason: String
+  providerRefundId: String
+  providerData: JSON
+  processedAt: DateTime
+  payment: PaymentRelateToOneForCreateInput
+  order: ClientInvoiceRelateToOneForCreateInput
+  requestedBy: UserRelateToOneForCreateInput
+  approvedBy: UserRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentRelateToOneForCreateInput {
+  create: PaymentCreateInput
+  connect: PaymentWhereUniqueInput
+}
+
+type PaymentWebhookEvent {
+  id: ID!
+  eventKey: String
+  providerCode: String
+  providerEventId: String
+  eventType: String
+  status: String
+  payload: JSON
+  rawBody: String
+  error: String
+  attempts: Int
+  receivedAt: DateTime
+  processedAt: DateTime
+  payment: Payment
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentWebhookEventWhereUniqueInput {
+  id: ID
+  eventKey: String
+}
+
+input PaymentWebhookEventWhereInput {
+  AND: [PaymentWebhookEventWhereInput!]
+  OR: [PaymentWebhookEventWhereInput!]
+  NOT: [PaymentWebhookEventWhereInput!]
+  id: IDFilter
+  eventKey: StringFilter
+  providerCode: StringFilter
+  providerEventId: StringFilter
+  eventType: StringFilter
+  status: StringNullableFilter
+  rawBody: StringFilter
+  error: StringFilter
+  attempts: IntNullableFilter
+  receivedAt: DateTimeNullableFilter
+  processedAt: DateTimeNullableFilter
+  payment: PaymentWhereInput
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input PaymentWebhookEventOrderByInput {
+  id: OrderDirection
+  eventKey: OrderDirection
+  providerCode: OrderDirection
+  providerEventId: OrderDirection
+  eventType: OrderDirection
+  status: OrderDirection
+  rawBody: OrderDirection
+  error: OrderDirection
+  attempts: OrderDirection
+  receivedAt: OrderDirection
+  processedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input PaymentWebhookEventUpdateInput {
+  eventKey: String
+  providerCode: String
+  providerEventId: String
+  eventType: String
+  status: String
+  payload: JSON
+  rawBody: String
+  error: String
+  attempts: Int
+  receivedAt: DateTime
+  processedAt: DateTime
+  payment: PaymentRelateToOneForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input PaymentWebhookEventUpdateArgs {
+  where: PaymentWebhookEventWhereUniqueInput!
+  data: PaymentWebhookEventUpdateInput!
+}
+
+input PaymentWebhookEventCreateInput {
+  eventKey: String
+  providerCode: String
+  providerEventId: String
+  eventType: String
+  status: String
+  payload: JSON
+  rawBody: String
+  error: String
+  attempts: Int
+  receivedAt: DateTime
+  processedAt: DateTime
+  payment: PaymentRelateToOneForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type IdempotencyKey {
+  id: ID!
+  idempotencyKey: String
+  requestMethod: String
+  requestParams: JSON
+  requestPath: String
+  responseCode: Int
+  responseBody: JSON
+  recoveryPoint: String
+  lockedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input IdempotencyKeyWhereUniqueInput {
+  id: ID
+  idempotencyKey: String
+}
+
+input IdempotencyKeyWhereInput {
+  AND: [IdempotencyKeyWhereInput!]
+  OR: [IdempotencyKeyWhereInput!]
+  NOT: [IdempotencyKeyWhereInput!]
+  id: IDFilter
+  idempotencyKey: StringFilter
+  requestMethod: StringFilter
+  requestPath: StringFilter
+  responseCode: IntNullableFilter
+  recoveryPoint: StringFilter
+  lockedAt: DateTimeNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input IdempotencyKeyOrderByInput {
+  id: OrderDirection
+  idempotencyKey: OrderDirection
+  requestMethod: OrderDirection
+  requestPath: OrderDirection
+  responseCode: OrderDirection
+  recoveryPoint: OrderDirection
+  lockedAt: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input IdempotencyKeyUpdateInput {
+  idempotencyKey: String
+  requestMethod: String
+  requestParams: JSON
+  requestPath: String
+  responseCode: Int
+  responseBody: JSON
+  recoveryPoint: String
+  lockedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input IdempotencyKeyUpdateArgs {
+  where: IdempotencyKeyWhereUniqueInput!
+  data: IdempotencyKeyUpdateInput!
+}
+
+input IdempotencyKeyCreateInput {
+  idempotencyKey: String
+  requestMethod: String
+  requestParams: JSON
+  requestPath: String
+  responseCode: Int
+  responseBody: JSON
+  recoveryPoint: String
+  lockedAt: DateTime
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -790,18 +4479,6 @@ type Mutation {
   updateRoles(data: [RoleUpdateArgs!]!): [Role]
   deleteRole(where: RoleWhereUniqueInput!): Role
   deleteRoles(where: [RoleWhereUniqueInput!]!): [Role]
-  createTodo(data: TodoCreateInput!): Todo
-  createTodos(data: [TodoCreateInput!]!): [Todo]
-  updateTodo(where: TodoWhereUniqueInput!, data: TodoUpdateInput!): Todo
-  updateTodos(data: [TodoUpdateArgs!]!): [Todo]
-  deleteTodo(where: TodoWhereUniqueInput!): Todo
-  deleteTodos(where: [TodoWhereUniqueInput!]!): [Todo]
-  createTodoImage(data: TodoImageCreateInput!): TodoImage
-  createTodoImages(data: [TodoImageCreateInput!]!): [TodoImage]
-  updateTodoImage(where: TodoImageWhereUniqueInput!, data: TodoImageUpdateInput!): TodoImage
-  updateTodoImages(data: [TodoImageUpdateArgs!]!): [TodoImage]
-  deleteTodoImage(where: TodoImageWhereUniqueInput!): TodoImage
-  deleteTodoImages(where: [TodoImageWhereUniqueInput!]!): [TodoImage]
   createOAuthApp(data: OAuthAppCreateInput!): OAuthApp
   createOAuthApps(data: [OAuthAppCreateInput!]!): [OAuthApp]
   updateOAuthApp(where: OAuthAppWhereUniqueInput!, data: OAuthAppUpdateInput!): OAuthApp
@@ -814,6 +4491,198 @@ type Mutation {
   updateOAuthTokens(data: [OAuthTokenUpdateArgs!]!): [OAuthToken]
   deleteOAuthToken(where: OAuthTokenWhereUniqueInput!): OAuthToken
   deleteOAuthTokens(where: [OAuthTokenWhereUniqueInput!]!): [OAuthToken]
+  createClient(data: ClientCreateInput!): Client
+  createClients(data: [ClientCreateInput!]!): [Client]
+  updateClient(where: ClientWhereUniqueInput!, data: ClientUpdateInput!): Client
+  updateClients(data: [ClientUpdateArgs!]!): [Client]
+  deleteClient(where: ClientWhereUniqueInput!): Client
+  deleteClients(where: [ClientWhereUniqueInput!]!): [Client]
+  createTraveler(data: TravelerCreateInput!): Traveler
+  createTravelers(data: [TravelerCreateInput!]!): [Traveler]
+  updateTraveler(where: TravelerWhereUniqueInput!, data: TravelerUpdateInput!): Traveler
+  updateTravelers(data: [TravelerUpdateArgs!]!): [Traveler]
+  deleteTraveler(where: TravelerWhereUniqueInput!): Traveler
+  deleteTravelers(where: [TravelerWhereUniqueInput!]!): [Traveler]
+  createInquiry(data: InquiryCreateInput!): Inquiry
+  createInquiries(data: [InquiryCreateInput!]!): [Inquiry]
+  updateInquiry(where: InquiryWhereUniqueInput!, data: InquiryUpdateInput!): Inquiry
+  updateInquiries(data: [InquiryUpdateArgs!]!): [Inquiry]
+  deleteInquiry(where: InquiryWhereUniqueInput!): Inquiry
+  deleteInquiries(where: [InquiryWhereUniqueInput!]!): [Inquiry]
+  createDestination(data: DestinationCreateInput!): Destination
+  createDestinations(data: [DestinationCreateInput!]!): [Destination]
+  updateDestination(where: DestinationWhereUniqueInput!, data: DestinationUpdateInput!): Destination
+  updateDestinations(data: [DestinationUpdateArgs!]!): [Destination]
+  deleteDestination(where: DestinationWhereUniqueInput!): Destination
+  deleteDestinations(where: [DestinationWhereUniqueInput!]!): [Destination]
+  createTrip(data: TripCreateInput!): Trip
+  createTrips(data: [TripCreateInput!]!): [Trip]
+  updateTrip(where: TripWhereUniqueInput!, data: TripUpdateInput!): Trip
+  updateTrips(data: [TripUpdateArgs!]!): [Trip]
+  deleteTrip(where: TripWhereUniqueInput!): Trip
+  deleteTrips(where: [TripWhereUniqueInput!]!): [Trip]
+  createProposal(data: ProposalCreateInput!): Proposal
+  createProposals(data: [ProposalCreateInput!]!): [Proposal]
+  updateProposal(where: ProposalWhereUniqueInput!, data: ProposalUpdateInput!): Proposal
+  updateProposals(data: [ProposalUpdateArgs!]!): [Proposal]
+  deleteProposal(where: ProposalWhereUniqueInput!): Proposal
+  deleteProposals(where: [ProposalWhereUniqueInput!]!): [Proposal]
+  createProposalOption(data: ProposalOptionCreateInput!): ProposalOption
+  createProposalOptions(data: [ProposalOptionCreateInput!]!): [ProposalOption]
+  updateProposalOption(where: ProposalOptionWhereUniqueInput!, data: ProposalOptionUpdateInput!): ProposalOption
+  updateProposalOptions(data: [ProposalOptionUpdateArgs!]!): [ProposalOption]
+  deleteProposalOption(where: ProposalOptionWhereUniqueInput!): ProposalOption
+  deleteProposalOptions(where: [ProposalOptionWhereUniqueInput!]!): [ProposalOption]
+  createProposalItem(data: ProposalItemCreateInput!): ProposalItem
+  createProposalItems(data: [ProposalItemCreateInput!]!): [ProposalItem]
+  updateProposalItem(where: ProposalItemWhereUniqueInput!, data: ProposalItemUpdateInput!): ProposalItem
+  updateProposalItems(data: [ProposalItemUpdateArgs!]!): [ProposalItem]
+  deleteProposalItem(where: ProposalItemWhereUniqueInput!): ProposalItem
+  deleteProposalItems(where: [ProposalItemWhereUniqueInput!]!): [ProposalItem]
+  createTripComponent(data: TripComponentCreateInput!): TripComponent
+  createTripComponents(data: [TripComponentCreateInput!]!): [TripComponent]
+  updateTripComponent(where: TripComponentWhereUniqueInput!, data: TripComponentUpdateInput!): TripComponent
+  updateTripComponents(data: [TripComponentUpdateArgs!]!): [TripComponent]
+  deleteTripComponent(where: TripComponentWhereUniqueInput!): TripComponent
+  deleteTripComponents(where: [TripComponentWhereUniqueInput!]!): [TripComponent]
+  createItineraryDay(data: ItineraryDayCreateInput!): ItineraryDay
+  createItineraryDays(data: [ItineraryDayCreateInput!]!): [ItineraryDay]
+  updateItineraryDay(where: ItineraryDayWhereUniqueInput!, data: ItineraryDayUpdateInput!): ItineraryDay
+  updateItineraryDays(data: [ItineraryDayUpdateArgs!]!): [ItineraryDay]
+  deleteItineraryDay(where: ItineraryDayWhereUniqueInput!): ItineraryDay
+  deleteItineraryDays(where: [ItineraryDayWhereUniqueInput!]!): [ItineraryDay]
+  createItineraryItem(data: ItineraryItemCreateInput!): ItineraryItem
+  createItineraryItems(data: [ItineraryItemCreateInput!]!): [ItineraryItem]
+  updateItineraryItem(where: ItineraryItemWhereUniqueInput!, data: ItineraryItemUpdateInput!): ItineraryItem
+  updateItineraryItems(data: [ItineraryItemUpdateArgs!]!): [ItineraryItem]
+  deleteItineraryItem(where: ItineraryItemWhereUniqueInput!): ItineraryItem
+  deleteItineraryItems(where: [ItineraryItemWhereUniqueInput!]!): [ItineraryItem]
+  createSupplier(data: SupplierCreateInput!): Supplier
+  createSuppliers(data: [SupplierCreateInput!]!): [Supplier]
+  updateSupplier(where: SupplierWhereUniqueInput!, data: SupplierUpdateInput!): Supplier
+  updateSuppliers(data: [SupplierUpdateArgs!]!): [Supplier]
+  deleteSupplier(where: SupplierWhereUniqueInput!): Supplier
+  deleteSuppliers(where: [SupplierWhereUniqueInput!]!): [Supplier]
+  createSupplierContact(data: SupplierContactCreateInput!): SupplierContact
+  createSupplierContacts(data: [SupplierContactCreateInput!]!): [SupplierContact]
+  updateSupplierContact(where: SupplierContactWhereUniqueInput!, data: SupplierContactUpdateInput!): SupplierContact
+  updateSupplierContacts(data: [SupplierContactUpdateArgs!]!): [SupplierContact]
+  deleteSupplierContact(where: SupplierContactWhereUniqueInput!): SupplierContact
+  deleteSupplierContacts(where: [SupplierContactWhereUniqueInput!]!): [SupplierContact]
+  createClientInvoice(data: ClientInvoiceCreateInput!): ClientInvoice
+  createClientInvoices(data: [ClientInvoiceCreateInput!]!): [ClientInvoice]
+  updateClientInvoice(where: ClientInvoiceWhereUniqueInput!, data: ClientInvoiceUpdateInput!): ClientInvoice
+  updateClientInvoices(data: [ClientInvoiceUpdateArgs!]!): [ClientInvoice]
+  deleteClientInvoice(where: ClientInvoiceWhereUniqueInput!): ClientInvoice
+  deleteClientInvoices(where: [ClientInvoiceWhereUniqueInput!]!): [ClientInvoice]
+  createClientInvoiceLine(data: ClientInvoiceLineCreateInput!): ClientInvoiceLine
+  createClientInvoiceLines(data: [ClientInvoiceLineCreateInput!]!): [ClientInvoiceLine]
+  updateClientInvoiceLine(where: ClientInvoiceLineWhereUniqueInput!, data: ClientInvoiceLineUpdateInput!): ClientInvoiceLine
+  updateClientInvoiceLines(data: [ClientInvoiceLineUpdateArgs!]!): [ClientInvoiceLine]
+  deleteClientInvoiceLine(where: ClientInvoiceLineWhereUniqueInput!): ClientInvoiceLine
+  deleteClientInvoiceLines(where: [ClientInvoiceLineWhereUniqueInput!]!): [ClientInvoiceLine]
+  createPaymentSchedule(data: PaymentScheduleCreateInput!): PaymentSchedule
+  createPaymentSchedules(data: [PaymentScheduleCreateInput!]!): [PaymentSchedule]
+  updatePaymentSchedule(where: PaymentScheduleWhereUniqueInput!, data: PaymentScheduleUpdateInput!): PaymentSchedule
+  updatePaymentSchedules(data: [PaymentScheduleUpdateArgs!]!): [PaymentSchedule]
+  deletePaymentSchedule(where: PaymentScheduleWhereUniqueInput!): PaymentSchedule
+  deletePaymentSchedules(where: [PaymentScheduleWhereUniqueInput!]!): [PaymentSchedule]
+  createClientFundsEntry(data: ClientFundsEntryCreateInput!): ClientFundsEntry
+  createClientFundsEntries(data: [ClientFundsEntryCreateInput!]!): [ClientFundsEntry]
+  updateClientFundsEntry(where: ClientFundsEntryWhereUniqueInput!, data: ClientFundsEntryUpdateInput!): ClientFundsEntry
+  updateClientFundsEntries(data: [ClientFundsEntryUpdateArgs!]!): [ClientFundsEntry]
+  deleteClientFundsEntry(where: ClientFundsEntryWhereUniqueInput!): ClientFundsEntry
+  deleteClientFundsEntries(where: [ClientFundsEntryWhereUniqueInput!]!): [ClientFundsEntry]
+  createSupplierPayment(data: SupplierPaymentCreateInput!): SupplierPayment
+  createSupplierPayments(data: [SupplierPaymentCreateInput!]!): [SupplierPayment]
+  updateSupplierPayment(where: SupplierPaymentWhereUniqueInput!, data: SupplierPaymentUpdateInput!): SupplierPayment
+  updateSupplierPayments(data: [SupplierPaymentUpdateArgs!]!): [SupplierPayment]
+  deleteSupplierPayment(where: SupplierPaymentWhereUniqueInput!): SupplierPayment
+  deleteSupplierPayments(where: [SupplierPaymentWhereUniqueInput!]!): [SupplierPayment]
+  createCommissionReceipt(data: CommissionReceiptCreateInput!): CommissionReceipt
+  createCommissionReceipts(data: [CommissionReceiptCreateInput!]!): [CommissionReceipt]
+  updateCommissionReceipt(where: CommissionReceiptWhereUniqueInput!, data: CommissionReceiptUpdateInput!): CommissionReceipt
+  updateCommissionReceipts(data: [CommissionReceiptUpdateArgs!]!): [CommissionReceipt]
+  deleteCommissionReceipt(where: CommissionReceiptWhereUniqueInput!): CommissionReceipt
+  deleteCommissionReceipts(where: [CommissionReceiptWhereUniqueInput!]!): [CommissionReceipt]
+  createCommissionAllocation(data: CommissionAllocationCreateInput!): CommissionAllocation
+  createCommissionAllocations(data: [CommissionAllocationCreateInput!]!): [CommissionAllocation]
+  updateCommissionAllocation(where: CommissionAllocationWhereUniqueInput!, data: CommissionAllocationUpdateInput!): CommissionAllocation
+  updateCommissionAllocations(data: [CommissionAllocationUpdateArgs!]!): [CommissionAllocation]
+  deleteCommissionAllocation(where: CommissionAllocationWhereUniqueInput!): CommissionAllocation
+  deleteCommissionAllocations(where: [CommissionAllocationWhereUniqueInput!]!): [CommissionAllocation]
+  createAdvisorCommissionLedger(data: AdvisorCommissionLedgerCreateInput!): AdvisorCommissionLedger
+  createAdvisorCommissionLedgers(data: [AdvisorCommissionLedgerCreateInput!]!): [AdvisorCommissionLedger]
+  updateAdvisorCommissionLedger(where: AdvisorCommissionLedgerWhereUniqueInput!, data: AdvisorCommissionLedgerUpdateInput!): AdvisorCommissionLedger
+  updateAdvisorCommissionLedgers(data: [AdvisorCommissionLedgerUpdateArgs!]!): [AdvisorCommissionLedger]
+  deleteAdvisorCommissionLedger(where: AdvisorCommissionLedgerWhereUniqueInput!): AdvisorCommissionLedger
+  deleteAdvisorCommissionLedgers(where: [AdvisorCommissionLedgerWhereUniqueInput!]!): [AdvisorCommissionLedger]
+  createDocument(data: DocumentCreateInput!): Document
+  createDocuments(data: [DocumentCreateInput!]!): [Document]
+  updateDocument(where: DocumentWhereUniqueInput!, data: DocumentUpdateInput!): Document
+  updateDocuments(data: [DocumentUpdateArgs!]!): [Document]
+  deleteDocument(where: DocumentWhereUniqueInput!): Document
+  deleteDocuments(where: [DocumentWhereUniqueInput!]!): [Document]
+  createTask(data: TaskCreateInput!): Task
+  createTasks(data: [TaskCreateInput!]!): [Task]
+  updateTask(where: TaskWhereUniqueInput!, data: TaskUpdateInput!): Task
+  updateTasks(data: [TaskUpdateArgs!]!): [Task]
+  deleteTask(where: TaskWhereUniqueInput!): Task
+  deleteTasks(where: [TaskWhereUniqueInput!]!): [Task]
+  createAgencySettings(data: AgencySettingsCreateInput!): AgencySettings
+  createAgencySettingsRecords(data: [AgencySettingsCreateInput!]!): [AgencySettings]
+  updateAgencySettings(where: AgencySettingsWhereUniqueInput!, data: AgencySettingsUpdateInput!): AgencySettings
+  updateAgencySettingsRecords(data: [AgencySettingsUpdateArgs!]!): [AgencySettings]
+  deleteAgencySettings(where: AgencySettingsWhereUniqueInput!): AgencySettings
+  deleteAgencySettingsRecords(where: [AgencySettingsWhereUniqueInput!]!): [AgencySettings]
+  createAuditEvent(data: AuditEventCreateInput!): AuditEvent
+  createAuditEvents(data: [AuditEventCreateInput!]!): [AuditEvent]
+  updateAuditEvent(where: AuditEventWhereUniqueInput!, data: AuditEventUpdateInput!): AuditEvent
+  updateAuditEvents(data: [AuditEventUpdateArgs!]!): [AuditEvent]
+  deleteAuditEvent(where: AuditEventWhereUniqueInput!): AuditEvent
+  deleteAuditEvents(where: [AuditEventWhereUniqueInput!]!): [AuditEvent]
+  createPaymentProvider(data: PaymentProviderCreateInput!): PaymentProvider
+  createPaymentProviders(data: [PaymentProviderCreateInput!]!): [PaymentProvider]
+  updatePaymentProvider(where: PaymentProviderWhereUniqueInput!, data: PaymentProviderUpdateInput!): PaymentProvider
+  updatePaymentProviders(data: [PaymentProviderUpdateArgs!]!): [PaymentProvider]
+  deletePaymentProvider(where: PaymentProviderWhereUniqueInput!): PaymentProvider
+  deletePaymentProviders(where: [PaymentProviderWhereUniqueInput!]!): [PaymentProvider]
+  createPaymentCollection(data: PaymentCollectionCreateInput!): PaymentCollection
+  createPaymentCollections(data: [PaymentCollectionCreateInput!]!): [PaymentCollection]
+  updatePaymentCollection(where: PaymentCollectionWhereUniqueInput!, data: PaymentCollectionUpdateInput!): PaymentCollection
+  updatePaymentCollections(data: [PaymentCollectionUpdateArgs!]!): [PaymentCollection]
+  deletePaymentCollection(where: PaymentCollectionWhereUniqueInput!): PaymentCollection
+  deletePaymentCollections(where: [PaymentCollectionWhereUniqueInput!]!): [PaymentCollection]
+  createPaymentSession(data: PaymentSessionCreateInput!): PaymentSession
+  createPaymentSessions(data: [PaymentSessionCreateInput!]!): [PaymentSession]
+  updatePaymentSession(where: PaymentSessionWhereUniqueInput!, data: PaymentSessionUpdateInput!): PaymentSession
+  updatePaymentSessions(data: [PaymentSessionUpdateArgs!]!): [PaymentSession]
+  deletePaymentSession(where: PaymentSessionWhereUniqueInput!): PaymentSession
+  deletePaymentSessions(where: [PaymentSessionWhereUniqueInput!]!): [PaymentSession]
+  createPayment(data: PaymentCreateInput!): Payment
+  createPayments(data: [PaymentCreateInput!]!): [Payment]
+  updatePayment(where: PaymentWhereUniqueInput!, data: PaymentUpdateInput!): Payment
+  updatePayments(data: [PaymentUpdateArgs!]!): [Payment]
+  deletePayment(where: PaymentWhereUniqueInput!): Payment
+  deletePayments(where: [PaymentWhereUniqueInput!]!): [Payment]
+  createRefund(data: RefundCreateInput!): Refund
+  createRefunds(data: [RefundCreateInput!]!): [Refund]
+  updateRefund(where: RefundWhereUniqueInput!, data: RefundUpdateInput!): Refund
+  updateRefunds(data: [RefundUpdateArgs!]!): [Refund]
+  deleteRefund(where: RefundWhereUniqueInput!): Refund
+  deleteRefunds(where: [RefundWhereUniqueInput!]!): [Refund]
+  createPaymentWebhookEvent(data: PaymentWebhookEventCreateInput!): PaymentWebhookEvent
+  createPaymentWebhookEvents(data: [PaymentWebhookEventCreateInput!]!): [PaymentWebhookEvent]
+  updatePaymentWebhookEvent(where: PaymentWebhookEventWhereUniqueInput!, data: PaymentWebhookEventUpdateInput!): PaymentWebhookEvent
+  updatePaymentWebhookEvents(data: [PaymentWebhookEventUpdateArgs!]!): [PaymentWebhookEvent]
+  deletePaymentWebhookEvent(where: PaymentWebhookEventWhereUniqueInput!): PaymentWebhookEvent
+  deletePaymentWebhookEvents(where: [PaymentWebhookEventWhereUniqueInput!]!): [PaymentWebhookEvent]
+  createIdempotencyKey(data: IdempotencyKeyCreateInput!): IdempotencyKey
+  createIdempotencyKeys(data: [IdempotencyKeyCreateInput!]!): [IdempotencyKey]
+  updateIdempotencyKey(where: IdempotencyKeyWhereUniqueInput!, data: IdempotencyKeyUpdateInput!): IdempotencyKey
+  updateIdempotencyKeys(data: [IdempotencyKeyUpdateArgs!]!): [IdempotencyKey]
+  deleteIdempotencyKey(where: IdempotencyKeyWhereUniqueInput!): IdempotencyKey
+  deleteIdempotencyKeys(where: [IdempotencyKeyWhereUniqueInput!]!): [IdempotencyKey]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -856,18 +4725,108 @@ type Query {
   role(where: RoleWhereUniqueInput!): Role
   roles(where: RoleWhereInput! = {}, orderBy: [RoleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RoleWhereUniqueInput): [Role!]
   rolesCount(where: RoleWhereInput! = {}): Int
-  todo(where: TodoWhereUniqueInput!): Todo
-  todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
-  todosCount(where: TodoWhereInput! = {}): Int
-  todoImage(where: TodoImageWhereUniqueInput!): TodoImage
-  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
-  todoImagesCount(where: TodoImageWhereInput! = {}): Int
   oAuthApp(where: OAuthAppWhereUniqueInput!): OAuthApp
   oAuthApps(where: OAuthAppWhereInput! = {}, orderBy: [OAuthAppOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OAuthAppWhereUniqueInput): [OAuthApp!]
   oAuthAppsCount(where: OAuthAppWhereInput! = {}): Int
   oAuthToken(where: OAuthTokenWhereUniqueInput!): OAuthToken
   oAuthTokens(where: OAuthTokenWhereInput! = {}, orderBy: [OAuthTokenOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OAuthTokenWhereUniqueInput): [OAuthToken!]
   oAuthTokensCount(where: OAuthTokenWhereInput! = {}): Int
+  client(where: ClientWhereUniqueInput!): Client
+  clients(where: ClientWhereInput! = {}, orderBy: [ClientOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientWhereUniqueInput): [Client!]
+  clientsCount(where: ClientWhereInput! = {}): Int
+  traveler(where: TravelerWhereUniqueInput!): Traveler
+  travelers(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
+  travelersCount(where: TravelerWhereInput! = {}): Int
+  inquiry(where: InquiryWhereUniqueInput!): Inquiry
+  inquiries(where: InquiryWhereInput! = {}, orderBy: [InquiryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: InquiryWhereUniqueInput): [Inquiry!]
+  inquiriesCount(where: InquiryWhereInput! = {}): Int
+  destination(where: DestinationWhereUniqueInput!): Destination
+  destinations(where: DestinationWhereInput! = {}, orderBy: [DestinationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: DestinationWhereUniqueInput): [Destination!]
+  destinationsCount(where: DestinationWhereInput! = {}): Int
+  trip(where: TripWhereUniqueInput!): Trip
+  trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
+  tripsCount(where: TripWhereInput! = {}): Int
+  proposal(where: ProposalWhereUniqueInput!): Proposal
+  proposals(where: ProposalWhereInput! = {}, orderBy: [ProposalOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalWhereUniqueInput): [Proposal!]
+  proposalsCount(where: ProposalWhereInput! = {}): Int
+  proposalOption(where: ProposalOptionWhereUniqueInput!): ProposalOption
+  proposalOptions(where: ProposalOptionWhereInput! = {}, orderBy: [ProposalOptionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalOptionWhereUniqueInput): [ProposalOption!]
+  proposalOptionsCount(where: ProposalOptionWhereInput! = {}): Int
+  proposalItem(where: ProposalItemWhereUniqueInput!): ProposalItem
+  proposalItems(where: ProposalItemWhereInput! = {}, orderBy: [ProposalItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalItemWhereUniqueInput): [ProposalItem!]
+  proposalItemsCount(where: ProposalItemWhereInput! = {}): Int
+  tripComponent(where: TripComponentWhereUniqueInput!): TripComponent
+  tripComponents(where: TripComponentWhereInput! = {}, orderBy: [TripComponentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripComponentWhereUniqueInput): [TripComponent!]
+  tripComponentsCount(where: TripComponentWhereInput! = {}): Int
+  itineraryDay(where: ItineraryDayWhereUniqueInput!): ItineraryDay
+  itineraryDays(where: ItineraryDayWhereInput! = {}, orderBy: [ItineraryDayOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ItineraryDayWhereUniqueInput): [ItineraryDay!]
+  itineraryDaysCount(where: ItineraryDayWhereInput! = {}): Int
+  itineraryItem(where: ItineraryItemWhereUniqueInput!): ItineraryItem
+  itineraryItems(where: ItineraryItemWhereInput! = {}, orderBy: [ItineraryItemOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ItineraryItemWhereUniqueInput): [ItineraryItem!]
+  itineraryItemsCount(where: ItineraryItemWhereInput! = {}): Int
+  supplier(where: SupplierWhereUniqueInput!): Supplier
+  suppliers(where: SupplierWhereInput! = {}, orderBy: [SupplierOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SupplierWhereUniqueInput): [Supplier!]
+  suppliersCount(where: SupplierWhereInput! = {}): Int
+  supplierContact(where: SupplierContactWhereUniqueInput!): SupplierContact
+  supplierContacts(where: SupplierContactWhereInput! = {}, orderBy: [SupplierContactOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SupplierContactWhereUniqueInput): [SupplierContact!]
+  supplierContactsCount(where: SupplierContactWhereInput! = {}): Int
+  clientInvoice(where: ClientInvoiceWhereUniqueInput!): ClientInvoice
+  clientInvoices(where: ClientInvoiceWhereInput! = {}, orderBy: [ClientInvoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceWhereUniqueInput): [ClientInvoice!]
+  clientInvoicesCount(where: ClientInvoiceWhereInput! = {}): Int
+  clientInvoiceLine(where: ClientInvoiceLineWhereUniqueInput!): ClientInvoiceLine
+  clientInvoiceLines(where: ClientInvoiceLineWhereInput! = {}, orderBy: [ClientInvoiceLineOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceLineWhereUniqueInput): [ClientInvoiceLine!]
+  clientInvoiceLinesCount(where: ClientInvoiceLineWhereInput! = {}): Int
+  paymentSchedule(where: PaymentScheduleWhereUniqueInput!): PaymentSchedule
+  paymentSchedules(where: PaymentScheduleWhereInput! = {}, orderBy: [PaymentScheduleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentScheduleWhereUniqueInput): [PaymentSchedule!]
+  paymentSchedulesCount(where: PaymentScheduleWhereInput! = {}): Int
+  clientFundsEntry(where: ClientFundsEntryWhereUniqueInput!): ClientFundsEntry
+  clientFundsEntries(where: ClientFundsEntryWhereInput! = {}, orderBy: [ClientFundsEntryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientFundsEntryWhereUniqueInput): [ClientFundsEntry!]
+  clientFundsEntriesCount(where: ClientFundsEntryWhereInput! = {}): Int
+  supplierPayment(where: SupplierPaymentWhereUniqueInput!): SupplierPayment
+  supplierPayments(where: SupplierPaymentWhereInput! = {}, orderBy: [SupplierPaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: SupplierPaymentWhereUniqueInput): [SupplierPayment!]
+  supplierPaymentsCount(where: SupplierPaymentWhereInput! = {}): Int
+  commissionReceipt(where: CommissionReceiptWhereUniqueInput!): CommissionReceipt
+  commissionReceipts(where: CommissionReceiptWhereInput! = {}, orderBy: [CommissionReceiptOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommissionReceiptWhereUniqueInput): [CommissionReceipt!]
+  commissionReceiptsCount(where: CommissionReceiptWhereInput! = {}): Int
+  commissionAllocation(where: CommissionAllocationWhereUniqueInput!): CommissionAllocation
+  commissionAllocations(where: CommissionAllocationWhereInput! = {}, orderBy: [CommissionAllocationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: CommissionAllocationWhereUniqueInput): [CommissionAllocation!]
+  commissionAllocationsCount(where: CommissionAllocationWhereInput! = {}): Int
+  advisorCommissionLedger(where: AdvisorCommissionLedgerWhereUniqueInput!): AdvisorCommissionLedger
+  advisorCommissionLedgers(where: AdvisorCommissionLedgerWhereInput! = {}, orderBy: [AdvisorCommissionLedgerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AdvisorCommissionLedgerWhereUniqueInput): [AdvisorCommissionLedger!]
+  advisorCommissionLedgersCount(where: AdvisorCommissionLedgerWhereInput! = {}): Int
+  document(where: DocumentWhereUniqueInput!): Document
+  documents(where: DocumentWhereInput! = {}, orderBy: [DocumentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: DocumentWhereUniqueInput): [Document!]
+  documentsCount(where: DocumentWhereInput! = {}): Int
+  task(where: TaskWhereUniqueInput!): Task
+  tasks(where: TaskWhereInput! = {}, orderBy: [TaskOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TaskWhereUniqueInput): [Task!]
+  tasksCount(where: TaskWhereInput! = {}): Int
+  agencySettings(where: AgencySettingsWhereUniqueInput!): AgencySettings
+  agencySettingsRecords(where: AgencySettingsWhereInput! = {}, orderBy: [AgencySettingsOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AgencySettingsWhereUniqueInput): [AgencySettings!]
+  agencySettingsRecordsCount(where: AgencySettingsWhereInput! = {}): Int
+  auditEvent(where: AuditEventWhereUniqueInput!): AuditEvent
+  auditEvents(where: AuditEventWhereInput! = {}, orderBy: [AuditEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: AuditEventWhereUniqueInput): [AuditEvent!]
+  auditEventsCount(where: AuditEventWhereInput! = {}): Int
+  paymentProvider(where: PaymentProviderWhereUniqueInput!): PaymentProvider
+  paymentProviders(where: PaymentProviderWhereInput! = {}, orderBy: [PaymentProviderOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentProviderWhereUniqueInput): [PaymentProvider!]
+  paymentProvidersCount(where: PaymentProviderWhereInput! = {}): Int
+  paymentCollection(where: PaymentCollectionWhereUniqueInput!): PaymentCollection
+  paymentCollections(where: PaymentCollectionWhereInput! = {}, orderBy: [PaymentCollectionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentCollectionWhereUniqueInput): [PaymentCollection!]
+  paymentCollectionsCount(where: PaymentCollectionWhereInput! = {}): Int
+  paymentSession(where: PaymentSessionWhereUniqueInput!): PaymentSession
+  paymentSessions(where: PaymentSessionWhereInput! = {}, orderBy: [PaymentSessionOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentSessionWhereUniqueInput): [PaymentSession!]
+  paymentSessionsCount(where: PaymentSessionWhereInput! = {}): Int
+  payment(where: PaymentWhereUniqueInput!): Payment
+  payments(where: PaymentWhereInput! = {}, orderBy: [PaymentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWhereUniqueInput): [Payment!]
+  paymentsCount(where: PaymentWhereInput! = {}): Int
+  refund(where: RefundWhereUniqueInput!): Refund
+  refunds(where: RefundWhereInput! = {}, orderBy: [RefundOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: RefundWhereUniqueInput): [Refund!]
+  refundsCount(where: RefundWhereInput! = {}): Int
+  paymentWebhookEvent(where: PaymentWebhookEventWhereUniqueInput!): PaymentWebhookEvent
+  paymentWebhookEvents(where: PaymentWebhookEventWhereInput! = {}, orderBy: [PaymentWebhookEventOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentWebhookEventWhereUniqueInput): [PaymentWebhookEvent!]
+  paymentWebhookEventsCount(where: PaymentWebhookEventWhereInput! = {}): Int
+  idempotencyKey(where: IdempotencyKeyWhereUniqueInput!): IdempotencyKey
+  idempotencyKeys(where: IdempotencyKeyWhereInput! = {}, orderBy: [IdempotencyKeyOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: IdempotencyKeyWhereUniqueInput): [IdempotencyKey!]
+  idempotencyKeysCount(where: IdempotencyKeyWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult

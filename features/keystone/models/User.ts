@@ -1,9 +1,10 @@
 import { list } from '@keystone-6/core'
 import { allOperations, denyAll } from '@keystone-6/core/access'
-import { checkbox, password, relationship, text } from '@keystone-6/core/fields'
+import { checkbox, password, relationship, select, text } from '@keystone-6/core/fields'
 
 import { isSignedIn, permissions, rules } from '../access'
 import type { Session } from '../access'
+import { trackingFields } from './trackingFields'
 
 export const User = list({
   access: {
@@ -77,20 +78,15 @@ export const User = list({
         },
       },
     }),
-    tasks: relationship({
-      ref: 'Todo.assignedTo',
-      many: true,
-      access: {
-        create: permissions.canManageAllTodos,
-        update: ({ session, item }) =>
-          permissions.canManageAllTodos({ session }) || session?.itemId === item.id,
-      },
-      ui: {
-        createView: {
-          fieldMode: args => (permissions.canManageAllTodos(args) ? 'edit' : 'hidden'),
-        },
-        // itemView: { fieldMode: 'read' },
-      },
-    }),
+    onboardingStatus: select({options:['not_started','in_progress','completed','dismissed'],defaultValue:'not_started',access:{update:permissions.canManageOnboarding}}),
+    tasks: relationship({ref:'Task.assignee',many:true}),
+    trips: relationship({ref:'Trip.advisor',many:true}),
+    inquiries: relationship({ref:'Inquiry.assignedAdvisor',many:true}),
+    commissionLedger: relationship({ref:'AdvisorCommissionLedger.advisor',many:true,access:{create:()=>false,update:()=>false}}),
+    auditEvents: relationship({ref:'AuditEvent.actor',many:true,access:{create:()=>false,update:()=>false}}),
+    processedPayments: relationship({ref:'Payment.processedBy',many:true,access:{create:()=>false,update:()=>false}}),
+    requestedRefunds: relationship({ref:'Refund.requestedBy',many:true,access:{create:()=>false,update:()=>false}}),
+    approvedRefunds: relationship({ref:'Refund.approvedBy',many:true,access:{create:()=>false,update:()=>false}}),
+    ...trackingFields,
   },
 });

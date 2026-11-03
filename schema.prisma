@@ -12,72 +12,54 @@ generator client {
 }
 
 model User {
-  id                      String       @id @default(cuid())
-  name                    String       @default("")
-  email                   String       @unique @default("")
+  id                      String                    @id @default(cuid())
+  name                    String                    @default("")
+  email                   String                    @unique @default("")
   password                String
-  role                    Role?        @relation("User_role", fields: [roleId], references: [id])
-  roleId                  String?      @map("role")
-  tasks                   Todo[]       @relation("Todo_assignedTo")
+  role                    Role?                     @relation("User_role", fields: [roleId], references: [id])
+  roleId                  String?                   @map("role")
+  onboardingStatus        String?                   @default("not_started")
+  tasks                   Task[]                    @relation("Task_assignee")
+  trips                   Trip[]                    @relation("Trip_advisor")
+  inquiries               Inquiry[]                 @relation("Inquiry_assignedAdvisor")
+  commissionLedger        AdvisorCommissionLedger[] @relation("AdvisorCommissionLedger_advisor")
+  auditEvents             AuditEvent[]              @relation("AuditEvent_actor")
+  processedPayments       Payment[]                 @relation("Payment_processedBy")
+  requestedRefunds        Refund[]                  @relation("Refund_requestedBy")
+  approvedRefunds         Refund[]                  @relation("Refund_approvedBy")
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @default(now()) @updatedAt
   passwordResetToken      String?
   passwordResetIssuedAt   DateTime?
   passwordResetRedeemedAt DateTime?
-  from_OAuthToken_user    OAuthToken[] @relation("OAuthToken_user")
+  from_OAuthToken_user    OAuthToken[]              @relation("OAuthToken_user")
 
   @@index([roleId])
 }
 
 model Role {
-  id                 String  @id @default(cuid())
-  name               String  @default("")
-  canCreateTodos     Boolean @default(false)
-  canManageAllTodos  Boolean @default(false)
-  canSeeOtherPeople  Boolean @default(false)
-  canEditOtherPeople Boolean @default(false)
-  canManagePeople    Boolean @default(false)
-  canManageRoles     Boolean @default(false)
-  canAccessDashboard Boolean @default(false)
-  assignedTo         User[]  @relation("User_role")
-}
-
-model Todo {
-  id                   String      @id @default(cuid())
-  label                String      @default("")
-  description          Json        @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  isComplete           Boolean     @default(false)
-  status               String?     @default("todo")
-  priority             Int?        @default(1)
-  tags                 Json        @default("[]")
-  dueDate              DateTime?
-  weight               Float?      @default(1)
-  budget               Decimal?    @default("0.00") @postgresql.Decimal(10, 2)
-  isPrivate            Boolean     @default(false)
-  largeNumber          BigInt?
-  metadata             Json?
-  secretNote           String?
-  coverImage_id        String?
-  coverImage_filesize  Int?
-  coverImage_width     Int?
-  coverImage_height    Int?
-  coverImage_extension String?
-  todoImages           TodoImage[] @relation("Todo_todoImages")
-  assignedTo           User?       @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
-  assignedToId         String?     @map("assignedTo")
-
-  @@index([assignedToId])
-}
-
-model TodoImage {
-  id              String  @id @default(cuid())
-  image_id        String?
-  image_filesize  Int?
-  image_width     Int?
-  image_height    Int?
-  image_extension String?
-  imagePath       String  @default("")
-  altText         String  @default("")
-  todos           Todo[]  @relation("Todo_todoImages")
-  metadata        Json?
+  id                   String   @id @default(cuid())
+  name                 String   @default("")
+  canSeeOtherPeople    Boolean  @default(false)
+  canEditOtherPeople   Boolean  @default(false)
+  canManagePeople      Boolean  @default(false)
+  canManageRoles       Boolean  @default(false)
+  canAccessDashboard   Boolean  @default(false)
+  canManageOnboarding  Boolean  @default(false)
+  canManagePayments    Boolean  @default(false)
+  canReadPayments      Boolean  @default(false)
+  canIssueRefunds      Boolean  @default(false)
+  canReadAudit         Boolean  @default(false)
+  canManageTrips       Boolean  @default(false)
+  canManageClients     Boolean  @default(false)
+  canManageSuppliers   Boolean  @default(false)
+  canManageCommissions Boolean  @default(false)
+  canManageDocuments   Boolean  @default(false)
+  canManageTasks       Boolean  @default(false)
+  canManageSettings    Boolean  @default(false)
+  assignedTo           User[]   @relation("User_role")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
 }
 
 model OAuthApp {
@@ -125,4 +107,809 @@ model OAuthToken {
 
   @@index([clientId])
   @@index([userId])
+}
+
+model Client {
+  id               String     @id @default(cuid())
+  name             String     @default("")
+  email            String     @default("")
+  phone            String     @default("")
+  address          String     @default("")
+  preferences      String     @default("")
+  source           String     @default("")
+  preferenceTags   Json?
+  loyaltyNumbers   Json?
+  marketingConsent Boolean    @default(false)
+  travelers        Traveler[] @relation("Traveler_client")
+  inquiries        Inquiry[]  @relation("Inquiry_client")
+  trips            Trip[]     @relation("Trip_client")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+}
+
+model Traveler {
+  id                  String          @id @default(cuid())
+  firstName           String          @default("")
+  lastName            String          @default("")
+  knownTravelerNumber String          @default("")
+  nationality         String          @default("")
+  notes               String          @default("")
+  dateOfBirth         DateTime?
+  passportExpiresAt   DateTime?
+  passportOnFile      Boolean         @default(false)
+  client              Client?         @relation("Traveler_client", fields: [clientId], references: [id])
+  clientId            String?         @map("client")
+  trips               Trip[]          @relation("Traveler_trips")
+  components          TripComponent[] @relation("Traveler_components")
+  documents           Document[]      @relation("Document_traveler")
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @default(now()) @updatedAt
+
+  @@index([clientId])
+}
+
+model Inquiry {
+  id                String               @id @default(cuid())
+  name              String               @default("")
+  email             String               @default("")
+  phone             String               @default("")
+  destinations      String               @default("")
+  source            String               @default("")
+  budgetCents       Int?                 @default(0)
+  travelWindowStart DateTime?
+  travelWindowEnd   DateTime?
+  client            Client?              @relation("Inquiry_client", fields: [clientId], references: [id])
+  clientId          String?              @map("client")
+  assignedAdvisor   User?                @relation("Inquiry_assignedAdvisor", fields: [assignedAdvisorId], references: [id])
+  assignedAdvisorId String?              @map("assignedAdvisor")
+  tripType          InquiryTripTypeType? @default(honeymoon)
+  partySize         Int?                 @default(1)
+  status            InquiryStatusType?   @default(new)
+  trips             Trip[]               @relation("Trip_inquiry")
+  currencyCode      String               @default("USD")
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @default(now()) @updatedAt
+
+  @@index([clientId])
+  @@index([assignedAdvisorId])
+}
+
+model Destination {
+  id        String   @id @default(cuid())
+  name      String   @default("")
+  slug      String   @default("")
+  country   String   @default("")
+  specialty String   @default("")
+  trips     Trip[]   @relation("Destination_trips")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Trip {
+  id               String             @id @default(cuid())
+  title            String             @default("")
+  planningFeeCents Int?               @default(0)
+  startDate        DateTime?
+  endDate          DateTime?
+  tripNumber       String             @unique @default("")
+  client           Client?            @relation("Trip_client", fields: [clientId], references: [id])
+  clientId         String?            @map("client")
+  advisor          User?              @relation("Trip_advisor", fields: [advisorId], references: [id])
+  advisorId        String?            @map("advisor")
+  inquiry          Inquiry?           @relation("Trip_inquiry", fields: [inquiryId], references: [id])
+  inquiryId        String?            @map("inquiry")
+  destinations     Destination[]      @relation("Destination_trips")
+  status           TripStatusType?    @default(planning)
+  travelers        Traveler[]         @relation("Traveler_trips")
+  proposals        Proposal[]         @relation("Proposal_trip")
+  components       TripComponent[]    @relation("TripComponent_trip")
+  days             ItineraryDay[]     @relation("ItineraryDay_trip")
+  invoices         ClientInvoice[]    @relation("ClientInvoice_trip")
+  schedule         PaymentSchedule[]  @relation("PaymentSchedule_trip")
+  funds            ClientFundsEntry[] @relation("ClientFundsEntry_trip")
+  tasks            Task[]             @relation("Task_trip")
+  documents        Document[]         @relation("Document_trip")
+  itineraryToken   String             @default("")
+  currencyCode     String             @default("USD")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @default(now()) @updatedAt
+
+  @@index([clientId])
+  @@index([advisorId])
+  @@index([inquiryId])
+}
+
+model Proposal {
+  id                   String              @id @default(cuid())
+  introNote            String              @default("")
+  acceptedByName       String              @default("")
+  publicToken          String              @default("")
+  acceptedSnapshotHash String              @default("")
+  sentAt               DateTime?
+  acceptedAt           DateTime?
+  acceptedSnapshot     Json?
+  version              Int?                @default(1)
+  status               ProposalStatusType? @default(draft)
+  trip                 Trip?               @relation("Proposal_trip", fields: [tripId], references: [id])
+  tripId               String?             @map("trip")
+  options              ProposalOption[]    @relation("ProposalOption_proposal")
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @default(now()) @updatedAt
+
+  @@index([tripId])
+}
+
+model ProposalOption {
+  id         String         @id @default(cuid())
+  title      String         @default("")
+  proposal   Proposal?      @relation("ProposalOption_proposal", fields: [proposalId], references: [id])
+  proposalId String?        @map("proposal")
+  items      ProposalItem[] @relation("ProposalItem_option")
+  sort       Int?           @default(0)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @default(now()) @updatedAt
+
+  @@index([proposalId])
+}
+
+model ProposalItem {
+  id                     String                @id @default(cuid())
+  title                  String                @default("")
+  details                String                @default("")
+  image                  String                @default("")
+  sellCents              Int?                  @default(0)
+  option                 ProposalOption?       @relation("ProposalItem_option", fields: [optionId], references: [id])
+  optionId               String?               @map("option")
+  kind                   ProposalItemKindType? @default(hotel)
+  supplier               Supplier?             @relation("ProposalItem_supplier", fields: [supplierId], references: [id])
+  supplierId             String?               @map("supplier")
+  estimatedCommissionBps Int?                  @default(0)
+  sort                   Int?                  @default(0)
+  currencyCode           String                @default("USD")
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @default(now()) @updatedAt
+
+  @@index([optionId])
+  @@index([supplierId])
+}
+
+model TripComponent {
+  id                    String                             @id @default(cuid())
+  title                 String                             @default("")
+  confirmationNumber    String                             @default("")
+  cancellationPolicy    String                             @default("")
+  sellCents             Int?                               @default(0)
+  netCostCents          Int?                               @default(0)
+  depositCents          Int?                               @default(0)
+  commissionCents       Int?                               @default(0)
+  startAt               DateTime?
+  endAt                 DateTime?
+  depositDueAt          DateTime?
+  finalDueAt            DateTime?
+  cancelPenaltySchedule Json?
+  purchaseSnapshot      Json?
+  trip                  Trip?                              @relation("TripComponent_trip", fields: [tripId], references: [id])
+  tripId                String?                            @map("trip")
+  supplier              Supplier?                          @relation("TripComponent_supplier", fields: [supplierId], references: [id])
+  supplierId            String?                            @map("supplier")
+  kind                  TripComponentKindType?             @default(hotel)
+  bookingStatus         TripComponentBookingStatusType?    @default(quoted)
+  paymentModel          TripComponentPaymentModelType?     @default(client_pays_supplier)
+  commissionBps         Int?                               @default(0)
+  commissionStatus      TripComponentCommissionStatusType? @default(expected)
+  travelers             Traveler[]                         @relation("Traveler_components")
+  itineraryItems        ItineraryItem[]                    @relation("ItineraryItem_component")
+  schedule              PaymentSchedule[]                  @relation("PaymentSchedule_component")
+  funds                 ClientFundsEntry[]                 @relation("ClientFundsEntry_component")
+  supplierPayments      SupplierPayment[]                  @relation("SupplierPayment_component")
+  allocations           CommissionAllocation[]             @relation("CommissionAllocation_component")
+  advisorLedger         AdvisorCommissionLedger[]          @relation("AdvisorCommissionLedger_component")
+  currencyCode          String                             @default("USD")
+  createdAt             DateTime                           @default(now())
+  updatedAt             DateTime                           @default(now()) @updatedAt
+
+  @@index([tripId])
+  @@index([supplierId])
+}
+
+model ItineraryDay {
+  id        String          @id @default(cuid())
+  title     String          @default("")
+  date      DateTime?
+  trip      Trip?           @relation("ItineraryDay_trip", fields: [tripId], references: [id])
+  tripId    String?         @map("trip")
+  items     ItineraryItem[] @relation("ItineraryItem_day")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now()) @updatedAt
+
+  @@index([tripId])
+}
+
+model ItineraryItem {
+  id          String         @id @default(cuid())
+  title       String         @default("")
+  time        String         @default("")
+  location    String         @default("")
+  notes       String         @default("")
+  day         ItineraryDay?  @relation("ItineraryItem_day", fields: [dayId], references: [id])
+  dayId       String?        @map("day")
+  component   TripComponent? @relation("ItineraryItem_component", fields: [componentId], references: [id])
+  componentId String?        @map("component")
+  sort        Int?           @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now()) @updatedAt
+
+  @@index([dayId])
+  @@index([componentId])
+}
+
+model Supplier {
+  id                         String              @id @default(cuid())
+  name                       String              @default("")
+  hostAgencyRelation         String              @default("")
+  bookingPortalUrl           String              @default("")
+  iataCliaNotes              String              @default("")
+  kind                       SupplierKindType?   @default(hotel)
+  defaultCommissionBps       Int?                @default(0)
+  commissionPaymentTermsDays Int?                @default(30)
+  contacts                   SupplierContact[]   @relation("SupplierContact_supplier")
+  proposalItems              ProposalItem[]      @relation("ProposalItem_supplier")
+  components                 TripComponent[]     @relation("TripComponent_supplier")
+  receipts                   CommissionReceipt[] @relation("CommissionReceipt_supplier")
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @default(now()) @updatedAt
+}
+
+model SupplierContact {
+  id         String    @id @default(cuid())
+  name       String    @default("")
+  email      String    @default("")
+  phone      String    @default("")
+  title      String    @default("")
+  supplier   Supplier? @relation("SupplierContact_supplier", fields: [supplierId], references: [id])
+  supplierId String?   @map("supplier")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  @@index([supplierId])
+}
+
+model ClientInvoice {
+  id                  String                   @id @default(cuid())
+  publicToken         String                   @default("")
+  totalCents          Int?                     @default(0)
+  collectedCents      Int?                     @default(0)
+  dueAt               DateTime?
+  number              String                   @unique @default("")
+  trip                Trip?                    @relation("ClientInvoice_trip", fields: [tripId], references: [id])
+  tripId              String?                  @map("trip")
+  lines               ClientInvoiceLine[]      @relation("ClientInvoiceLine_invoice")
+  status              ClientInvoiceStatusType? @default(draft)
+  paymentCollection   PaymentCollection?       @relation("ClientInvoice_paymentCollection", fields: [paymentCollectionId], references: [id])
+  paymentCollectionId String?                  @unique @map("paymentCollection")
+  payments            Payment[]                @relation("Payment_order")
+  refunds             Refund[]                 @relation("Refund_order")
+  currencyCode        String                   @default("USD")
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @default(now()) @updatedAt
+
+  @@index([tripId])
+}
+
+model ClientInvoiceLine {
+  id             String                     @id @default(cuid())
+  description    String                     @default("")
+  amountCents    Int?                       @default(0)
+  unitPriceCents Int?                       @default(0)
+  feesCents      Int?                       @default(0)
+  taxCents       Int?                       @default(0)
+  snapshot       Json?
+  quantity       Int?                       @default(1)
+  kind           ClientInvoiceLineKindType? @default(planning_fee)
+  invoice        ClientInvoice?             @relation("ClientInvoiceLine_invoice", fields: [invoiceId], references: [id])
+  invoiceId      String?                    @map("invoice")
+  currencyCode   String                     @default("USD")
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @default(now()) @updatedAt
+
+  @@index([invoiceId])
+}
+
+model PaymentSchedule {
+  id           String                     @id @default(cuid())
+  scheduleKey  String                     @unique @default("")
+  amountCents  Int?                       @default(0)
+  dueAt        DateTime?
+  kind         PaymentScheduleKindType?   @default(planning_fee)
+  trip         Trip?                      @relation("PaymentSchedule_trip", fields: [tripId], references: [id])
+  tripId       String?                    @map("trip")
+  component    TripComponent?             @relation("PaymentSchedule_component", fields: [componentId], references: [id])
+  componentId  String?                    @map("component")
+  status       PaymentScheduleStatusType? @default(due)
+  currencyCode String                     @default("USD")
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @default(now()) @updatedAt
+
+  @@index([tripId])
+  @@index([componentId])
+}
+
+model ClientFundsEntry {
+  id           String                         @id @default(cuid())
+  reference    String                         @default("")
+  reason       String                         @default("")
+  amountCents  Int?                           @default(0)
+  occurredAt   DateTime?
+  trip         Trip?                          @relation("ClientFundsEntry_trip", fields: [tripId], references: [id])
+  tripId       String?                        @map("trip")
+  component    TripComponent?                 @relation("ClientFundsEntry_component", fields: [componentId], references: [id])
+  componentId  String?                        @map("component")
+  entryType    ClientFundsEntryEntryTypeType? @default(receipt)
+  reverses     ClientFundsEntry?              @relation("ClientFundsEntry_reversedBy")
+  reversedBy   ClientFundsEntry?              @relation("ClientFundsEntry_reversedBy", fields: [reversedById], references: [id])
+  reversedById String?                        @unique @map("reversedBy")
+  entryKey     String                         @unique @default("")
+  currencyCode String                         @default("USD")
+  createdAt    DateTime                       @default(now())
+  updatedAt    DateTime                       @default(now()) @updatedAt
+
+  @@index([tripId])
+  @@index([componentId])
+}
+
+model SupplierPayment {
+  id           String         @id @default(cuid())
+  method       String         @default("")
+  reference    String         @default("")
+  amountCents  Int?           @default(0)
+  paidAt       DateTime?
+  component    TripComponent? @relation("SupplierPayment_component", fields: [componentId], references: [id])
+  componentId  String?        @map("component")
+  currencyCode String         @default("USD")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
+
+  @@index([componentId])
+}
+
+model CommissionReceipt {
+  id           String                 @id @default(cuid())
+  reference    String                 @default("")
+  amountCents  Int?                   @default(0)
+  receivedAt   DateTime?
+  supplier     Supplier?              @relation("CommissionReceipt_supplier", fields: [supplierId], references: [id])
+  supplierId   String?                @map("supplier")
+  allocations  CommissionAllocation[] @relation("CommissionAllocation_receipt")
+  currencyCode String                 @default("USD")
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @default(now()) @updatedAt
+
+  @@index([supplierId])
+}
+
+model CommissionAllocation {
+  id           String             @id @default(cuid())
+  amountCents  Int?               @default(0)
+  component    TripComponent?     @relation("CommissionAllocation_component", fields: [componentId], references: [id])
+  componentId  String?            @map("component")
+  receipt      CommissionReceipt? @relation("CommissionAllocation_receipt", fields: [receiptId], references: [id])
+  receiptId    String?            @map("receipt")
+  currencyCode String             @default("USD")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+
+  @@index([componentId])
+  @@index([receiptId])
+}
+
+model AdvisorCommissionLedger {
+  id           String                                @id @default(cuid())
+  reference    String                                @default("")
+  reason       String                                @default("")
+  amountCents  Int?                                  @default(0)
+  occurredAt   DateTime?
+  entryType    AdvisorCommissionLedgerEntryTypeType? @default(allocation)
+  advisor      User?                                 @relation("AdvisorCommissionLedger_advisor", fields: [advisorId], references: [id])
+  advisorId    String?                               @map("advisor")
+  component    TripComponent?                        @relation("AdvisorCommissionLedger_component", fields: [componentId], references: [id])
+  componentId  String?                               @map("component")
+  reverses     AdvisorCommissionLedger?              @relation("AdvisorCommissionLedger_reversedBy")
+  reversedBy   AdvisorCommissionLedger?              @relation("AdvisorCommissionLedger_reversedBy", fields: [reversedById], references: [id])
+  reversedById String?                               @unique @map("reversedBy")
+  currencyCode String                                @default("USD")
+  createdAt    DateTime                              @default(now())
+  updatedAt    DateTime                              @default(now()) @updatedAt
+
+  @@index([advisorId])
+  @@index([componentId])
+}
+
+model Document {
+  id             String            @id @default(cuid())
+  title          String            @default("")
+  storageKey     String            @default("")
+  mimeType       String            @default("")
+  checksumSha256 String            @default("")
+  verifiedAt     DateTime?
+  byteSize       Int?
+  kind           DocumentKindType? @default(passport)
+  trip           Trip?             @relation("Document_trip", fields: [tripId], references: [id])
+  tripId         String?           @map("trip")
+  traveler       Traveler?         @relation("Document_traveler", fields: [travelerId], references: [id])
+  travelerId     String?           @map("traveler")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @default(now()) @updatedAt
+
+  @@index([tripId])
+  @@index([travelerId])
+}
+
+model Task {
+  id         String          @id @default(cuid())
+  title      String          @default("")
+  taskKey    String          @unique @default("")
+  dueAt      DateTime?
+  trip       Trip?           @relation("Task_trip", fields: [tripId], references: [id])
+  tripId     String?         @map("trip")
+  assignee   User?           @relation("Task_assignee", fields: [assigneeId], references: [id])
+  assigneeId String?         @map("assignee")
+  type       TaskTypeType?   @default(deposit_due)
+  status     TaskStatusType? @default(open)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @default(now()) @updatedAt
+
+  @@index([tripId])
+  @@index([assigneeId])
+}
+
+model AgencySettings {
+  id                           String   @id @default(cuid())
+  name                         String   @default("")
+  address                      String   @default("")
+  email                        String   @default("")
+  phone                        String   @default("")
+  defaultPlanningFeeCents      Int?     @default(0)
+  refundApprovalThresholdCents Int?     @default(0)
+  hostAgencySplitBps           Int?     @default(0)
+  currencyCode                 String   @default("USD")
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @default(now()) @updatedAt
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  action     String   @default("")
+  targetList String   @default("")
+  targetId   String   @default("")
+  reason     String   @default("")
+  requestId  String   @default("")
+  before     Json?
+  after      Json?
+  actor      User?    @relation("AuditEvent_actor", fields: [actorId], references: [id])
+  actorId    String?  @map("actor")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([actorId])
+}
+
+model PaymentProvider {
+  id                          String           @id @default(cuid())
+  name                        String           @default("")
+  code                        String           @unique @default("")
+  isInstalled                 Boolean          @default(true)
+  credentials                 Json?            @default("{}")
+  metadata                    Json?            @default("{}")
+  createPaymentFunction       String           @default("")
+  capturePaymentFunction      String           @default("")
+  refundPaymentFunction       String           @default("")
+  getPaymentStatusFunction    String           @default("")
+  generatePaymentLinkFunction String           @default("")
+  handleWebhookFunction       String           @default("")
+  payments                    Payment[]        @relation("Payment_paymentProvider")
+  sessions                    PaymentSession[] @relation("PaymentSession_paymentProvider")
+  createdAt                   DateTime         @default(now())
+  updatedAt                   DateTime         @default(now()) @updatedAt
+}
+
+model PaymentCollection {
+  id               String                            @id @default(cuid())
+  currencyCode     String                            @default("USD")
+  description      PaymentCollectionDescriptionType? @default(default)
+  amount           Int
+  authorizedAmount Int?                              @default(0)
+  refundedAmount   Int?                              @default(0)
+  metadata         Json?
+  paymentSessions  PaymentSession[]                  @relation("PaymentSession_paymentCollection")
+  payments         Payment[]                         @relation("Payment_paymentCollection")
+  invoice          ClientInvoice?                    @relation("ClientInvoice_paymentCollection")
+  createdAt        DateTime                          @default(now())
+  updatedAt        DateTime                          @default(now()) @updatedAt
+}
+
+model PaymentSession {
+  id                  String             @id @default(cuid())
+  currencyCode        String             @default("USD")
+  isSelected          Boolean            @default(false)
+  isInitiated         Boolean            @default(false)
+  amount              Int
+  data                Json?              @default("{}")
+  idempotencyKey      String             @unique @default("")
+  paymentCollection   PaymentCollection? @relation("PaymentSession_paymentCollection", fields: [paymentCollectionId], references: [id])
+  paymentCollectionId String?            @map("paymentCollection")
+  paymentProvider     PaymentProvider?   @relation("PaymentSession_paymentProvider", fields: [paymentProviderId], references: [id])
+  paymentProviderId   String?            @map("paymentProvider")
+  paymentAuthorizedAt DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+
+  @@index([paymentCollectionId])
+  @@index([paymentProviderId])
+}
+
+model Payment {
+  id                  String                @id @default(cuid())
+  refunds             Refund[]              @relation("Refund_payment")
+  webhookEvents       PaymentWebhookEvent[] @relation("PaymentWebhookEvent_payment")
+  idempotencyKey      String                @unique @default("")
+  reservedAt          DateTime?
+  refundedAmount      Int?                  @default(0)
+  amount              Int
+  data                Json?
+  currencyCode        String                @default("USD")
+  status              String                @default("pending")
+  paymentMethod       String?               @default("credit_card")
+  paymentProvider     PaymentProvider?      @relation("Payment_paymentProvider", fields: [paymentProviderId], references: [id])
+  paymentProviderId   String?               @map("paymentProvider")
+  providerPaymentId   String                @default("")
+  cardLast4           String                @default("")
+  cardBrand           String                @default("")
+  tipAmount           Int?                  @default(0)
+  isSplitPayment      Boolean               @default(false)
+  splitPaymentIndex   Int?
+  splitTotal          Int?
+  processedAt         DateTime?
+  errorMessage        String                @default("")
+  notes               String                @default("")
+  order               ClientInvoice?        @relation("Payment_order", fields: [orderId], references: [id])
+  orderId             String?               @map("order")
+  paymentCollection   PaymentCollection?    @relation("Payment_paymentCollection", fields: [paymentCollectionId], references: [id])
+  paymentCollectionId String?               @map("paymentCollection")
+  processedBy         User?                 @relation("Payment_processedBy", fields: [processedById], references: [id])
+  processedById       String?               @map("processedBy")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @default(now()) @updatedAt
+
+  @@index([paymentProviderId])
+  @@index([orderId])
+  @@index([paymentCollectionId])
+  @@index([processedById])
+}
+
+model Refund {
+  id               String         @id @default(cuid())
+  idempotencyKey   String         @unique @default("")
+  amount           Int
+  currencyCode     String         @default("")
+  status           String         @default("processing")
+  reason           String         @default("")
+  providerRefundId String         @default("")
+  providerData     Json?
+  processedAt      DateTime?
+  payment          Payment?       @relation("Refund_payment", fields: [paymentId], references: [id])
+  paymentId        String?        @map("payment")
+  order            ClientInvoice? @relation("Refund_order", fields: [orderId], references: [id])
+  orderId          String?        @map("order")
+  requestedBy      User?          @relation("Refund_requestedBy", fields: [requestedById], references: [id])
+  requestedById    String?        @map("requestedBy")
+  approvedBy       User?          @relation("Refund_approvedBy", fields: [approvedById], references: [id])
+  approvedById     String?        @map("approvedBy")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now()) @updatedAt
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([requestedById])
+  @@index([approvedById])
+}
+
+model PaymentWebhookEvent {
+  id              String    @id @default(cuid())
+  eventKey        String    @unique @default("")
+  providerCode    String    @default("")
+  providerEventId String    @default("")
+  eventType       String    @default("")
+  status          String?   @default("received")
+  payload         Json?
+  rawBody         String    @default("")
+  error           String    @default("")
+  attempts        Int?      @default(0)
+  receivedAt      DateTime? @default(now())
+  processedAt     DateTime?
+  payment         Payment?  @relation("PaymentWebhookEvent_payment", fields: [paymentId], references: [id])
+  paymentId       String?   @map("payment")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  @@index([providerCode])
+  @@index([providerEventId])
+  @@index([eventType])
+  @@index([receivedAt])
+  @@index([paymentId])
+}
+
+model IdempotencyKey {
+  id             String    @id @default(cuid())
+  idempotencyKey String    @unique @default("")
+  requestMethod  String    @default("")
+  requestParams  Json?
+  requestPath    String    @default("")
+  responseCode   Int?
+  responseBody   Json?
+  recoveryPoint  String    @default("started")
+  lockedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+}
+
+enum InquiryTripTypeType {
+  honeymoon
+  family
+  group
+  corporate
+  cruise
+  adventure
+}
+
+enum InquiryStatusType {
+  new
+  qualifying
+  proposal
+  won
+  lost
+}
+
+enum TripStatusType {
+  planning
+  proposal_sent
+  accepted
+  booked
+  final_payment_due
+  paid_in_full
+  traveling
+  completed
+  cancelled
+}
+
+enum ProposalStatusType {
+  draft
+  sent
+  viewed
+  accepted
+  superseded
+  declined
+}
+
+enum ProposalItemKindType {
+  hotel
+  cruise
+  tour
+  flight
+  transfer
+  rail
+  insurance
+  activity
+  fee
+}
+
+enum TripComponentKindType {
+  hotel
+  cruise
+  tour
+  flight
+  transfer
+  rail
+  insurance
+  activity
+  fee
+}
+
+enum TripComponentBookingStatusType {
+  quoted
+  held
+  booked
+  ticketed
+  cancelled
+}
+
+enum TripComponentPaymentModelType {
+  client_pays_supplier
+  agency_collects
+}
+
+enum TripComponentCommissionStatusType {
+  expected
+  invoiced
+  received
+  short_paid
+  written_off
+}
+
+enum SupplierKindType {
+  hotel
+  cruise_line
+  tour_operator
+  dmc
+  airline
+  consolidator
+  insurer
+  transfer
+}
+
+enum ClientInvoiceStatusType {
+  draft
+  sent
+  partially_paid
+  paid
+  void
+}
+
+enum ClientInvoiceLineKindType {
+  planning_fee
+  component_deposit
+  component_final
+  insurance
+}
+
+enum PaymentScheduleKindType {
+  planning_fee
+  component_deposit
+  component_final
+}
+
+enum PaymentScheduleStatusType {
+  due
+  invoiced
+  paid
+  cancelled
+}
+
+enum ClientFundsEntryEntryTypeType {
+  receipt
+  supplier_payment
+  refund_to_client
+  transfer_planning_fee
+  reversal
+}
+
+enum AdvisorCommissionLedgerEntryTypeType {
+  allocation
+  reversal
+}
+
+enum DocumentKindType {
+  passport
+  visa
+  insurance
+  supplier_confirmation
+  signed_terms
+}
+
+enum TaskTypeType {
+  deposit_due
+  final_due
+  passport_expiring
+  commission_overdue
+  follow_up
+}
+
+enum TaskStatusType {
+  open
+  completed
+  cancelled
+}
+
+enum PaymentCollectionDescriptionType {
+  default
+  refund
 }
