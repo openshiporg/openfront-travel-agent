@@ -4688,6 +4688,24 @@ type Mutation {
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
+  createTripFromInquiry(input: TravelJSON!): TravelJSON
+  buildProposal(input: TravelJSON!): TravelJSON
+  sendProposal(input: TravelJSON!): TravelJSON
+  bookComponent(input: TravelJSON!): TravelJSON
+  generatePaymentSchedule(input: TravelJSON!): TravelJSON
+  issueClientInvoice(input: TravelJSON!): TravelJSON
+  recordClientPayment(input: TravelJSON!): TravelJSON
+  recordSupplierPayment(input: TravelJSON!): TravelJSON
+  recordCommissionReceipt(input: TravelJSON!): TravelJSON
+  postClientFundsEntry(input: TravelJSON!): TravelJSON
+  reverseEntry(input: TravelJSON!): TravelJSON
+  cancelComponent(input: TravelJSON!): TravelJSON
+  transitionTrip(input: TravelJSON!): TravelJSON
+  sweepTripDates(input: TravelJSON!): TravelJSON
+  submitInquiry(input: TravelJSON!): TravelJSON
+  acceptProposal(token: String!, optionId: ID!, name: String!, idempotencyKey: String!): TravelJSON
+  payInvoice(token: String!, idempotencyKey: String!): TravelJSON
+  confirmInvoicePayment(token: String!, paymentIntentId: String!): TravelJSON
 }
 
 union UserAuthenticationWithPasswordResult = UserAuthenticationWithPasswordSuccess | UserAuthenticationWithPasswordFailure
@@ -4831,6 +4849,8 @@ type Query {
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   redirectToInit: Boolean
+  viewProposal(token: String!): TravelJSON
+  viewItinerary(token: String!): TravelJSON
 }
 
 union AuthenticatedItem = User
@@ -4970,3 +4990,5 @@ enum KeystoneAdminUISortDirection {
   ASC
   DESC
 }
+
+scalar TravelJSON

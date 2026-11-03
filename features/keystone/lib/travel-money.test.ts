@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,fundsDelta,assertTransition} from './travel-money';
+test('commission uses floor basis points, never float rounding',()=>{assert.equal(commissionCents(10001,1250),1250);assert.equal(commissionCents(1,9999),0);assert.throws(()=>commissionCents(5,-1));});
+test('advisor plus host split conserves receipt',()=>{for(const amount of [0,1,101,999999]){const x=advisorSplit(amount,1750);assert.equal(x.hostCents+x.advisorCents,amount);}});
+test('cancellation threshold is inclusive and strongest applicable tier',()=>{const start=new Date('2027-01-31');const schedule=[{daysBefore:30,penaltyBps:2500},{daysBefore:7,penaltyBps:10000}];assert.equal(penaltyCents(10000,start,new Date('2027-01-01'),schedule),2500);assert.equal(penaltyCents(10000,start,new Date('2027-01-25'),schedule),10000);assert.equal(penaltyCents(10000,start,new Date('2026-12-01'),schedule),0);});
+test('trip funds never become negative',()=>{assert.equal(fundsAfter(100,-100),0);assert.throws(()=>fundsAfter(99,-100));assert.throws(()=>fundsAfter(0,0.5));});
+test('supplier disbursement limited to component net cost',()=>{assert.equal(supplierRemainder(100,20,80),0);assert.throws(()=>supplierRemainder(100,20,81));});
+test('reversals exactly invert entry delta',()=>{for(const kind of ['receipt','supplier_payment','refund_to_client','transfer_planning_fee']){const delta=fundsDelta(kind,103);assert.equal(delta+fundsDelta('reversal',-delta),0);}});
+test('trip transitions reject skipped and terminal changes',()=>{assertTransition('planning','proposal_sent');assert.throws(()=>assertTransition('planning','completed'));assert.throws(()=>assertTransition('cancelled','booked'));});
