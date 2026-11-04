@@ -30,7 +30,7 @@ export function ProposalChoice({ token, options, currency, status, depositBps = 
         ))}
       </RadioGroup>
       {accepted ? <div role="status" className="space-y-2 rounded-md border p-3 text-sm">
-        <p>Proposal accepted.</p>
+        <p>Proposal accepted. <a className="underline" href={`/trip/${token}`}>View your trip, itinerary and invoices</a>.</p>
         {deposit ? (deposit.paid ? <p>Your deposit {deposit.number} is paid.</p> : <p><a className="font-medium underline" href={`/invoice/${deposit.invoiceToken}`}>Pay your deposit ({deposit.number})</a> to confirm your booking.</p>) : <p>Your advisor will send the invoice.</p>}
       </div> : (
         <>

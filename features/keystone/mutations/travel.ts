@@ -357,7 +357,21 @@ export async function acceptProposal(_root:any,{token,optionId,name,idempotencyK
 }
 export async function viewItinerary(_root:any,{token}:any,context:any){if(!token||token.length<32)throw new Error('Itinerary not found');const t=await context.prisma.trip.findFirst({where:{itineraryToken:hash(token)},select:{tripNumber:true,title:true,startDate:true,endDate:true,days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}}}});if(!t)throw new Error('Itinerary not found');return t;}
 const stripeProvider={id:'stripe-test',code:'pp_stripe',createPaymentFunction:'stripe',getPaymentStatusFunction:'stripe',capturePaymentFunction:'stripe',refundPaymentFunction:'stripe',generatePaymentLinkFunction:'stripe',handleWebhookFunction:'stripe',credentials:{}};
-async function invoiceForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Invoice not found');const i=await context.prisma.clientInvoice.findFirst({where:{publicToken:hash(token)}});if(!i||['void','paid'].includes(i.status))throw new Error('Invoice not payable');return i;}
+/** Trip share token (itinerary link) or a sent/viewed/accepted proposal token; the same secret opens the client portal. */
+async function tripByPortalToken(db:any,token:string){
+ if(!token||token.length<32)return null;
+ const t=await db.trip.findFirst({where:{itineraryToken:hash(token)},select:{id:true}});if(t)return t;
+ const p=await db.proposal.findFirst({where:{publicToken:hash(token),status:{in:['sent','viewed','accepted']}},select:{tripId:true}});
+ return p?.tripId?{id:p.tripId}:null;
+}
+/** An invoice is opened by its own token, or by "p.<invoiceId>.<portal token>" for an invoice of the portal's trip. */
+async function findInvoiceByToken(db:any,token:string,extra:any={}){
+ if(!token||token.length<32)return null;
+ const m=/^p\.([a-z0-9]{20,40})\.(.{32,})$/i.exec(token);
+ if(m){const t=await tripByPortalToken(db,m[2]);if(!t)return null;return db.clientInvoice.findFirst({where:{id:m[1],tripId:t.id},...extra});}
+ return db.clientInvoice.findFirst({where:{publicToken:hash(token)},...extra});
+}
+async function invoiceForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Invoice not found');const i=await findInvoiceByToken(context.prisma,token);if(!i||['void','paid'].includes(i.status))throw new Error('Invoice not payable');return i;}
 export async function payInvoice(_root:any,{token,idempotencyKey}:any,context:any){
  const {createPayment}=await import('../utils/paymentProviderAdapter');const inv=await invoiceForToken(context,token);if(!idempotencyKey)throw new Error('Idempotency key required');
  const amount=inv.totalCents-inv.collectedCents;const existing=await context.prisma.paymentSession.findUnique({where:{idempotencyKey:`inv:${inv.id}:${idempotencyKey}`}});
@@ -369,7 +383,7 @@ export async function payInvoice(_root:any,{token,idempotencyKey}:any,context:an
 export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:any,context:any){
  const {getPaymentStatus}=await import('../utils/paymentProviderAdapter');
  // A reload of the return page after the invoice is paid must still say so, not report an error.
- if(token&&token.length>=32&&paymentIntentId){const settled=await context.prisma.clientInvoice.findFirst({where:{publicToken:hash(token)},select:{id:true,number:true,status:true}});
+ if(token&&token.length>=32&&paymentIntentId){const settled=await findInvoiceByToken(context.prisma,token,{select:{id:true,number:true,status:true}});
   if(settled){const done=await context.prisma.payment.findUnique({where:{idempotencyKey:`stripe:${paymentIntentId}`},select:{id:true,orderId:true,status:true}});
    if(done&&done.orderId===settled.id&&done.status==='succeeded')return {status:'succeeded',invoiceStatus:settled.status,paymentId:done.id,number:settled.number};}}
  const inv=await invoiceForToken(context,token);
@@ -385,7 +399,21 @@ export async function publicDestination(_root:any,{slug}:any,context:any){if(!/^
 const INVOICE_VIEW={number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,dueAt:true,trip:{select:{title:true,tripNumber:true}},lines:{select:{description:true,amountCents:true,kind:true}}};
 export async function viewInvoice(_root:any,{token}:any,context:any){
  if(!token||token.length<32)throw new Error('Invoice not found');
- const i=await guardKeystonePrismaResults(context.prisma as any).clientInvoice.findFirst({where:{publicToken:hash(token)},select:INVOICE_VIEW});if(!i||i.status==='draft')throw new Error('Invoice not found');return i;
+ const i=await findInvoiceByToken(guardKeystonePrismaResults(context.prisma as any),token,{select:INVOICE_VIEW});if(!i||i.status==='draft')throw new Error('Invoice not found');return i;
+}
+/** Read-only client portal. No traveler, document, supplier or commission data; only what the client already sees on their proposal, itinerary and invoices. */
+export async function viewTripPortal(_root:any,{token}:any,context:any){
+ const db=guardKeystonePrismaResults(context.prisma as any);const ref=await tripByPortalToken(db,token);if(!ref)throw new Error('Trip not found');
+ const t=await db.trip.findUnique({where:{id:ref.id},select:{id:true,tripNumber:true,title:true,status:true,startDate:true,endDate:true,currencyCode:true,
+  days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}},
+  invoices:{where:{status:{notIn:['draft','void']}},orderBy:{dueAt:'asc'},select:{id:true,number:true,status:true,totalCents:true,collectedCents:true,dueAt:true,currencyCode:true}},
+  schedule:{where:{status:'due'},orderBy:{dueAt:'asc'},select:{dueAt:true}}}});
+ if(!t)throw new Error('Trip not found');
+ const open=t.invoices.filter((i:any)=>i.status!=='paid'&&i.totalCents>i.collectedCents);
+ const balanceCents=open.reduce((n:number,i:any)=>n+(i.totalCents-i.collectedCents),0);
+ const dates=[...open.map((i:any)=>i.dueAt),...t.schedule.map((s:any)=>s.dueAt)].filter(Boolean).map((d:any)=>new Date(d).getTime());
+ return {tripNumber:t.tripNumber,title:t.title,status:t.status,startDate:t.startDate,endDate:t.endDate,currencyCode:t.currencyCode,days:t.days,balanceCents,nextDueAt:dates.length?new Date(Math.min(...dates)).toISOString():null,
+  invoices:t.invoices.map((i:any)=>({number:i.number,status:i.status,totalCents:i.totalCents,collectedCents:i.collectedCents,dueAt:i.dueAt,currencyCode:i.currencyCode,payToken:i.status==='paid'?null:`p.${i.id}.${token}`}))};
 }
 // Customer lookup: both the booking code and the email on file must match; only status data is returned.
 export async function lookupBooking(_root:any,{email,code}:any,context:any){

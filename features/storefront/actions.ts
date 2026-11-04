@@ -11,6 +11,9 @@ async function run<T>(fn: () => Promise<T>): Promise<Result<T>> {
 export async function submitInquiryAction(input: Record<string, unknown>) {
   return run(async () => (await publicRequest(`mutation($input: TravelJSON!) { submitInquiry(input: $input) }`, { input })).submitInquiry)
 }
+export async function viewTripPortalAction(token: string) {
+  return run(async () => (await publicRequest(`query($token: String!) { viewTripPortal(token: $token) }`, { token })).viewTripPortal)
+}
 export async function acceptProposalAction(token: string, optionId: string, name: string) {
   return run(async () => (await publicRequest(`mutation($token: String!, $optionId: ID!, $name: String!, $key: String!) { acceptProposal(token: $token, optionId: $optionId, name: $name, idempotencyKey: $key) }`, { token, optionId, name, key: randomUUID() })).acceptProposal)
 }

@@ -3,7 +3,7 @@ import type { GraphQLSchema } from 'graphql';
 import redirectToInit from "./redirectToInit";
 import {ensureTravelOnboardingPhase,setOnboardingStatus} from './onboarding';
 import {requestManagerApproval,decideManagerApproval} from '../utils/managerApproval';
-import {operators,submitInquiry,viewProposal,acceptProposal,viewItinerary,payInvoice,confirmInvoicePayment,publicDestinations,publicDestination,viewInvoice,lookupBooking} from './travel';
+import {operators,submitInquiry,viewProposal,acceptProposal,viewItinerary,viewTripPortal,payInvoice,confirmInvoicePayment,publicDestinations,publicDestination,viewInvoice,lookupBooking} from './travel';
 import {GraphQLScalarType,Kind} from 'graphql';
 const GraphQLJSON=new GraphQLScalarType({name:'TravelJSON',serialize:(v:any)=>v,parseValue:(v:any)=>v,parseLiteral:function lit(a:any):any{switch(a.kind){case Kind.OBJECT:return Object.fromEntries(a.fields.map((f:any)=>[f.name.value,lit(f.value)]));case Kind.LIST:return a.values.map(lit);case Kind.INT:return Number(a.value);case Kind.FLOAT:return Number(a.value);case Kind.NULL:return null;default:return (a as any).value;}}});
 
@@ -18,6 +18,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         redirectToInit: Boolean
         viewProposal(token:String!): TravelJSON
         viewItinerary(token:String!): TravelJSON
+        viewTripPortal(token:String!): TravelJSON
         publicDestinations: TravelJSON
         publicDestination(slug:String!): TravelJSON
         viewInvoice(token:String!): TravelJSON
@@ -37,7 +38,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
     `,
     resolvers: {
       TravelJSON: GraphQLJSON,
-      Query: {redirectToInit,viewProposal,viewItinerary,publicDestinations,publicDestination,viewInvoice,lookupBooking},
+      Query: {redirectToInit,viewProposal,viewItinerary,viewTripPortal,publicDestinations,publicDestination,viewInvoice,lookupBooking},
       Mutation: {requestManagerApproval,decideManagerApproval,ensureTravelOnboardingPhase:(_r:any,a:any,c:any)=>ensureTravelOnboardingPhase(c,a),setOnboardingStatus,...Object.fromEntries(Object.entries(operators).map(([name,handler])=>[name,(_root:any,{input}:any,context:any)=>handler(context,input)])),submitInquiry,acceptProposal,payInvoice,confirmInvoicePayment},
     },
   });

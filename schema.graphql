@@ -5099,6 +5099,7 @@ type Query {
   redirectToInit: Boolean
   viewProposal(token: String!): TravelJSON
   viewItinerary(token: String!): TravelJSON
+  viewTripPortal(token: String!): TravelJSON
   publicDestinations: TravelJSON
   publicDestination(slug: String!): TravelJSON
   viewInvoice(token: String!): TravelJSON
