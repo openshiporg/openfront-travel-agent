@@ -249,8 +249,10 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
   for(const c of full.components){const n=await tx.tripComponent.create({data:{tripId:copy.id,supplierId:c.supplierId,title:c.title,kind:c.kind,sellCents:c.sellCents,netCostCents:c.netCostCents,commissionBps:c.commissionBps,commissionCents:c.commissionCents,commissionStatus:'expected',paymentModel:c.paymentModel,cancellationPolicy:c.cancellationPolicy,cancelPenaltySchedule:c.cancelPenaltySchedule??undefined,currencyCode:c.currencyCode,depositCents:c.depositCents,depositDueAt:shiftDate(c.depositDueAt,shift),finalDueAt:shiftDate(c.finalDueAt,shift),startAt:shiftDate(c.startAt,shift),endAt:shiftDate(c.endAt,shift),bookingStatus:'quoted'}});componentIds.set(c.id,n.id);}
   let items=0;
   for(const d of full.days){const nd=await tx.itineraryDay.create({data:{tripId:copy.id,title:d.title,date:shiftDate(d.date,shift)}});for(const i of d.items){await tx.itineraryItem.create({data:{dayId:nd.id,title:i.title,time:i.time,location:i.location,notes:i.notes,sort:i.sort,componentId:i.componentId?componentIds.get(i.componentId)||null:null}});items++;}}
-  await audit(tx,context,'duplicate','Trip',copy.id,null,{sourceTripId:src.id,sourceNumber:src.tripNumber,components:componentIds.size,days:full.days.length,items,shiftDays:shift});
-  return {id:copy.id,tripNumber:copy.tripNumber,components:componentIds.size,days:full.days.length,items,shiftDays:shift};
+  const manual=await tx.task.findMany({where:{tripId:src.id,type:'follow_up',status:{not:'cancelled'},NOT:[{taskKey:{startsWith:'hold:'}},{taskKey:{startsWith:'short-paid:'}},{taskKey:{startsWith:'reminder:'}}]}});
+  for(const k of manual)await tx.task.create({data:{taskKey:`copy:${copy.id}:${k.id}`,tripId:copy.id,assigneeId:context.session.itemId,title:k.title,type:'follow_up',status:'open',dueAt:shiftDate(k.dueAt,shift)}});
+  await audit(tx,context,'duplicate','Trip',copy.id,null,{sourceTripId:src.id,sourceNumber:src.tripNumber,components:componentIds.size,days:full.days.length,items,tasks:manual.length,shiftDays:shift});
+  return {id:copy.id,tripNumber:copy.tripNumber,components:componentIds.size,days:full.days.length,items,tasks:manual.length,shiftDays:shift};
  }),
  holdComponent:(context,input)=>command(context,'holdComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);
