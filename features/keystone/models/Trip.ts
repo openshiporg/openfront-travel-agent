@@ -1,11 +1,17 @@
 import { list, graphql } from "@keystone-6/core";
 import { text, integer, json, timestamp, checkbox, relationship, virtual } from "@keystone-6/core/fields";
 import { trackingFields } from "./trackingFields";
+import { passportStatus } from "../lib/passport-check";
 import { cents, bps, currency, state, code, domainAccess, tripSum } from "./domainFields";
 export const Trip = list({
   access: {...domainAccess("canManageTrips", true),},
   fields: {
     title: text(),
+    // JSON text: [{id,status}] per traveler. Computed from the hidden expiry date so the date itself never leaves the server.
+    passportChecks: virtual({field:graphql.field({type:graphql.String,async resolve(item:any,_a,context:any){
+      const t=await context.prisma.trip.findUnique({where:{id:item.id},select:{startDate:true,endDate:true,travelers:{select:{id:true,passportExpiresAt:true}}}});
+      return JSON.stringify((t?.travelers||[]).map((x:any)=>({id:x.id,status:passportStatus(x.passportExpiresAt,t)})));
+    }})}),
     planningFeeCents: cents(),
     startDate: timestamp(),
     endDate: timestamp(),

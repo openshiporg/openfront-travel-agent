@@ -7,6 +7,7 @@ import {consumeManagerApproval} from '../utils/managerApproval';
 import {validateDocumentUpload,documentStorageKey} from '../lib/documents';
 import {isObjectStorageConfigured,assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
 import {dayShift,shiftDate} from '../lib/trip-copy';
+import {parsePassportExpiry} from '../lib/passport-check';
 import {commissionForecast,FORECAST_BOOKING} from '../lib/commission-forecast';
 import {toCsv,centsDecimal} from '../lib/csv';
 import {planningAmount,planningDate,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
@@ -163,8 +164,11 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const firstName=String(input.firstName||'').trim(),lastName=String(input.lastName||'').trim();if(!firstName||!lastName||firstName.length>100||lastName.length>100)throw new Error('First and last name required (100 characters maximum)');
  const nationality=String(input.nationality||'').trim();if(nationality.length>80)throw new Error('Nationality is too long');
  let old:any=null;if(input.travelerId){old=await tx.traveler.findUnique({where:{id:input.travelerId},include:{trips:{select:{id:true}}}});if(!old||old.clientId!==t.clientId||!old.trips.some((x:any)=>x.id===t.id))throw new Error('Traveler not found in this trip');}
- const data={firstName,lastName,nationality};const row=old?await tx.traveler.update({where:{id:old.id},data}):await tx.traveler.create({data:{...data,clientId:t.clientId,trips:{connect:{id:t.id}}}});
- await audit(tx,context,'edit_traveler','Traveler',row.id,old?{firstName:old.firstName,lastName:old.lastName,nationality:old.nationality}:null,data);return {id:row.id};
+ const data:any={firstName,lastName,nationality};
+ // The expiry date is sensitive: stored, never returned, never written to the audit log (only the fact it was recorded).
+ const expiry=input.passportExpiresAt?parsePassportExpiry(input.passportExpiresAt):null;if(expiry){data.passportExpiresAt=expiry;data.passportOnFile=true;}
+ const row=old?await tx.traveler.update({where:{id:old.id},data}):await tx.traveler.create({data:{...data,clientId:t.clientId,trips:{connect:{id:t.id}}}});
+ await audit(tx,context,'edit_traveler','Traveler',row.id,old?{firstName:old.firstName,lastName:old.lastName,nationality:old.nationality}:null,{firstName,lastName,nationality,...(expiry?{passportExpiryRecorded:true}:{})});return {id:row.id};
  }),
  addItineraryDay:(context,input)=>command(context,'addItineraryDay',input,'canManageTrips',async tx=>{
  const t=await itineraryTrip(tx,context,input.tripId);const title=String(input.title||'').trim();if(!title||title.length>120)throw new Error('Day title required (120 characters maximum)');

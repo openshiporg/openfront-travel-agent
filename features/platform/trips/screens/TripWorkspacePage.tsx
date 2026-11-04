@@ -15,6 +15,7 @@ import { PlanningEditor } from '../components/PlanningEditor'
 import { TravelerEditor } from '../components/TravelerEditor'
 import { EntryDialog } from '../../components/EntryDialog'
 import { ProposalBuilder } from '../components/ProposalBuilder'
+import { passportNeedsAction, PASSPORT_TEXT, type PassportStatus } from '@/features/keystone/lib/passport-check'
 import { supplierDue } from '../../lib/supplier-due'
 import { needsConfirmation, startsPhrase } from '../../lib/confirmation-state'
 import { AddDay, AddItem } from '../components/ItineraryEditor'
@@ -29,6 +30,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
   const d = await query(`query Trip($id: ID!) { trip(where: { id: $id }) {
     id tripNumber title status startDate endDate planningFeeCents currencyCode totalSellCents totalCollectedCents balanceDueCents expectedCommissionCents
     client { id name email phone } advisor { name } destinations { name }
+    passportChecks
     travelers { id firstName lastName passportOnFile nationality }
     proposals(orderBy: { version: desc }) { id version status introNote depositBps sentAt acceptedAt acceptedByName options(orderBy: { sort: asc }) { id title items(orderBy: { sort: asc }) { id kind title details sellCents estimatedCommissionBps supplier { id name } } } }
     components(orderBy: { startAt: asc }) { id kind title startAt endAt confirmationNumber confirmedAt confirmedBy { name } holdUntil supplierDueAt cancelPenaltySchedule bookingStatus paymentModel sellCents netCostCents commissionBps commissionCents commissionStatus depositCents depositDueAt finalDueAt supplier { name } allocations { amountCents } supplierPayments { amountCents } }
@@ -82,7 +84,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
       )}
 
       {active === 'travelers' && <Panel title="Travelers" action={<TravelerEditor tripId={id} />}>{t.travelers.length ? <RowList>{t.travelers.map((x: any) => (
-        <Row key={x.id}><span className="text-sm font-medium">{x.firstName} {x.lastName}</span><span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{x.nationality} · passport {x.passportOnFile ? 'on file' : 'missing'}</span><TravelerEditor tripId={id} traveler={x} /></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
+        <Row key={x.id}><div className="min-w-0"><p className="text-sm font-medium">{x.firstName} {x.lastName}</p><p className="text-xs text-muted-foreground">{joinParts([x.nationality, `passport ${x.passportOnFile ? 'on file' : 'missing'}`])}</p>{(() => { const s = (JSON.parse(t.passportChecks || '[]').find((p: any) => p.id === x.id)?.status || 'missing') as PassportStatus; return <p className={`font-mono text-xs uppercase tracking-wide ${passportNeedsAction(s) ? 'text-red-600' : 'text-muted-foreground'}`}>{PASSPORT_TEXT[s]}</p> })()}</div><TravelerEditor tripId={id} traveler={x} /></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
 
       {active === 'proposals' && <div className="flex justify-end"><ProposalBuilder tripId={id} currencyCode={cur} /></div>}
       {active === 'proposals' && (t.proposals.length ? t.proposals.map((p: any) => (
