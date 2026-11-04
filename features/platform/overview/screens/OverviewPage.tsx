@@ -1,17 +1,19 @@
 import { query, money, day } from '../../lib/data'
 import { joinParts } from '../../lib/text'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
+import { daysOverdue } from '../../lib/task-state'
 import { StatusLabel } from '../../components/StatusLabel'
 
 export async function OverviewPage() {
   const in30 = new Date(Date.now() + 30 * 86400000).toISOString()
   const in7 = new Date(Date.now() + 7 * 86400000).toISOString()
-  const d = await query(`query Overview($in30: DateTime!) {
+  const d = await query(`query Overview($in30: DateTime!, $now: DateTime!) {
     due: paymentSchedules(where: { status: { equals: due }, dueAt: { lte: $in30 } }, orderBy: { dueAt: asc }, take: 50) { id kind amountCents currencyCode dueAt trip { id tripNumber title } }
     components: tripComponents(where: { bookingStatus: { not: { equals: cancelled } } }, take: 500) { commissionCents commissionStatus allocations { amountCents } }
     traveling: trips(where: { status: { equals: traveling } }, take: 20) { id tripNumber title endDate client { name } }
+    openTasks: tasks(where: { status: { equals: open }, dueAt: { lt: $now } }, orderBy: { dueAt: asc }, take: 50) { id title dueAt status trip { id title } assignee { name } }
     inquiries(where: { status: { in: [new, qualifying, proposal] } }, orderBy: { createdAt: desc }, take: 10) { id name tripType destinations status }
-  }`, { in30 })
+  }`, { in30, now: new Date().toISOString() })
   const sum = (rows: any[]) => rows.reduce((n, r) => n + r.amountCents, 0)
   const due7 = d.due.filter((r: any) => r.dueAt <= in7)
   const expected = d.components.reduce((n: number, c: any) => n + c.commissionCents, 0)
@@ -19,14 +21,15 @@ export async function OverviewPage() {
   const stats = [
     { label: 'Due in 7 days', value: money(sum(due7)), sub: `${due7.length} payments` },
     { label: 'Due in 30 days', value: money(sum(d.due)), sub: `${d.due.length} payments` },
+    { label: 'Overdue tasks', value: String(d.openTasks.length), sub: d.openTasks.length ? 'need attention' : 'all caught up' },
     { label: 'Commission expected', value: money(expected), sub: 'all open components' },
     { label: 'Commission received', value: money(received), sub: `${money(Math.max(expected - received, 0))} outstanding` },
   ]
   return (
     <PlatformPage title="Dashboard" subtitle="Payments, commissions and trips in progress">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded-lg border p-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {stats.map((s, i) => (
+          <div key={s.label} className={`rounded-lg border p-3${i === stats.length - 1 && stats.length % 2 === 1 ? ' col-span-2 lg:col-span-1' : ''}`}>
             <p className="text-xs text-muted-foreground">{s.label}</p>
             <p className="mt-1 text-lg font-semibold md:text-xl">{s.value}</p>
             <p className="text-xs text-muted-foreground">{s.sub}</p>
@@ -40,6 +43,13 @@ export async function OverviewPage() {
               <div className="min-w-0"><p className="truncate text-sm font-medium">{r.trip?.title}</p><p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{joinParts([r.kind.replace(/_/g, ' '), r.dueAt ? day(r.dueAt) : ''])}</p></div>
               <span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span>
             </Row>))}</RowList> : <Empty>No payments due in the next 30 days</Empty>}
+        </Panel>
+        <Panel title="Overdue tasks">
+          {d.openTasks.length ? <RowList>{d.openTasks.slice(0, 6).map((t: any) => (
+            <Row key={t.id} href={t.trip ? `/dashboard/platform/trips/${t.trip.id}?tab=tasks` : '/dashboard/platform/tasks'}>
+              <div className="min-w-0"><p className="truncate text-sm font-medium">{t.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([t.trip?.title, t.assignee?.name || 'Unassigned'])}</p></div>
+              <span className="text-sm text-red-600">{daysOverdue(t)}d late</span>
+            </Row>))}</RowList> : <Empty>No overdue tasks</Empty>}
         </Panel>
         <Panel title="Traveling now">
           {d.traveling.length ? <RowList>{d.traveling.map((t: any) => (

@@ -28,6 +28,15 @@ async function createProposalOptions(tx:any,proposalId:string,options:any[],curr
   for(const [index,item] of (option.items||[]).entries()){integerMoney(item.sellCents);commissionCents(item.sellCents,item.estimatedCommissionBps||0);await tx.proposalItem.create({data:{optionId:o.id,title:item.title,kind:item.kind,supplierId:item.supplierId||null,details:item.details||'',sellCents:item.sellCents,estimatedCommissionBps:item.estimatedCommissionBps||0,sort:index,currencyCode}});}
  }
 }
+const taskNote=(v:any)=>{const n=String(v||'').trim();if(n.length>500)throw new Error('Note must be 500 characters or fewer');return n;};
+/** Locks the task's trip, then checks the actor is the assignee, or (when unassigned) the trip's advisor, or a role manager. */
+async function taskForChange(tx:any,context:any,taskId:any){
+ const found=await tx.task.findUnique({where:{id:String(taskId||'')}});if(!found)throw new Error('Task not found');
+ const t=found.tripId?await trip(tx,found.tripId):null;const task=await tx.task.findUnique({where:{id:found.id}});
+ const owner=task.assigneeId||t?.advisorId||null;
+ if(owner&&owner!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor or a manager can change this task');
+ return {task,trip:t};
+}
 async function itineraryTrip(tx:any,context:any,tripId:string){
  const t=await trip(tx,tripId);if(t.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may edit the itinerary');
  if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');return t;
@@ -189,14 +198,19 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await audit(tx,context,'build','Proposal',p.id,null,p);return p;
  }),
  completeTask:(context,input)=>command(context,'completeTask',input,'canManageTasks',async tx=>{
- const found=await tx.task.findUnique({where:{id:String(input.taskId||'')}});if(!found)throw new Error('Task not found');
- if(found.tripId)await trip(tx,found.tripId);
- const task=await tx.task.findUnique({where:{id:found.id}});
- if(task.assigneeId&&task.assigneeId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assignee or a manager can complete this task');
- if(task.status==='completed')return {id:task.id,status:'completed',alreadyCompleted:true};
- if(task.status!=='open')throw new Error('Only open tasks can be completed');
- const done=await tx.task.updateMany({where:{id:task.id,status:'open'},data:{status:'completed'}});if(done.count!==1)throw new Error('Task changed; reload and try again');
- await audit(tx,context,'complete','Task',task.id,{status:'open'},{status:'completed',title:task.title,type:task.type});return {id:task.id,status:'completed'};
+  const {task}=await taskForChange(tx,context,input.taskId);const note=taskNote(input.note);
+  if(task.status==='completed')return {id:task.id,status:'completed',alreadyCompleted:true};
+  if(task.status!=='open')throw new Error('Only open tasks can be completed');
+  const done=await tx.task.updateMany({where:{id:task.id,status:'open'},data:{status:'completed',completedAt:new Date(),completedById:context.session.itemId,completionNote:note}});if(done.count!==1)throw new Error('Task changed; reload and try again');
+  await audit(tx,context,'complete','Task',task.id,{status:'open'},{status:'completed',title:task.title,type:task.type,note});return {id:task.id,status:'completed'};
+ }),
+ reopenTask:(context,input)=>command(context,'reopenTask',input,'canManageTasks',async tx=>{
+  const {task}=await taskForChange(tx,context,input.taskId);const note=taskNote(input.note);
+  if(task.status==='open')return {id:task.id,status:'open',alreadyOpen:true};
+  if(task.status!=='completed')throw new Error('Only completed tasks can be reopened');
+  if(!note)throw new Error('Say why the task is being reopened');
+  const done=await tx.task.updateMany({where:{id:task.id,status:'completed'},data:{status:'open',completedAt:null,completedById:null,completionNote:''}});if(done.count!==1)throw new Error('Task changed; reload and try again');
+  await audit(tx,context,'reopen','Task',task.id,{status:'completed',completedAt:task.completedAt,completedById:task.completedById,note:task.completionNote},{status:'open',reason:note});return {id:task.id,status:'open'};
  }),
  updateProposalDraft:(context,input)=>command(context,'updateProposalDraft',input,'canManageTrips',async tx=>{
  const found=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!found)throw new Error('Proposal not found');await trip(tx,found.tripId);

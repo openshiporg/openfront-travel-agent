@@ -3488,6 +3488,9 @@ type Task {
   assignee: User
   type: TaskTypeType
   status: TaskStatusType
+  completedAt: DateTime
+  completedBy: User
+  completionNote: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3523,6 +3526,9 @@ input TaskWhereInput {
   assignee: UserWhereInput
   type: TaskTypeTypeNullableFilter
   status: TaskStatusTypeNullableFilter
+  completedAt: DateTimeNullableFilter
+  completedBy: UserWhereInput
+  completionNote: StringFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
@@ -3548,6 +3554,8 @@ input TaskOrderByInput {
   dueAt: OrderDirection
   type: OrderDirection
   status: OrderDirection
+  completedAt: OrderDirection
+  completionNote: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -3560,6 +3568,9 @@ input TaskUpdateInput {
   assignee: UserRelateToOneForUpdateInput
   type: TaskTypeType
   status: TaskStatusType
+  completedAt: DateTime
+  completedBy: UserRelateToOneForUpdateInput
+  completionNote: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3577,6 +3588,9 @@ input TaskCreateInput {
   assignee: UserRelateToOneForCreateInput
   type: TaskTypeType
   status: TaskStatusType
+  completedAt: DateTime
+  completedBy: UserRelateToOneForCreateInput
+  completionNote: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -4891,6 +4905,7 @@ type Mutation {
   createTripFromInquiry(input: TravelJSON!): TravelJSON
   buildProposal(input: TravelJSON!): TravelJSON
   completeTask(input: TravelJSON!): TravelJSON
+  reopenTask(input: TravelJSON!): TravelJSON
   updateProposalDraft(input: TravelJSON!): TravelJSON
   sendProposal(input: TravelJSON!): TravelJSON
   bookComponent(input: TravelJSON!): TravelJSON

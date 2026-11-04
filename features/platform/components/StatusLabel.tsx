@@ -1,5 +1,5 @@
 const DOT: Record<string, string> = {
-  planning: 'bg-slate-400', proposal_sent: 'bg-blue-500', accepted: 'bg-indigo-500', booked: 'bg-teal-500', final_payment_due: 'bg-amber-500',
+  planning: 'bg-slate-400', proposal_sent: 'bg-blue-500', accepted: 'bg-indigo-500', booked: 'bg-teal-500', final_payment_due: 'bg-amber-500', overdue: 'bg-red-500',
   paid_in_full: 'bg-emerald-500', traveling: 'bg-cyan-500', completed: 'bg-green-600', cancelled: 'bg-red-500',
   new: 'bg-blue-500', qualifying: 'bg-amber-500', proposal: 'bg-indigo-500', won: 'bg-emerald-500', lost: 'bg-red-500',
   draft: 'bg-slate-400', sent: 'bg-blue-500', viewed: 'bg-cyan-500', superseded: 'bg-slate-400', declined: 'bg-red-500',

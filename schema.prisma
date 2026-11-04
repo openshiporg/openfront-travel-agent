@@ -35,6 +35,7 @@ model User {
   passwordResetIssuedAt   DateTime?
   passwordResetRedeemedAt DateTime?
   from_OAuthToken_user    OAuthToken[]              @relation("OAuthToken_user")
+  from_Task_completedBy   Task[]                    @relation("Task_completedBy")
 
   @@index([roleId])
 }
@@ -551,21 +552,26 @@ model Document {
 }
 
 model Task {
-  id         String          @id @default(cuid())
-  title      String          @default("")
-  taskKey    String          @unique @default("")
-  dueAt      DateTime?
-  trip       Trip?           @relation("Task_trip", fields: [tripId], references: [id])
-  tripId     String?         @map("trip")
-  assignee   User?           @relation("Task_assignee", fields: [assigneeId], references: [id])
-  assigneeId String?         @map("assignee")
-  type       TaskTypeType?   @default(deposit_due)
-  status     TaskStatusType? @default(open)
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @default(now()) @updatedAt
+  id             String          @id @default(cuid())
+  title          String          @default("")
+  taskKey        String          @unique @default("")
+  dueAt          DateTime?
+  trip           Trip?           @relation("Task_trip", fields: [tripId], references: [id])
+  tripId         String?         @map("trip")
+  assignee       User?           @relation("Task_assignee", fields: [assigneeId], references: [id])
+  assigneeId     String?         @map("assignee")
+  type           TaskTypeType?   @default(deposit_due)
+  status         TaskStatusType? @default(open)
+  completedAt    DateTime?
+  completedBy    User?           @relation("Task_completedBy", fields: [completedById], references: [id])
+  completedById  String?         @map("completedBy")
+  completionNote String          @default("")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
 
   @@index([tripId])
   @@index([assigneeId])
+  @@index([completedById])
 }
 
 model AgencySettings {

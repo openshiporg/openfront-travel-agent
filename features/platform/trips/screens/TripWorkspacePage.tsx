@@ -7,6 +7,8 @@ import { StatusTabs } from '../../components/StatusTabs'
 import { DocumentUploader } from '../components/DocumentUploader'
 import { DocumentDownload } from '../components/DocumentDownload'
 import { isObjectStorageConfigured } from '../../../integrations/storage'
+import { TaskActions } from '../../tasks/components/TaskActions'
+import { daysOverdue, isOverdue, taskStatus } from '../../lib/task-state'
 import { ActionButton } from '../../components/ActionButton'
 import { MoneyAction } from '../../components/MoneyAction'
 import { PlanningEditor } from '../components/PlanningEditor'
@@ -32,7 +34,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     invoices(orderBy: { createdAt: asc }) { id number status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } payments(orderBy: { createdAt: asc }) { id amount refundedAmount status providerPaymentId paymentMethod processedAt } }
     schedule(orderBy: { dueAt: asc }) { id kind amountCents dueAt status }
     funds(orderBy: { occurredAt: asc }) { id entryType amountCents reference occurredAt }
-    tasks(orderBy: { dueAt: asc }) { id title type status dueAt }
+    tasks(orderBy: { dueAt: asc }) { id title type status dueAt completedAt completionNote completedBy { name } }
     documents(orderBy: { createdAt: desc }) { id kind title mimeType byteSize verifiedAt traveler { firstName lastName } }
   }
     agencySettingsRecords(take: 1) { refundApprovalThresholdCents }
@@ -40,6 +42,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     me: authenticatedItem { ... on User { id } }
   }`, { id })
   const t = d.trip
+  const overdueCount = t.tasks.filter((x: any) => isOverdue(x)).length
   if (!t) notFound()
   const href = (k: string) => `/dashboard/platform/trips/${id}?tab=${k}`
   const cur = t.currencyCode
@@ -126,7 +129,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
 
       {active === 'documents' && <Panel title="Documents" action={<DocumentUploader tripId={id} travelers={t.travelers.map((x: any) => ({ id: x.id, name: joinParts([x.firstName, x.lastName]) }))} storageConfigured={isObjectStorageConfigured()} />}>{t.documents.length ? <RowList>{t.documents.map((x: any) => <Row key={x.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{x.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([label(x.kind), x.traveler ? joinParts([x.traveler.firstName, x.traveler.lastName], ' ') : null, `${Math.max(1, Math.round(x.byteSize / 1024))} KB`])}</p></div><span className="flex items-center gap-3">{x.verifiedAt ? <DocumentDownload documentId={x.id} /> : <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Upload unverified</span>}</span></Row>)}</RowList> : <Empty>No documents</Empty>}</Panel>}
 
-      {active === 'tasks' && <Panel>{t.tasks.length ? <RowList>{t.tasks.map((x: any) => <Row key={x.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{x.title}</p><p className="text-xs text-muted-foreground">{label(x.type)} · {day(x.dueAt)}</p></div><span className="flex items-center gap-3"><StatusLabel status={x.status} />{x.status === 'open' ? <ActionButton operator="completeTask" input={{ taskId: x.id }}>Complete</ActionButton> : null}</span></Row>)}</RowList> : <Empty>No tasks</Empty>}</Panel>}
+      {active === 'tasks' && <Panel title="Tasks" action={overdueCount ? <span className="font-mono text-xs uppercase tracking-wide text-red-600">{overdueCount} overdue</span> : undefined}>{t.tasks.length ? <RowList>{t.tasks.map((x: any) => <Row key={x.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{x.title}</p><p className="text-xs text-muted-foreground">{joinParts([label(x.type), x.status === 'completed' && x.completedAt ? `Done ${day(x.completedAt)}${x.completedBy?.name ? ` by ${x.completedBy.name}` : ''}` : `Due ${day(x.dueAt)}${daysOverdue(x) ? `, ${daysOverdue(x)} ${daysOverdue(x) === 1 ? 'day' : 'days'} late` : ''}`])}</p>{x.completionNote ? <p className="text-xs text-muted-foreground">Note: {x.completionNote}</p> : null}</div><span className="flex items-center gap-3"><StatusLabel status={taskStatus(x)} /><TaskActions taskId={x.id} title={x.title} status={x.status} /></span></Row>)}</RowList> : <Empty>No tasks</Empty>}</Panel>}
     </PlatformPage>
   )
 }

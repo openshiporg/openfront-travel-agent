@@ -12,6 +12,9 @@ export const Task = list({
     assignee: relationship({ ref: "User.tasks", many: false }),
     type: state(["deposit_due", "final_due", "passport_expiring", "commission_overdue", "follow_up"]),
     status: state(["open", "completed", "cancelled"]),
+    completedAt: timestamp({ access: { create: () => false, update: () => false } }),
+    completedBy: relationship({ ref: "User", many: false, access: { create: () => false, update: () => false } }),
+    completionNote: text({ access: { create: () => false, update: () => false } }),
     ...trackingFields,
   },
 });
