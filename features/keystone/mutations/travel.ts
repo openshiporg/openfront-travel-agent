@@ -81,6 +81,16 @@ export async function refundClientPayment(context:any,input:any){
  },{timeout:20000});
 }
 export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
+ saveTripTraveler:(context,input)=>command(context,'saveTripTraveler',input,'canManageClients',async tx=>{
+ authorize(context,'canManageTrips');const t=await trip(tx,input.tripId);
+ if(t.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may edit travelers');
+ if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');if(!t.clientId)throw new Error('Trip needs a client');
+ const firstName=String(input.firstName||'').trim(),lastName=String(input.lastName||'').trim();if(!firstName||!lastName||firstName.length>100||lastName.length>100)throw new Error('First and last name required (100 characters maximum)');
+ const nationality=String(input.nationality||'').trim();if(nationality.length>80)throw new Error('Nationality is too long');
+ let old:any=null;if(input.travelerId){old=await tx.traveler.findUnique({where:{id:input.travelerId},include:{trips:{select:{id:true}}}});if(!old||old.clientId!==t.clientId||!old.trips.some((x:any)=>x.id===t.id))throw new Error('Traveler not found in this trip');}
+ const data={firstName,lastName,nationality};const row=old?await tx.traveler.update({where:{id:old.id},data}):await tx.traveler.create({data:{...data,clientId:t.clientId,trips:{connect:{id:t.id}}}});
+ await audit(tx,context,'edit_traveler','Traveler',row.id,old?{firstName:old.firstName,lastName:old.lastName,nationality:old.nationality}:null,data);return {id:row.id};
+ }),
  updateTripPlanning:(context,input)=>command(context,'updateTripPlanning',input,'canManageTrips',async tx=>{
  const t=await trip(tx,input.tripId);if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');
  const amount=planningAmount(input.planningFeeCents);

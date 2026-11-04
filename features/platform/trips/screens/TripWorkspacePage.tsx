@@ -6,6 +6,7 @@ import { StatusTabs } from '../../components/StatusTabs'
 import { ActionButton } from '../../components/ActionButton'
 import { MoneyAction } from '../../components/MoneyAction'
 import { PlanningEditor } from '../components/PlanningEditor'
+import { TravelerEditor } from '../components/TravelerEditor'
 
 const TABS = ['overview', 'travelers', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
 const NAMES: Record<string, string> = { funds: 'Client funds', proposals: 'Proposals' }
@@ -68,8 +69,8 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
         </div>
       )}
 
-      {active === 'travelers' && <Panel>{t.travelers.length ? <RowList>{t.travelers.map((x: any) => (
-        <Row key={x.id}><span className="text-sm font-medium">{x.firstName} {x.lastName}</span><span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{x.nationality} · passport {x.passportOnFile ? 'on file' : 'missing'}</span></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
+      {active === 'travelers' && <Panel action={<TravelerEditor tripId={id} />}>{t.travelers.length ? <RowList>{t.travelers.map((x: any) => (
+        <Row key={x.id}><span className="text-sm font-medium">{x.firstName} {x.lastName}</span><span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{x.nationality} · passport {x.passportOnFile ? 'on file' : 'missing'}</span><TravelerEditor tripId={id} traveler={x} /></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
 
       {active === 'proposals' && (t.proposals.length ? t.proposals.map((p: any) => (
         <Panel key={p.id} title={`Version ${p.version}`} action={<div className="flex items-center gap-2"><StatusLabel status={p.status} />{p.status === 'draft' ? <ActionButton operator="sendProposal" input={{ proposalId: p.id }} linkPrefix="/proposal/">Send</ActionButton> : null}</div>}>
