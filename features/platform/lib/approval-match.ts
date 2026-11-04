@@ -11,3 +11,9 @@ export function matchingApproval(rows: ApprovalCandidate[], input: { actionType:
     a.reason.trim() === input.reason.trim() && a.requestedBy?.id === input.actorId &&
     Boolean(a.approvedBy?.id) && a.approvedBy?.id !== input.actorId && Date.parse(a.expiresAt) > now)?.id ?? null
 }
+
+/** An open request that already covers this exact action, so the form does not file a duplicate. */
+export function pendingApproval(rows: ApprovalCandidate[], input: { actionType: string; targetId: string; amountCents: number; reason: string; actorId: string }, now = Date.now()) {
+  return rows.find(a => a.status === 'requested' && a.actionType === input.actionType && a.targetId === input.targetId &&
+    a.amountCents === input.amountCents && a.reason.trim() === input.reason.trim() && a.requestedBy?.id === input.actorId && Date.parse(a.expiresAt) > now)?.id ?? null
+}
