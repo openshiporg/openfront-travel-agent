@@ -20,6 +20,10 @@ async function command(context:any,operation:string,input:any,permission:Permiss
   await updateIdempotencyAttempt(tx,attempt.id,'completed',json,200);return json;
  },{timeout:20000});
 }
+async function itineraryTrip(tx:any,context:any,tripId:string){
+ const t=await trip(tx,tripId);if(t.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may edit the itinerary');
+ if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');return t;
+}
 async function trip(tx:any,id:string){await lockTransactionKey(tx,`travel-trip:${id}`);const row=await tx.trip.findUnique({where:{id}});if(!row)throw new Error('Trip not found');return row;}
 export async function clientBalanceCents(tx:any,tripId:string){
  const t=await tx.trip.findUnique({where:{id:tripId},include:{components:true,invoices:{where:{status:{not:'void'}}}}});
@@ -90,6 +94,18 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  let old:any=null;if(input.travelerId){old=await tx.traveler.findUnique({where:{id:input.travelerId},include:{trips:{select:{id:true}}}});if(!old||old.clientId!==t.clientId||!old.trips.some((x:any)=>x.id===t.id))throw new Error('Traveler not found in this trip');}
  const data={firstName,lastName,nationality};const row=old?await tx.traveler.update({where:{id:old.id},data}):await tx.traveler.create({data:{...data,clientId:t.clientId,trips:{connect:{id:t.id}}}});
  await audit(tx,context,'edit_traveler','Traveler',row.id,old?{firstName:old.firstName,lastName:old.lastName,nationality:old.nationality}:null,data);return {id:row.id};
+ }),
+ addItineraryDay:(context,input)=>command(context,'addItineraryDay',input,'canManageTrips',async tx=>{
+ const t=await itineraryTrip(tx,context,input.tripId);const title=String(input.title||'').trim();if(!title||title.length>120)throw new Error('Day title required (120 characters maximum)');
+ const date=new Date(input.date);if(Number.isNaN(date.getTime()))throw new Error('Valid day date required');
+ const row=await tx.itineraryDay.create({data:{tripId:t.id,title,date}});await audit(tx,context,'add_day','ItineraryDay',row.id,null,{title,date});return {id:row.id};
+ }),
+ addItineraryItem:(context,input)=>command(context,'addItineraryItem',input,'canManageTrips',async tx=>{
+ const t=await itineraryTrip(tx,context,input.tripId);const dayRow=await tx.itineraryDay.findUnique({where:{id:input.dayId},include:{items:{select:{sort:true}}}});if(!dayRow||dayRow.tripId!==t.id)throw new Error('Itinerary day not found in this trip');
+ const title=String(input.title||'').trim();if(!title||title.length>160)throw new Error('Item title required (160 characters maximum)');
+ const time=String(input.time||'').trim(),location=String(input.location||'').trim(),notes=String(input.notes||'').trim();if(time.length>40||location.length>160||notes.length>2000)throw new Error('Item time, location or notes too long');
+ const sort=dayRow.items.reduce((n:number,i:any)=>Math.max(n,i.sort||0),-1)+1;
+ const row=await tx.itineraryItem.create({data:{dayId:dayRow.id,title,time,location,notes,sort}});await audit(tx,context,'add_item','ItineraryItem',row.id,null,{title,time,location,dayId:dayRow.id});return {id:row.id};
  }),
  updateTripPlanning:(context,input)=>command(context,'updateTripPlanning',input,'canManageTrips',async tx=>{
  const t=await trip(tx,input.tripId);if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');

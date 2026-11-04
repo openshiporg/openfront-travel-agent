@@ -8,6 +8,8 @@ import { MoneyAction } from '../../components/MoneyAction'
 import { PlanningEditor } from '../components/PlanningEditor'
 import { TravelerEditor } from '../components/TravelerEditor'
 import { EntryDialog } from '../../components/EntryDialog'
+import { ProposalBuilder } from '../components/ProposalBuilder'
+import { AddDay, AddItem } from '../components/ItineraryEditor'
 
 const TABS = ['overview', 'travelers', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
 const NAMES: Record<string, string> = { funds: 'Client funds', proposals: 'Proposals' }
@@ -73,6 +75,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
       {active === 'travelers' && <Panel title="Travelers" action={<TravelerEditor tripId={id} />}>{t.travelers.length ? <RowList>{t.travelers.map((x: any) => (
         <Row key={x.id}><span className="text-sm font-medium">{x.firstName} {x.lastName}</span><span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{x.nationality} · passport {x.passportOnFile ? 'on file' : 'missing'}</span><TravelerEditor tripId={id} traveler={x} /></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
 
+      {active === 'proposals' && <div className="flex justify-end"><ProposalBuilder tripId={id} currencyCode={cur} /></div>}
       {active === 'proposals' && (t.proposals.length ? t.proposals.map((p: any) => (
         <Panel key={p.id} title={`Version ${p.version}`} action={<div className="flex items-center gap-2"><StatusLabel status={p.status} />{p.status === 'draft' ? <ActionButton operator="sendProposal" input={{ proposalId: p.id }} linkPrefix="/proposal/">Send</ActionButton> : null}</div>}>
           <div className="grid gap-3 md:grid-cols-3">{p.options.map((o: any) => (
@@ -92,9 +95,9 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
           <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium">{money(c.sellCents, cur)}</span><PlanningEditor tripId={id} feeCents={t.planningFeeCents} currencyCode={cur} component={c} />{c.paymentModel === 'agency_collects' && c.bookingStatus !== 'cancelled' && c.netCostCents - c.supplierPayments.reduce((n: number, p: any) => n + p.amountCents, 0) > 0 ? <EntryDialog title={`Pay supplier · ${money(c.netCostCents - c.supplierPayments.reduce((n: number, p: any) => n + p.amountCents, 0), cur)} remaining`} trigger="Pay supplier" operator="recordSupplierPayment" base={{ componentId: c.id }} fields={[{ name: 'amountCents', label: `Amount (${cur})`, kind: 'money' }, { name: 'method', label: 'Method', kind: 'select', options: [{ value: 'wire', label: 'Wire' }, { value: 'check', label: 'Check' }, { value: 'card', label: 'Card' }] }, { name: 'reference', label: 'Reference' }]} /> : null}{c.bookingStatus !== 'cancelled' ? <ActionButton operator="cancelComponent" input={{ componentId: c.id }} confirm="Cancel this component?">Cancel</ActionButton> : null}</div>
         </Row>))}</RowList> : <Empty>No components</Empty>}</Panel>}
 
-      {active === 'itinerary' && <div className="flex justify-end"><ActionButton operator="shareItinerary" input={{ tripId: id }} linkPrefix="/itinerary/">Share itinerary</ActionButton></div>}
+      {active === 'itinerary' && <div className="flex flex-wrap justify-end gap-2"><AddDay tripId={id} /><ActionButton operator="shareItinerary" input={{ tripId: id }} linkPrefix="/itinerary/">Share itinerary</ActionButton></div>}
       {active === 'itinerary' && (t.days.length ? t.days.map((dd: any) => (
-        <Panel key={dd.id} title={`${day(dd.date)} · ${dd.title}`}><RowList>{dd.items.map((i: any) => <Row key={i.id}><span className="text-sm">{i.time} {i.title}</span><span className="text-xs text-muted-foreground">{i.location}</span></Row>)}</RowList></Panel>)) : <Panel><Empty>No itinerary days</Empty></Panel>)}
+        <Panel key={dd.id} title={`${day(dd.date)} · ${dd.title}`} action={<AddItem tripId={id} dayId={dd.id} />}><RowList>{dd.items.map((i: any) => <Row key={i.id}><span className="text-sm">{i.time} {i.title}</span><span className="text-xs text-muted-foreground">{i.location}</span></Row>)}</RowList></Panel>)) : <Panel><Empty>No itinerary days</Empty></Panel>)}
 
       {active === 'payments' && (
         <div className="space-y-4">

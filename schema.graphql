@@ -4881,6 +4881,8 @@ type Mutation {
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
   saveTripTraveler(input: TravelJSON!): TravelJSON
+  addItineraryDay(input: TravelJSON!): TravelJSON
+  addItineraryItem(input: TravelJSON!): TravelJSON
   updateTripPlanning(input: TravelJSON!): TravelJSON
   updateComponentTerms(input: TravelJSON!): TravelJSON
   createTripFromInquiry(input: TravelJSON!): TravelJSON
