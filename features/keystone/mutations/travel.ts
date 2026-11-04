@@ -6,6 +6,7 @@ import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,f
 import {consumeManagerApproval} from '../utils/managerApproval';
 import {validateDocumentUpload,documentStorageKey} from '../lib/documents';
 import {isObjectStorageConfigured,assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
+import {dayShift,shiftDate} from '../lib/trip-copy';
 import {planningAmount,planningDate,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
@@ -234,6 +235,22 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const token=randomBytes(32).toString('base64url');await tx.proposal.updateMany({where:{tripId:p.tripId,status:{in:['sent','viewed']}},data:{status:'superseded'}});
  await tx.proposal.update({where:{id:p.id},data:{status:'sent',sentAt:new Date(),publicToken:hash(token)}});if(t.status==='planning')await transition(tx,context,t,'proposal_sent');
  await audit(tx,context,'send','Proposal',p.id,{status:p.status},{status:'sent'});return {id:p.id,token};
+ }),
+ duplicateTrip:(context,input)=>command(context,'duplicateTrip',input,'canManageTrips',async tx=>{
+  const src=await trip(tx,String(input.tripId||''));
+  if(src.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may copy this trip');
+  const title=String(input.title||'').trim();if(!title||title.length>160)throw new Error('Title required (160 characters maximum)');
+  const parsed=input.startDate?planningDate(input.startDate):null;if(input.startDate&&!parsed)throw new Error('Valid start date required');const start=parsed?new Date(`${parsed.toISOString().slice(0,10)}T12:00:00.000Z`):null;
+  const full=await tx.trip.findUnique({where:{id:src.id},include:{destinations:{select:{id:true}},components:{where:{bookingStatus:{not:'cancelled'}}},days:{include:{items:true},orderBy:{date:'asc'}}}});
+  const firstDay=full.days.find((d:any)=>d.date)?.date||null;const shift=dayShift(full.startDate||firstDay,start);
+  const clientId=input.clientId?String(input.clientId):full.clientId;if(input.clientId&&!(await tx.client.findUnique({where:{id:clientId}})))throw new Error('Client not found');
+  const copy=await tx.trip.create({data:{tripNumber:code('TR'),title,clientId,advisorId:context.session.itemId,status:'planning',currencyCode:full.currencyCode,planningFeeCents:full.planningFeeCents,startDate:start||full.startDate,endDate:shiftDate(full.endDate,shift),destinations:{connect:full.destinations.map((d:any)=>({id:d.id}))}}});
+  const componentIds=new Map<string,string>();
+  for(const c of full.components){const n=await tx.tripComponent.create({data:{tripId:copy.id,supplierId:c.supplierId,title:c.title,kind:c.kind,sellCents:c.sellCents,netCostCents:c.netCostCents,commissionBps:c.commissionBps,commissionCents:c.commissionCents,commissionStatus:'expected',paymentModel:c.paymentModel,cancellationPolicy:c.cancellationPolicy,cancelPenaltySchedule:c.cancelPenaltySchedule??undefined,currencyCode:c.currencyCode,depositCents:c.depositCents,depositDueAt:shiftDate(c.depositDueAt,shift),finalDueAt:shiftDate(c.finalDueAt,shift),startAt:shiftDate(c.startAt,shift),endAt:shiftDate(c.endAt,shift),bookingStatus:'quoted'}});componentIds.set(c.id,n.id);}
+  let items=0;
+  for(const d of full.days){const nd=await tx.itineraryDay.create({data:{tripId:copy.id,title:d.title,date:shiftDate(d.date,shift)}});for(const i of d.items){await tx.itineraryItem.create({data:{dayId:nd.id,title:i.title,time:i.time,location:i.location,notes:i.notes,sort:i.sort,componentId:i.componentId?componentIds.get(i.componentId)||null:null}});items++;}}
+  await audit(tx,context,'duplicate','Trip',copy.id,null,{sourceTripId:src.id,sourceNumber:src.tripNumber,components:componentIds.size,days:full.days.length,items,shiftDays:shift});
+  return {id:copy.id,tripNumber:copy.tripNumber,components:componentIds.size,days:full.days.length,items,shiftDays:shift};
  }),
  holdComponent:(context,input)=>command(context,'holdComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);

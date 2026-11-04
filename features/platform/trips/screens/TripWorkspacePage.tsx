@@ -59,7 +59,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
   return (
     <PlatformPage title={t.title} subtitle={joinParts([t.tripNumber, t.client?.name, dateRange(t.startDate, t.endDate)])}
       crumbs={[{ label: 'Trips', href: '/dashboard/platform/trips' }, { label: t.title }]}
-      actions={<div className="flex flex-wrap items-center gap-2"><StatusLabel status={t.status} />{next ? <ActionButton operator="transitionTrip" input={{ tripId: id, status: next }}>{`Mark ${label(next)}`}</ActionButton> : null}</div>}>
+      actions={<div className="flex flex-wrap items-center gap-2"><StatusLabel status={t.status} /><EntryDialog title="Copy this trip" trigger="Copy trip" operator="duplicateTrip" base={{ tripId: id }} redirectTo="/dashboard/platform/trips/{id}" fields={[{ name: 'title', label: 'Title for the copy', initial: `${t.title} (copy)` }, { name: 'startDate', label: 'New start date (dates shift to match)', kind: 'date', optional: true, initial: t.startDate ? String(t.startDate).slice(0, 10) : '' }]} />{next ? <ActionButton operator="transitionTrip" input={{ tripId: id, status: next }}>{`Mark ${label(next)}`}</ActionButton> : null}</div>}>
       <StatusTabs active={active} hrefFor={href} tabs={TABS.map((k) => ({ key: k, label: NAMES[k] || label(k).replace(/^./, (c) => c.toUpperCase()) }))} />
 
       {active === 'overview' && (

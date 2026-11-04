@@ -4923,6 +4923,7 @@ type Mutation {
   reopenTask(input: TravelJSON!): TravelJSON
   updateProposalDraft(input: TravelJSON!): TravelJSON
   sendProposal(input: TravelJSON!): TravelJSON
+  duplicateTrip(input: TravelJSON!): TravelJSON
   holdComponent(input: TravelJSON!): TravelJSON
   bookComponent(input: TravelJSON!): TravelJSON
   generatePaymentSchedule(input: TravelJSON!): TravelJSON

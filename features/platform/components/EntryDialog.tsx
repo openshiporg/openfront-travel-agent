@@ -11,7 +11,7 @@ import { toCents } from '../lib/cents'
 export type EntryField = { name: string; label: string; kind?: 'text' | 'money' | 'date' | 'select'; options?: { value: string; label: string }[]; initial?: string; optional?: boolean }
 
 /** Generic operator entry form in a dialog: money fields become cents, errors stay in the dialog. */
-export function EntryDialog({ title, trigger, operator, fields, base, lineFields }: { title: string; trigger: string; operator: string; fields: EntryField[]; base: Record<string, unknown>; lineFields?: string[] }) {
+export function EntryDialog({ title, trigger, operator, fields, base, lineFields, redirectTo }: { title: string; trigger: string; operator: string; fields: EntryField[]; base: Record<string, unknown>; lineFields?: string[]; redirectTo?: string }) {
   const [open, setOpen] = useState(false)
   const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(fields.map((f) => [f.name, f.initial ?? ''])))
   const [error, setError] = useState(''), [pending, start] = useTransition(), router = useRouter()
@@ -25,7 +25,9 @@ export function EntryDialog({ title, trigger, operator, fields, base, lineFields
     }
     const r = await runOperator(operator, { ...base, ...(lineFields ? { ...Object.fromEntries(Object.entries(out).filter(([k]) => !lineFields.includes(k))), lines: [Object.fromEntries(lineFields.filter((k) => k in out).map((k) => [k, out[k]]))] } : out) })
     if (!r.success) return setError(r.error)
-    setOpen(false); router.refresh()
+    setOpen(false)
+    const newId = (r.data as any)?.id
+    if (redirectTo && newId) router.push(redirectTo.replace('{id}', String(newId))); else router.refresh()
   })
   return <><Button variant="outline" size="sm" onClick={() => setOpen(true)}>{trigger}</Button>
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-[min(28rem,calc(100vw-2rem))]"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription className="sr-only">{title}</DialogDescription></DialogHeader>
