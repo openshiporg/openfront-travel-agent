@@ -367,7 +367,12 @@ export async function payInvoice(_root:any,{token,idempotencyKey}:any,context:an
  return {clientSecret:intent.clientSecret,paymentIntentId:intent.paymentIntentId,amountCents:amount};
 }
 export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:any,context:any){
- const {getPaymentStatus}=await import('../utils/paymentProviderAdapter');const inv=await invoiceForToken(context,token);
+ const {getPaymentStatus}=await import('../utils/paymentProviderAdapter');
+ // A reload of the return page after the invoice is paid must still say so, not report an error.
+ if(token&&token.length>=32&&paymentIntentId){const settled=await context.prisma.clientInvoice.findFirst({where:{publicToken:hash(token)},select:{id:true,number:true,status:true}});
+  if(settled){const done=await context.prisma.payment.findUnique({where:{idempotencyKey:`stripe:${paymentIntentId}`},select:{id:true,orderId:true,status:true}});
+   if(done&&done.orderId===settled.id&&done.status==='succeeded')return {status:'succeeded',invoiceStatus:settled.status,paymentId:done.id,number:settled.number};}}
+ const inv=await invoiceForToken(context,token);
  const session=await context.prisma.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,data:{path:['paymentIntentId'],equals:paymentIntentId}}});if(!session)throw new Error('Payment not found');
  const status=await getPaymentStatus({provider:stripeProvider,paymentId:paymentIntentId});if(status.status!=='succeeded'||status.amount!==session.amount||status.currencyCode!==inv.currencyCode)return {status:status.status};
  const {settleInvoicePayment}=await import('../lib/invoice-settlement');
