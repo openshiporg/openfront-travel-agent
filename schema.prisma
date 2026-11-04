@@ -290,6 +290,8 @@ model TripComponent {
   endAt                 DateTime?
   depositDueAt          DateTime?
   finalDueAt            DateTime?
+  holdUntil             DateTime?
+  confirmedAt           DateTime?
   cancelPenaltySchedule Json?
   purchaseSnapshot      Json?
   trip                  Trip?                              @relation("TripComponent_trip", fields: [tripId], references: [id])

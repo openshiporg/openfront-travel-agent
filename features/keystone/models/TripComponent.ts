@@ -16,6 +16,8 @@ export const TripComponent = list({
     endAt: timestamp(),
     depositDueAt: timestamp(),
     finalDueAt: timestamp(),
+    holdUntil: timestamp(),
+    confirmedAt: timestamp(),
     cancelPenaltySchedule: json(),
     purchaseSnapshot: json(),
     trip: relationship({ ref: "Trip.components", many: false }),

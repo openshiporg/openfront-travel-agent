@@ -6,7 +6,7 @@ import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,f
 import {consumeManagerApproval} from '../utils/managerApproval';
 import {validateDocumentUpload,documentStorageKey} from '../lib/documents';
 import {isObjectStorageConfigured,assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
-import {planningAmount,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
+import {planningAmount,planningDate,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
 export async function lockTransactionKey(tx:any,key:string){await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${key},0))) AS acquired`;}
@@ -42,6 +42,8 @@ async function createInvoice(tx:any,context:any,t:any,lines:any[],dueAt?:any,fix
 const depositToken=(proposalToken:string)=>hash(`proposal-deposit:${proposalToken}`);
 const depositBpsOf=(v:any)=>{const n=v===undefined||v===null||v===''?0:Number(v);if(!Number.isInteger(n)||n<0||n>10000)throw new Error('Deposit must be 0 to 100 percent');return n;};
 const depositCentsFor=(items:any[],bps:number)=>Math.round(items.reduce((n:number,i:any)=>n+i.sellCents,0)*bps/10000);
+/** A hold is a promise the supplier will release the space; the advisor gets a reminder the day before it lapses. */
+const closeHoldTask=(tx:any,componentId:string)=>tx.task.updateMany({where:{taskKey:`hold:${componentId}`,status:'open'},data:{status:'cancelled'}});
 const taskNote=(v:any)=>{const n=String(v||'').trim();if(n.length>500)throw new Error('Note must be 500 characters or fewer');return n;};
 /** Locks the task's trip, then checks the actor is the assignee, or (when unassigned) the trip's advisor, or a role manager. */
 async function taskForChange(tx:any,context:any,taskId:any){
@@ -233,10 +235,21 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await tx.proposal.update({where:{id:p.id},data:{status:'sent',sentAt:new Date(),publicToken:hash(token)}});if(t.status==='planning')await transition(tx,context,t,'proposal_sent');
  await audit(tx,context,'send','Proposal',p.id,{status:p.status},{status:'sent'});return {id:p.id,token};
  }),
+ holdComponent:(context,input)=>command(context,'holdComponent',input,'canManageTrips',async tx=>{
+ const c=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);
+ if(!['quoted','held'].includes(c.bookingStatus))throw new Error('Only quoted or held components can be held');
+ if(!input.holdUntil)throw new Error('Hold expiry date required');const until=planningDate(input.holdUntil);if(!until)throw new Error('Hold expiry date required');if(until.getTime()<Date.now()-86400000)throw new Error('Hold expiry must not be in the past');
+ const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'held',holdUntil:until}});
+ const dueAt=new Date(until.getTime()-86400000);
+ await tx.task.upsert({where:{taskKey:`hold:${c.id}`},update:{dueAt,status:'open',completedAt:null,completionNote:''},create:{taskKey:`hold:${c.id}`,tripId:t.id,assigneeId:t.advisorId,title:`Hold expires: ${c.title}`,type:'follow_up',dueAt,status:'open'}});
+ await audit(tx,context,'hold','TripComponent',c.id,{bookingStatus:c.bookingStatus,holdUntil:c.holdUntil},{bookingStatus:'held',holdUntil:until.toISOString()});return {id:row.id,holdUntil:until.toISOString()};
+ }),
  bookComponent:(context,input)=>command(context,'bookComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);if(!['quoted','held'].includes(c.bookingStatus))throw new Error('Component cannot be booked');
+ const confirmation=String(input.confirmationNumber||'').trim();if(!confirmation)throw new Error('Supplier confirmation number required');if(confirmation.length>80)throw new Error('Confirmation number must be 80 characters or fewer');
  integerMoney(input.netCostCents);const commission=commissionCents(c.sellCents,input.commissionBps??c.commissionBps);
- const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'booked',confirmationNumber:input.confirmationNumber,netCostCents:input.netCostCents,paymentModel:input.paymentModel||c.paymentModel,commissionBps:input.commissionBps??c.commissionBps,commissionCents:commission,purchaseSnapshot:{title:c.title,sellCents:c.sellCents,netCostCents:input.netCostCents,quantity:1,feesCents:0,taxCents:0,currencyCode:c.currencyCode,commissionCents:commission}}});
+ const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'booked',confirmationNumber:confirmation,confirmedAt:new Date(),holdUntil:null,netCostCents:input.netCostCents,paymentModel:input.paymentModel||c.paymentModel,commissionBps:input.commissionBps??c.commissionBps,commissionCents:commission,purchaseSnapshot:{title:c.title,sellCents:c.sellCents,netCostCents:input.netCostCents,quantity:1,feesCents:0,taxCents:0,currencyCode:c.currencyCode,commissionCents:commission}}});
+ await closeHoldTask(tx,c.id);
  if(t.status==='accepted')await transition(tx,context,t,'booked');await audit(tx,context,'book','TripComponent',row.id,c,row);return row;
  }),
  generatePaymentSchedule:(context,input)=>command(context,'generatePaymentSchedule',input,'canManagePayments',async tx=>{
@@ -278,7 +291,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  cancelComponent:async(context,input)=>{
   const cancelled=await command(context,'cancelComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c||c.bookingStatus==='cancelled')throw new Error('Component not cancellable');await trip(tx,c.tripId);const penalty=penaltyCents(c.sellCents,c.startAt||new Date(),new Date(),Array.isArray(c.cancelPenaltySchedule)?c.cancelPenaltySchedule:[]);
- const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'cancelled'}});await audit(tx,context,'cancel','TripComponent',c.id,{bookingStatus:c.bookingStatus},{bookingStatus:'cancelled',penaltyCents:penalty});return {id:row.id,penaltyCents:penalty,refundableCents:Math.max(0,c.sellCents-penalty)};
+ const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'cancelled',holdUntil:null}});await closeHoldTask(tx,c.id);await audit(tx,context,'cancel','TripComponent',c.id,{bookingStatus:c.bookingStatus},{bookingStatus:'cancelled',penaltyCents:penalty});return {id:row.id,penaltyCents:penalty,refundableCents:Math.max(0,c.sellCents-penalty)};
   });
   if(!input.refundCents)return cancelled;
   if(!input.paymentId)throw new Error('A refund needs the payment to refund');

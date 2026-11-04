@@ -1912,6 +1912,8 @@ type TripComponent {
   endAt: DateTime
   depositDueAt: DateTime
   finalDueAt: DateTime
+  holdUntil: DateTime
+  confirmedAt: DateTime
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
   trip: Trip
@@ -1993,6 +1995,8 @@ input TripComponentWhereInput {
   endAt: DateTimeNullableFilter
   depositDueAt: DateTimeNullableFilter
   finalDueAt: DateTimeNullableFilter
+  holdUntil: DateTimeNullableFilter
+  confirmedAt: DateTimeNullableFilter
   trip: TripWhereInput
   supplier: SupplierWhereInput
   kind: TripComponentKindTypeNullableFilter
@@ -2071,6 +2075,8 @@ input TripComponentOrderByInput {
   endAt: OrderDirection
   depositDueAt: OrderDirection
   finalDueAt: OrderDirection
+  holdUntil: OrderDirection
+  confirmedAt: OrderDirection
   kind: OrderDirection
   bookingStatus: OrderDirection
   paymentModel: OrderDirection
@@ -2093,6 +2099,8 @@ input TripComponentUpdateInput {
   endAt: DateTime
   depositDueAt: DateTime
   finalDueAt: DateTime
+  holdUntil: DateTime
+  confirmedAt: DateTime
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
   trip: TripRelateToOneForUpdateInput
@@ -2152,6 +2160,8 @@ input TripComponentCreateInput {
   endAt: DateTime
   depositDueAt: DateTime
   finalDueAt: DateTime
+  holdUntil: DateTime
+  confirmedAt: DateTime
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
   trip: TripRelateToOneForCreateInput
@@ -4913,6 +4923,7 @@ type Mutation {
   reopenTask(input: TravelJSON!): TravelJSON
   updateProposalDraft(input: TravelJSON!): TravelJSON
   sendProposal(input: TravelJSON!): TravelJSON
+  holdComponent(input: TravelJSON!): TravelJSON
   bookComponent(input: TravelJSON!): TravelJSON
   generatePaymentSchedule(input: TravelJSON!): TravelJSON
   issueClientInvoice(input: TravelJSON!): TravelJSON
