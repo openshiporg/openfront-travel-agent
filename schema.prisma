@@ -292,6 +292,7 @@ model TripComponent {
   depositDueAt          DateTime?
   finalDueAt            DateTime?
   holdUntil             DateTime?
+  supplierDueAt         DateTime?
   confirmedAt           DateTime?
   confirmedBy           User?                              @relation("TripComponent_confirmedBy", fields: [confirmedById], references: [id])
   confirmedById         String?                            @map("confirmedBy")

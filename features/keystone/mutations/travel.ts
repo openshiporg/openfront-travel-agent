@@ -246,13 +246,22 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
   const clientId=input.clientId?String(input.clientId):full.clientId;if(input.clientId&&!(await tx.client.findUnique({where:{id:clientId}})))throw new Error('Client not found');
   const copy=await tx.trip.create({data:{tripNumber:code('TR'),title,clientId,advisorId:context.session.itemId,status:'planning',currencyCode:full.currencyCode,planningFeeCents:full.planningFeeCents,startDate:start||full.startDate,endDate:shiftDate(full.endDate,shift),destinations:{connect:full.destinations.map((d:any)=>({id:d.id}))}}});
   const componentIds=new Map<string,string>();
-  for(const c of full.components){const n=await tx.tripComponent.create({data:{tripId:copy.id,supplierId:c.supplierId,title:c.title,kind:c.kind,sellCents:c.sellCents,netCostCents:c.netCostCents,commissionBps:c.commissionBps,commissionCents:c.commissionCents,commissionStatus:'expected',paymentModel:c.paymentModel,cancellationPolicy:c.cancellationPolicy,cancelPenaltySchedule:c.cancelPenaltySchedule??undefined,currencyCode:c.currencyCode,depositCents:c.depositCents,depositDueAt:shiftDate(c.depositDueAt,shift),finalDueAt:shiftDate(c.finalDueAt,shift),startAt:shiftDate(c.startAt,shift),endAt:shiftDate(c.endAt,shift),bookingStatus:'quoted'}});componentIds.set(c.id,n.id);}
+  for(const c of full.components){const n=await tx.tripComponent.create({data:{tripId:copy.id,supplierId:c.supplierId,title:c.title,kind:c.kind,sellCents:c.sellCents,netCostCents:c.netCostCents,commissionBps:c.commissionBps,commissionCents:c.commissionCents,commissionStatus:'expected',paymentModel:c.paymentModel,cancellationPolicy:c.cancellationPolicy,cancelPenaltySchedule:c.cancelPenaltySchedule??undefined,currencyCode:c.currencyCode,depositCents:c.depositCents,depositDueAt:shiftDate(c.depositDueAt,shift),finalDueAt:shiftDate(c.finalDueAt,shift),supplierDueAt:shiftDate(c.supplierDueAt,shift),startAt:shiftDate(c.startAt,shift),endAt:shiftDate(c.endAt,shift),bookingStatus:'quoted'}});componentIds.set(c.id,n.id);}
   let items=0;
   for(const d of full.days){const nd=await tx.itineraryDay.create({data:{tripId:copy.id,title:d.title,date:shiftDate(d.date,shift)}});for(const i of d.items){await tx.itineraryItem.create({data:{dayId:nd.id,title:i.title,time:i.time,location:i.location,notes:i.notes,sort:i.sort,componentId:i.componentId?componentIds.get(i.componentId)||null:null}});items++;}}
   const manual=await tx.task.findMany({where:{tripId:src.id,type:'follow_up',status:{not:'cancelled'},NOT:[{taskKey:{startsWith:'hold:'}},{taskKey:{startsWith:'short-paid:'}},{taskKey:{startsWith:'reminder:'}}]}});
   for(const k of manual)await tx.task.create({data:{taskKey:`copy:${copy.id}:${k.id}`,tripId:copy.id,assigneeId:context.session.itemId,title:k.title,type:'follow_up',status:'open',dueAt:shiftDate(k.dueAt,shift)}});
   await audit(tx,context,'duplicate','Trip',copy.id,null,{sourceTripId:src.id,sourceNumber:src.tripNumber,components:componentIds.size,days:full.days.length,items,tasks:manual.length,shiftDays:shift});
   return {id:copy.id,tripNumber:copy.tripNumber,components:componentIds.size,days:full.days.length,items,tasks:manual.length,shiftDays:shift};
+ }),
+ setSupplierDue:(context,input)=>command(context,'setSupplierDue',input,'canManagePayments',async tx=>{
+ const c0=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c0)throw new Error('Component not found');await trip(tx,c0.tripId);
+ const c=await tx.tripComponent.findUnique({where:{id:c0.id}});if(c.bookingStatus==='cancelled')throw new Error('Component is cancelled');
+ if(c.paymentModel!=='agency_collects')throw new Error('Only agency-collected components are paid to the supplier by the agency');
+ const due=input.supplierDueAt===null||input.supplierDueAt===''||input.supplierDueAt===undefined?null:planningDate(input.supplierDueAt);
+ const stored=due?new Date(`${due.toISOString().slice(0,10)}T12:00:00.000Z`):null;
+ await tx.tripComponent.update({where:{id:c.id},data:{supplierDueAt:stored}});
+ await audit(tx,context,'set_supplier_due','TripComponent',c.id,{supplierDueAt:c.supplierDueAt},{supplierDueAt:stored?stored.toISOString():null});return {id:c.id,supplierDueAt:stored?stored.toISOString():null};
  }),
  holdComponent:(context,input)=>command(context,'holdComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);

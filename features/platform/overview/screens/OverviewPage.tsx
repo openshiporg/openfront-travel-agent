@@ -1,4 +1,5 @@
 import { startsPhrase } from '../../lib/confirmation-state'
+import { supplierDue } from '../../lib/supplier-due'
 import { query, money, day } from '../../lib/data'
 import { joinParts } from '../../lib/text'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
@@ -11,6 +12,7 @@ export async function OverviewPage() {
   const d = await query(`query Overview($in30: DateTime!, $now: DateTime!) {
     due: paymentSchedules(where: { status: { equals: due }, dueAt: { lte: $in30 } }, orderBy: { dueAt: asc }, take: 50) { id kind amountCents currencyCode dueAt trip { id tripNumber title } }
     components: tripComponents(where: { bookingStatus: { not: { equals: cancelled } } }, take: 500) { commissionCents commissionStatus allocations { amountCents } }
+    owed: tripComponents(where: { paymentModel: { equals: agency_collects }, bookingStatus: { in: [booked, ticketed] }, trip: { status: { notIn: [cancelled, completed] } } }, take: 500) { id title kind netCostCents startAt supplierDueAt cancelPenaltySchedule bookingStatus paymentModel supplier { name } trip { id title } supplierPayments { amountCents } }
     unconfirmed: tripComponents(where: { bookingStatus: { in: [quoted, held, booked, ticketed] }, confirmationNumber: { equals: "" }, startAt: { gte: $now, lte: $in30 }, trip: { status: { notIn: [cancelled, completed] } } }, orderBy: { startAt: asc }, take: 50) { id title kind startAt bookingStatus trip { id title } }
     traveling: trips(where: { status: { equals: traveling } }, take: 20) { id tripNumber title endDate client { name } }
     openTasks: tasks(where: { status: { equals: open }, dueAt: { lt: $now } }, orderBy: { dueAt: asc }, take: 50) { id title dueAt status trip { id title } assignee { name } }
@@ -20,16 +22,19 @@ export async function OverviewPage() {
   const due7 = d.due.filter((r: any) => r.dueAt <= in7)
   const expected = d.components.reduce((n: number, c: any) => n + c.commissionCents, 0)
   const received = d.components.reduce((n: number, c: any) => n + c.allocations.reduce((m: number, a: any) => m + a.amountCents, 0), 0)
+  const supplierRows = d.owed.map((c: any) => ({ c, s: supplierDue(c) })).filter((x: any) => x.s.remainingCents > 0)
+  const supplierOverdue = supplierRows.filter((x: any) => x.s.overdue).sort((x: any, y: any) => y.s.daysLate - x.s.daysLate)
   const stats = [
     { label: 'Due in 7 days', value: money(sum(due7)), sub: `${due7.length} payments` },
     { label: 'Due in 30 days', value: money(sum(d.due)), sub: `${d.due.length} payments` },
     { label: 'Overdue tasks', value: String(d.openTasks.length), sub: d.openTasks.length ? 'need attention' : 'all caught up' },
+    { label: 'Suppliers overdue', value: money(supplierOverdue.reduce((n: number, x: any) => n + x.s.remainingCents, 0)), sub: supplierOverdue.length ? `${supplierOverdue.length} to pay` : 'none late' },
     { label: 'Commission expected', value: money(expected), sub: 'all open components' },
     { label: 'Commission received', value: money(received), sub: `${money(Math.max(expected - received, 0))} outstanding` },
   ]
   return (
     <PlatformPage title="Dashboard" subtitle="Payments, commissions and trips in progress">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         {stats.map((s, i) => (
           <div key={s.label} className={`rounded-lg border p-3${i === stats.length - 1 && stats.length % 2 === 1 ? ' col-span-2 lg:col-span-1' : ''}`}>
             <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -38,11 +43,11 @@ export async function OverviewPage() {
           </div>
         ))}
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="Payments due">
           {d.due.length ? <RowList>{d.due.slice(0, 8).map((r: any) => (
             <Row key={r.id} href={`/dashboard/platform/trips/${r.trip?.id}`}>
-              <div className="min-w-0"><p className="truncate text-sm font-medium">{r.trip?.title}</p><p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{joinParts([r.kind.replace(/_/g, ' '), r.dueAt ? day(r.dueAt) : ''])}</p></div>
+              <div className="min-w-0"><p className="truncate text-sm font-medium">{r.trip?.title}</p><p className="truncate font-mono text-xs uppercase tracking-wide text-muted-foreground">{joinParts([r.kind.replace(/_/g, ' '), r.dueAt ? day(r.dueAt) : ''])}</p></div>
               <span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span>
             </Row>))}</RowList> : <Empty>No payments due in the next 30 days</Empty>}
         </Panel>
@@ -52,6 +57,13 @@ export async function OverviewPage() {
               <div className="min-w-0"><p className="truncate text-sm font-medium">{t.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([t.trip?.title, t.assignee?.name || 'Unassigned'])}</p></div>
               <span className="text-sm text-red-600">{daysOverdue(t)}d late</span>
             </Row>))}</RowList> : <Empty>No overdue tasks</Empty>}
+        </Panel>
+        <Panel title="Supplier payments overdue">
+          {supplierOverdue.length ? <RowList>{supplierOverdue.slice(0, 6).map(({ c, s }: any) => (
+            <Row key={c.id} href={`/dashboard/platform/trips/${c.trip.id}?tab=components`}>
+              <div className="min-w-0"><p className="truncate text-sm font-medium">{c.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([c.supplier?.name, c.trip.title, `due ${day(s.dueAt)}`])}</p></div>
+              <span className="text-right text-sm text-red-600">{money(s.remainingCents)}<span className="block text-xs">{s.daysLate}d late</span></span>
+            </Row>))}</RowList> : <Empty>No supplier payments are overdue</Empty>}
         </Panel>
         <Panel title="Missing confirmations">
           {d.unconfirmed.length ? <RowList>{d.unconfirmed.slice(0, 6).map((c: any) => (

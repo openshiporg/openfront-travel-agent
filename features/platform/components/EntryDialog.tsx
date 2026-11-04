@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { runOperator } from '../actions/operators'
 import { toCents } from '../lib/cents'
 
-export type EntryField = { name: string; label: string; kind?: 'text' | 'money' | 'date' | 'select'; options?: { value: string; label: string }[]; initial?: string; optional?: boolean }
+export type EntryField = { name: string; label: string; kind?: 'text' | 'money' | 'date' | 'select'; options?: { value: string; label: string }[]; initial?: string; optional?: boolean; sendEmpty?: boolean }
 
 /** Generic operator entry form in a dialog: money fields become cents, errors stay in the dialog. */
 export function EntryDialog({ title, trigger, operator, fields, base, lineFields, redirectTo }: { title: string; trigger: string; operator: string; fields: EntryField[]; base: Record<string, unknown>; lineFields?: string[]; redirectTo?: string }) {
@@ -20,7 +20,7 @@ export function EntryDialog({ title, trigger, operator, fields, base, lineFields
     const out: Record<string, any> = {}
     for (const f of fields) {
       const v = (values[f.name] || '').trim()
-      if (!v) { if (f.optional) continue; return setError(`${f.label} is required`) }
+      if (!v) { if (f.optional) { if (f.sendEmpty) out[f.name] = null; continue } return setError(`${f.label} is required`) }
       if (f.kind === 'money') { const c = toCents(v); if (c === null) return setError(`${f.label}: enter an amount above zero with at most two decimals`); out[f.name] = c } else out[f.name] = v
     }
     const r = await runOperator(operator, { ...base, ...(lineFields ? { ...Object.fromEntries(Object.entries(out).filter(([k]) => !lineFields.includes(k))), lines: [Object.fromEntries(lineFields.filter((k) => k in out).map((k) => [k, out[k]]))] } : out) })
