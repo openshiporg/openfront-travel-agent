@@ -20,6 +20,13 @@ async function command(context:any,operation:string,input:any,permission:Permiss
   await updateIdempotencyAttempt(tx,attempt.id,'completed',json,200);return json;
  },{timeout:20000});
 }
+async function createProposalOptions(tx:any,proposalId:string,options:any[],currencyCode:string){
+ for(const [sort,option] of options.entries()){
+  if(!String(option.title||'').trim())throw new Error('Option title required');
+  const o=await tx.proposalOption.create({data:{proposalId,title:option.title,sort}});
+  for(const [index,item] of (option.items||[]).entries()){integerMoney(item.sellCents);commissionCents(item.sellCents,item.estimatedCommissionBps||0);await tx.proposalItem.create({data:{optionId:o.id,title:item.title,kind:item.kind,supplierId:item.supplierId||null,details:item.details||'',sellCents:item.sellCents,estimatedCommissionBps:item.estimatedCommissionBps||0,sort:index,currencyCode}});}
+ }
+}
 async function itineraryTrip(tx:any,context:any,tripId:string){
  const t=await trip(tx,tripId);if(t.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may edit the itinerary');
  if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');return t;
@@ -132,12 +139,19 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  }),
  buildProposal:(context,input)=>command(context,'buildProposal',input,'canManageTrips',async tx=>{
  await trip(tx,input.tripId);const prior=await tx.proposal.aggregate({where:{tripId:input.tripId},_max:{version:true}});
- const p=await tx.proposal.create({data:{tripId:input.tripId,version:(prior._max.version||0)+1,status:'draft',introNote:input.introNote||''}});
  if(!Array.isArray(input.options)||!input.options.length)throw new Error('Proposal options required');
- for(const [sort,option] of input.options.entries()){
- const o=await tx.proposalOption.create({data:{proposalId:p.id,title:option.title,sort}});
- for(const [index,item] of (option.items||[]).entries()){integerMoney(item.sellCents);commissionCents(item.sellCents,item.estimatedCommissionBps||0);await tx.proposalItem.create({data:{optionId:o.id,title:item.title,kind:item.kind,supplierId:item.supplierId||null,details:item.details||'',sellCents:item.sellCents,estimatedCommissionBps:item.estimatedCommissionBps||0,sort:index,currencyCode:input.currencyCode||'USD'}});}
- }await audit(tx,context,'build','Proposal',p.id,null,p);return p;
+ const p=await tx.proposal.create({data:{tripId:input.tripId,version:(prior._max.version||0)+1,status:'draft',introNote:input.introNote||''}});
+ await createProposalOptions(tx,p.id,input.options,input.currencyCode||'USD');
+ await audit(tx,context,'build','Proposal',p.id,null,p);return p;
+ }),
+ updateProposalDraft:(context,input)=>command(context,'updateProposalDraft',input,'canManageTrips',async tx=>{
+ const found=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!found)throw new Error('Proposal not found');await trip(tx,found.tripId);
+ const p=await tx.proposal.findUnique({where:{id:input.proposalId},include:{options:{include:{items:true}}}});if(p.status!=='draft')throw new Error('Only draft proposals can be edited');
+ if(!Array.isArray(input.options)||!input.options.length)throw new Error('Proposal options required');
+ const before={introNote:p.introNote,options:p.options.map((o:any)=>({title:o.title,items:o.items.map((i:any)=>({title:i.title,kind:i.kind,sellCents:i.sellCents,estimatedCommissionBps:i.estimatedCommissionBps}))}))};
+ await tx.proposalItem.deleteMany({where:{optionId:{in:p.options.map((o:any)=>o.id)}}});await tx.proposalOption.deleteMany({where:{proposalId:p.id}});
+ await createProposalOptions(tx,p.id,input.options,input.currencyCode||'USD');await tx.proposal.update({where:{id:p.id},data:{introNote:String(input.introNote||'').trim()}});
+ await audit(tx,context,'edit_draft','Proposal',p.id,before,{introNote:input.introNote||'',options:input.options});return {id:p.id,version:p.version};
  }),
  sendProposal:(context,input)=>command(context,'sendProposal',input,'canManageTrips',async tx=>{
  const p=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!p||p.status!=='draft')throw new Error('Only draft proposals may be sent');const t=await trip(tx,p.tripId);

@@ -7,26 +7,26 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { runOperator } from '../../actions/operators'
-import { buildProposalPayload, ITEM_KINDS, type DraftOption } from '../../lib/proposal-draft'
+import { buildProposalPayload, draftFromProposal, ITEM_KINDS, type DraftOption } from '../../lib/proposal-draft'
 
 const blankItem = () => ({ title: '', kind: 'hotel', sell: '', commissionPct: '' })
 const blankOption = (): DraftOption => ({ title: '', items: [blankItem()] })
 
 /** Authors a new draft proposal version: options with priced items and estimated commission. */
-export function ProposalBuilder({ tripId, currencyCode }: { tripId: string; currencyCode: string }) {
-  const [open, setOpen] = useState(false), [intro, setIntro] = useState(''), [options, setOptions] = useState<DraftOption[]>([blankOption()])
+export function ProposalBuilder({ tripId, currencyCode, draft }: { tripId: string; currencyCode: string; draft?: { id: string; version: number; introNote: string; options: Parameters<typeof draftFromProposal>[0]['options'] } }) {
+  const [open, setOpen] = useState(false), [intro, setIntro] = useState(draft?.introNote || ''), [options, setOptions] = useState<DraftOption[]>(draft ? draftFromProposal(draft) : [blankOption()])
   const [error, setError] = useState(''), [pending, start] = useTransition(), router = useRouter()
   const patchOption = (i: number, fn: (o: DraftOption) => DraftOption) => setOptions(options.map((o, k) => (k === i ? fn(o) : o)))
   const submit = () => start(async () => {
     setError('')
     const payload = buildProposalPayload(intro, options)
     if (!payload.ok) return setError(payload.error)
-    const r = await runOperator('buildProposal', { tripId, currencyCode, introNote: payload.introNote, options: payload.options })
+    const r = await runOperator(draft ? 'updateProposalDraft' : 'buildProposal', draft ? { proposalId: draft.id, currencyCode, introNote: payload.introNote, options: payload.options } : { tripId, currencyCode, introNote: payload.introNote, options: payload.options })
     if (!r.success) return setError(r.error)
-    setOpen(false); setIntro(''); setOptions([blankOption()]); router.refresh()
+    setOpen(false); if (!draft) { setIntro(''); setOptions([blankOption()]) }; router.refresh()
   })
-  return <><Button variant="outline" size="sm" onClick={() => setOpen(true)}>New proposal</Button>
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-[min(36rem,calc(100vw-2rem))] overflow-y-auto"><DialogHeader><DialogTitle>New proposal draft</DialogTitle><DialogDescription className="sr-only">Create a draft proposal with options and priced items.</DialogDescription></DialogHeader>
+  return <><Button variant="outline" size="sm" onClick={() => setOpen(true)}>{draft ? 'Edit draft' : 'New proposal'}</Button>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-[min(36rem,calc(100vw-2rem))] overflow-y-auto"><DialogHeader><DialogTitle>{draft ? `Edit draft version ${draft.version}` : 'New proposal draft'}</DialogTitle><DialogDescription className="sr-only">Create a draft proposal with options and priced items.</DialogDescription></DialogHeader>
       <div className="space-y-4">
         <div className="space-y-1"><Label htmlFor="proposal-intro">Introduction for the client</Label><Textarea id="proposal-intro" value={intro} onChange={(e) => setIntro(e.target.value)} /></div>
         {options.map((o, oi) => <div key={oi} className="space-y-3 rounded-lg border p-3">
@@ -44,6 +44,6 @@ export function ProposalBuilder({ tripId, currencyCode }: { tripId: string; curr
         </div>)}
         <Button variant="outline" size="sm" onClick={() => setOptions([...options, blankOption()])}>Add option</Button>
         {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
-        <div><Button disabled={pending} onClick={submit}>{pending ? 'Saving' : 'Save draft'}</Button></div>
+        <div><Button disabled={pending} onClick={submit}>{pending ? 'Saving' : draft ? 'Save changes' : 'Save draft'}</Button></div>
       </div></DialogContent></Dialog></>
 }

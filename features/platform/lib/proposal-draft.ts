@@ -1,15 +1,20 @@
 import { toCents } from './cents'
 
-export type DraftItem = { title: string; kind: string; sell: string; commissionPct: string }
+export type DraftItem = { title: string; kind: string; sell: string; commissionPct: string; supplierId?: string | null; details?: string }
+
+/** Converts a saved proposal back into editable form fields, keeping supplier and details so an edit never drops them. */
+export function draftFromProposal(p: { options: { title: string; items: { title: string; kind: string; sellCents: number; estimatedCommissionBps: number | null; supplierId?: string | null; details?: string | null }[] }[] }): DraftOption[] {
+  return p.options.map((o) => ({ title: o.title, items: o.items.map((i) => ({ title: i.title, kind: i.kind, sell: (i.sellCents / 100).toFixed(2), commissionPct: i.estimatedCommissionBps ? String(i.estimatedCommissionBps / 100) : '', supplierId: i.supplierId || null, details: i.details || '' })) }))
+}
 export type DraftOption = { title: string; items: DraftItem[] }
 export const ITEM_KINDS = ['hotel', 'cruise', 'tour', 'flight', 'transfer', 'rail', 'insurance', 'activity', 'fee']
 
-type Built = { ok: true; introNote: string; options: { title: string; items: { title: string; kind: string; sellCents: number; estimatedCommissionBps: number }[] }[] } | { ok: false; error: string }
+type Built = { ok: true; introNote: string; options: { title: string; items: { title: string; kind: string; sellCents: number; estimatedCommissionBps: number; supplierId?: string; details?: string }[] }[] } | { ok: false; error: string }
 
 /** Validates the proposal form and converts dollars and percentages to the integer cents and basis points buildProposal expects. */
 export function buildProposalPayload(introNote: string, options: DraftOption[]): Built {
   if (!options.length) return { ok: false, error: 'Add at least one option' }
-  const out: { title: string; items: { title: string; kind: string; sellCents: number; estimatedCommissionBps: number }[] }[] = []
+  const out: { title: string; items: { title: string; kind: string; sellCents: number; estimatedCommissionBps: number; supplierId?: string; details?: string }[] }[] = []
   for (const [oi, option] of options.entries()) {
     const label = option.title.trim() || `Option ${oi + 1}`
     if (!option.title.trim()) return { ok: false, error: `${label}: title is required` }
@@ -23,7 +28,7 @@ export function buildProposalPayload(introNote: string, options: DraftOption[]):
       if (sellCents === null) return { ok: false, error: `${where}: enter a price above zero with at most two decimals` }
       const pct = item.commissionPct.trim() === '' ? 0 : Number(item.commissionPct)
       if (!Number.isFinite(pct) || pct < 0 || pct > 100 || Math.round(pct * 100) / 100 !== pct) return { ok: false, error: `${where}: commission must be 0 to 100 with at most two decimals` }
-      items.push({ title: item.title.trim(), kind: item.kind, sellCents, estimatedCommissionBps: Math.round(pct * 100) })
+      items.push({ title: item.title.trim(), kind: item.kind, sellCents, estimatedCommissionBps: Math.round(pct * 100), ...(item.supplierId ? { supplierId: item.supplierId } : {}), ...(item.details ? { details: item.details } : {}) })
     }
     out.push({ title: option.title.trim(), items })
   }

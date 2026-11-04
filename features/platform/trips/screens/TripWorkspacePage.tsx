@@ -23,7 +23,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     id tripNumber title status startDate endDate planningFeeCents currencyCode totalSellCents totalCollectedCents balanceDueCents expectedCommissionCents
     client { id name email phone } advisor { name } destinations { name }
     travelers { id firstName lastName passportOnFile nationality }
-    proposals(orderBy: { version: desc }) { id version status sentAt acceptedAt acceptedByName options(orderBy: { sort: asc }) { id title items(orderBy: { sort: asc }) { id kind title sellCents supplier { name } } } }
+    proposals(orderBy: { version: desc }) { id version status introNote sentAt acceptedAt acceptedByName options(orderBy: { sort: asc }) { id title items(orderBy: { sort: asc }) { id kind title details sellCents estimatedCommissionBps supplier { id name } } } }
     components(orderBy: { startAt: asc }) { id kind title startAt endAt confirmationNumber bookingStatus paymentModel sellCents netCostCents commissionBps commissionCents commissionStatus depositCents depositDueAt finalDueAt supplier { name } allocations { amountCents } supplierPayments { amountCents } }
     days(orderBy: { date: asc }) { id date title items(orderBy: { sort: asc }) { id time title location } }
     invoices(orderBy: { createdAt: asc }) { id number status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } payments(orderBy: { createdAt: asc }) { id amount refundedAmount status providerPaymentId paymentMethod processedAt } }
@@ -78,7 +78,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
 
       {active === 'proposals' && <div className="flex justify-end"><ProposalBuilder tripId={id} currencyCode={cur} /></div>}
       {active === 'proposals' && (t.proposals.length ? t.proposals.map((p: any) => (
-        <Panel key={p.id} title={`Version ${p.version}`} action={<div className="flex items-center gap-2"><StatusLabel status={p.status} />{p.status === 'draft' ? <ActionButton operator="sendProposal" input={{ proposalId: p.id }} linkPrefix="/proposal/">Send</ActionButton> : null}</div>}>
+        <Panel key={p.id} title={`Version ${p.version}`} action={<div className="flex items-center gap-2"><StatusLabel status={p.status} />{p.status === 'draft' ? <ProposalBuilder tripId={id} currencyCode={cur} draft={{ id: p.id, version: p.version, introNote: p.introNote || '', options: p.options.map((o: any) => ({ ...o, items: o.items.map((i: any) => ({ ...i, supplierId: i.supplier?.id || null })) })) }} /> : null}{p.status === 'draft' ? <ActionButton operator="sendProposal" input={{ proposalId: p.id }} linkPrefix="/proposal/">Send</ActionButton> : null}</div>}>
           <div className="grid gap-3 md:grid-cols-3">{p.options.map((o: any) => (
             <div key={o.id} className="rounded-lg border p-3">
               <p className="text-sm font-medium">{o.title} · {money(o.items.reduce((n: number, i: any) => n + i.sellCents, 0), cur)}</p>

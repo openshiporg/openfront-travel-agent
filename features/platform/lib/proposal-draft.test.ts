@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildProposalPayload } from './proposal-draft'
+import { buildProposalPayload, draftFromProposal } from './proposal-draft'
 
 const item = (over = {}) => ({ title: 'Hotel', kind: 'hotel', sell: '1200.50', commissionPct: '10', ...over })
 
@@ -15,4 +15,12 @@ test('refuses empty options, blank titles, bad kind, bad price and bad commissio
   assert.equal(buildProposalPayload('', [{ title: 'A', items: [] }]).ok, false)
   for (const bad of [{ title: '' }, { kind: 'nope' }, { sell: '0' }, { sell: '1.999' }, { commissionPct: '101' }, { commissionPct: '-1' }, { commissionPct: '1.234' }, { commissionPct: 'x' }])
     assert.equal(buildProposalPayload('', [{ title: 'A', items: [item(bad)] }]).ok, false, JSON.stringify(bad))
+})
+
+test('editing a saved proposal round-trips exactly and keeps supplier and details', () => {
+  const saved = { options: [{ title: 'Classic', items: [{ title: 'Hotel', kind: 'hotel', sellCents: 120050, estimatedCommissionBps: 1250, supplierId: 'sup1', details: 'Sea view' }, { title: 'Fee', kind: 'fee', sellCents: 5000, estimatedCommissionBps: 0 }] }] }
+  const draft = draftFromProposal(saved)
+  assert.equal(draft[0].items[0].sell, '1200.50'); assert.equal(draft[0].items[0].commissionPct, '12.5'); assert.equal(draft[0].items[1].commissionPct, '')
+  const p = buildProposalPayload('', draft)
+  assert.ok(p.ok); if (p.ok) { assert.deepEqual(p.options[0].items[0], { title: 'Hotel', kind: 'hotel', sellCents: 120050, estimatedCommissionBps: 1250, supplierId: 'sup1', details: 'Sea view' }); assert.equal(p.options[0].items[1].sellCents, 5000); assert.equal('supplierId' in p.options[0].items[1], false) }
 })
