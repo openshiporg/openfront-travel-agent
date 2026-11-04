@@ -6,7 +6,7 @@ export const Document = list({
   access: {...domainAccess("canManageDocuments", true),filter:{query:({session}:any)=>session?.data.role?.canManageRoles?true:{trip:{advisor:{id:{equals:session?.itemId}}}}},},
   fields: {
     title: text(),
-    storageKey: text(),
+    storageKey: text({ access: { read: () => false, create: () => false, update: () => false } }),
     mimeType: text(),
     checksumSha256: text(),
     verifiedAt: timestamp(),

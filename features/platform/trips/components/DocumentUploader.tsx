@@ -29,7 +29,7 @@ export function DocumentUploader({ tripId, travelers, storageConfigured }: { tri
     if (file.size < 1 || file.size > MAX_BYTES) return setError('File must be between 1 byte and 25 MB')
     setStep('Preparing')
     const checksumSha256 = await sha256Hex(file)
-    const req = await runOperator('requestDocumentUpload', { tripId, travelerId: travelerId || undefined, kind, title: title.trim(), fileName: file.name, mimeType: file.type, byteSize: file.size, checksumSha256 })
+    const req = await runOperator('requestDocumentUpload', { tripId, travelerId: travelerId || undefined, kind, title: title.trim(), mimeType: file.type, byteSize: file.size, checksumSha256 })
     if (!req.success) { setStep(''); return setError(req.error) }
     const { documentId, uploadUrl, headers } = req.data as { documentId: string; uploadUrl: string; headers: { name: string; value: string }[] }
     setStep('Uploading')

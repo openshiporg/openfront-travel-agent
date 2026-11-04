@@ -4,7 +4,8 @@ import {permissions, type Permission} from '../access';
 import {getOrCreateIdempotencyAttempt,updateIdempotencyAttempt} from '../utils/idempotency';
 import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,fundsDelta,integerMoney,assertTransition,refundableRemaining,assertRefundAmount,requiresApproval,overpaymentCents,writeOffRemaining} from '../lib/travel-money';
 import {consumeManagerApproval} from '../utils/managerApproval';
-import {assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
+import {validateDocumentUpload,documentStorageKey} from '../lib/documents';
+import {isObjectStorageConfigured,assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
 import {planningAmount,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
@@ -101,9 +102,6 @@ export async function refundClientPayment(context:any,input:any){
   return {refundId:refund.id,status:'succeeded',amountCents:refund.amount};
  },{timeout:20000});
 }
-const DOCUMENT_TYPES=new Set(['application/pdf','image/jpeg','image/png','image/webp','text/plain']);
-const DOCUMENT_KINDS=['passport','visa','insurance','supplier_confirmation','signed_terms'];
-const MAX_DOCUMENT_BYTES=25*1024*1024;
 const objectOf=(d:any):ObjectMetadata=>({key:d.storageKey,contentType:d.mimeType,byteSize:d.byteSize,checksumSha256:d.checksumSha256});
 /** Documents are private: only the assigned advisor or a role manager may add or read them. */
 async function documentTrip(db:any,context:any,tripId:string){
@@ -116,20 +114,15 @@ async function loadDocument(context:any,permission:Permission,documentId:string)
 }
 export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  requestDocumentUpload:async(context,input)=>{
-  authorize(context,'canManageDocuments');assertObjectStorageConfigured();
-  const fileName=String(input.fileName||'').trim().replace(/[^A-Za-z0-9._-]+/g,'-');if(!fileName||fileName.startsWith('.'))throw new Error('File name is invalid');
-  const mimeType=String(input.mimeType||'').trim().toLowerCase();if(!DOCUMENT_TYPES.has(mimeType))throw new Error('This file type is not allowed; use PDF, JPEG, PNG, WebP or plain text');
-  if(!Number.isSafeInteger(input.byteSize)||input.byteSize<1||input.byteSize>MAX_DOCUMENT_BYTES)throw new Error('File size must be between 1 byte and 25 MB');
-  const checksumSha256=String(input.checksumSha256||'').trim().toLowerCase();if(!/^[a-f0-9]{64}$/.test(checksumSha256))throw new Error('SHA-256 checksum must be 64 hexadecimal characters');
-  if(!DOCUMENT_KINDS.includes(input.kind))throw new Error('Choose a document kind');
-  const title=String(input.title||'').trim();if(!title)throw new Error('Title required');
+  authorize(context,'canManageDocuments');if(!isObjectStorageConfigured())throw new Error('Document storage is not configured. Uploads and downloads are unavailable until an administrator sets the S3 object storage settings.');assertObjectStorageConfigured();
+  const v=validateDocumentUpload(input);const {title,mimeType}=v;
   const doc=await command(context,'requestDocumentUpload',input,'canManageDocuments',async tx=>{
    const t=await trip(tx,input.tripId);await documentTrip(tx,context,t.id);
    if(input.travelerId&&!(await tx.traveler.findFirst({where:{id:String(input.travelerId),trips:{some:{id:t.id}}}})))throw new Error('Traveler is not on this trip');
-   const d=await tx.document.create({data:{title,kind:input.kind,tripId:t.id,travelerId:input.travelerId||null,mimeType,byteSize:input.byteSize,checksumSha256,storageKey:`trips/${t.id}/documents/${randomBytes(16).toString('hex')}/${fileName}`}});
-   await audit(tx,context,'request_upload','Document',d.id,null,{title,kind:input.kind,mimeType,byteSize:input.byteSize,checksumSha256});return {id:d.id,storageKey:d.storageKey};
+   const d=await tx.document.create({data:{title,kind:v.kind,tripId:t.id,travelerId:input.travelerId||null,mimeType,byteSize:v.byteSize,checksumSha256:v.checksumSha256,storageKey:documentStorageKey(t.id,mimeType)}});
+   await audit(tx,context,'request_upload','Document',d.id,null,{title,kind:v.kind,mimeType,byteSize:v.byteSize,checksumSha256:v.checksumSha256});return {id:d.id,storageKey:d.storageKey};
   });
-  const signed=signObjectRequest('PUT',objectOf({...doc,storageKey:doc.storageKey,mimeType,byteSize:input.byteSize,checksumSha256}));
+  const signed=signObjectRequest('PUT',objectOf({...doc,mimeType,byteSize:v.byteSize,checksumSha256:v.checksumSha256}));
   return {documentId:doc.id,uploadUrl:signed.url,expiresAt:signed.expiresAt,headers:Object.entries(signed.headers).map(([name,value])=>({name,value}))};
  },
  completeDocumentUpload:async(context,input)=>{
