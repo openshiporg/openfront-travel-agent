@@ -97,7 +97,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  }),
  addItineraryDay:(context,input)=>command(context,'addItineraryDay',input,'canManageTrips',async tx=>{
  const t=await itineraryTrip(tx,context,input.tripId);const title=String(input.title||'').trim();if(!title||title.length>120)throw new Error('Day title required (120 characters maximum)');
- const date=new Date(input.date);if(Number.isNaN(date.getTime()))throw new Error('Valid day date required');
+ if(!/^\d{4}-\d{2}-\d{2}/.test(String(input.date||'')))throw new Error('Valid day date required');const date=new Date(`${String(input.date).slice(0,10)}T12:00:00.000Z`);if(Number.isNaN(date.getTime()))throw new Error('Valid day date required');
  const row=await tx.itineraryDay.create({data:{tripId:t.id,title,date}});await audit(tx,context,'add_day','ItineraryDay',row.id,null,{title,date});return {id:row.id};
  }),
  addItineraryItem:(context,input)=>command(context,'addItineraryItem',input,'canManageTrips',async tx=>{
