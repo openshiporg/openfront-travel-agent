@@ -8,12 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { runOperator } from '../actions/operators'
 import { requestApproval } from '../actions/approvals'
+import { matchingApproval, type ApprovalCandidate } from '../lib/approval-match'
 
 type Kind = 'refund' | 'writeoff'
 
 /** Refund a payment or write off a commission. Over the threshold (or always, for write-offs) it needs an approved request from another person. */
-export function MoneyAction({ kind, targetId, maxCents, thresholdCents, approvedId, label }: {
-  kind: Kind; targetId: string; maxCents: number; thresholdCents?: number; approvedId?: string | null; label: string
+export function MoneyAction({ kind, targetId, maxCents, thresholdCents, approvedId: fixedApprovalId, approvals = [], actorId = '', label }: {
+  kind: Kind; targetId: string; maxCents: number; thresholdCents?: number; approvedId?: string | null; approvals?: ApprovalCandidate[]; actorId?: string; label: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -24,6 +25,8 @@ export function MoneyAction({ kind, targetId, maxCents, thresholdCents, approved
   const [note, setNote] = useState<string | null>(null)
   const cents = Math.round(Number(dollars || 0) * 100)
   const needsApproval = kind === 'writeoff' || cents > (thresholdCents ?? 50000)
+
+  const approvedId = kind === 'refund' ? matchingApproval(approvals, { actionType: 'refund_payment', targetId, amountCents: cents, reason, actorId }) : fixedApprovalId
 
   const submit = () => start(async () => {
     setError(null); setNote(null)
@@ -41,6 +44,11 @@ export function MoneyAction({ kind, targetId, maxCents, thresholdCents, approved
       : { componentId: targetId, reason, approvalId: approvedId }
     const r = await runOperator(kind === 'refund' ? 'refundClientPayment' : 'writeOffCommission', input)
     if (!r.success) return setError(r.error)
+    if (kind === 'refund' && r.data?.status !== 'succeeded') {
+      setNote(r.data?.status === 'failed' ? 'Refund failed. No refund was posted.' : 'Refund pending reconciliation. Do not submit another refund.')
+      router.refresh()
+      return
+    }
     setOpen(false); router.refresh()
   })
 

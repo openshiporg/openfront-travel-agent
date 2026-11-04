@@ -27,7 +27,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     documents { id kind title }
   }
     agencySettingsRecords(take: 1) { refundApprovalThresholdCents }
-    managerApprovals(where: { status: { equals: approved } }, take: 100) { id actionType targetId amountCents requestedBy { id } }
+    managerApprovals(where: { status: { equals: approved } }, take: 100) { id actionType targetId amountCents reason status expiresAt requestedBy { id } approvedBy { id } }
     me: authenticatedItem { ... on User { id } }
   }`, { id })
   const t = d.trip
@@ -101,7 +101,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
               {i.payments.map((p: any) => { const left = p.amount - p.refundedAmount; return (
                 <div key={p.id} className="flex flex-col gap-1 pl-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{p.providerPaymentId ? 'card' : 'manual'} · {label(p.status)} · {money(p.amount, cur)}{p.refundedAmount ? ` · ${money(p.refundedAmount, cur)} refunded` : ''}</p>
-                  {p.providerPaymentId && left > 0 ? <MoneyAction kind="refund" label="Refund" targetId={p.id} maxCents={left} thresholdCents={threshold} approvedId={null} /> : null}
+                  {p.providerPaymentId && left > 0 ? <MoneyAction kind="refund" label="Refund" targetId={p.id} maxCents={left} thresholdCents={threshold} approvals={d.managerApprovals} actorId={d.me?.id || ''} /> : null}
                 </div>) })}
             </li>))}</ul> : <Empty>No invoices</Empty>}</Panel>
           <Panel title="Schedule">{t.schedule.length ? <RowList>{t.schedule.map((s: any) => <Row key={s.id}><span className="font-mono text-xs uppercase tracking-wide">{label(s.kind)} · {day(s.dueAt)}</span><span className="flex items-center gap-3 text-sm">{money(s.amountCents, cur)}<StatusLabel status={s.status} /></span></Row>)}</RowList> : <Empty>No schedule rows</Empty>}</Panel>
