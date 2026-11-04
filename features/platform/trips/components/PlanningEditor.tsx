@@ -10,8 +10,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { runOperator } from '../../actions/operators'
 
+/** The stored instant's calendar day, as a local Date for the picker, so the browser time zone never moves it. */
+const utcDay = (value: string) => { const d = new Date(value); return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) }
+
 function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <div className="space-y-1"><Label>{label}</Label><div className="flex gap-2"><Popover><PopoverTrigger asChild><Button variant="outline">{value ? format(new Date(value), 'MMM d, yyyy') : 'Choose date'}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={value ? new Date(value) : undefined} onSelect={d => onChange(d ? d.toISOString() : '')} /></PopoverContent></Popover><Button variant="ghost" onClick={() => onChange('')}>Clear</Button></div></div>
+  return <div className="space-y-1"><Label>{label}</Label><div className="flex gap-2"><Popover><PopoverTrigger asChild><Button variant="outline">{value ? format(utcDay(value), 'MMM d, yyyy') : 'Choose date'}</Button></PopoverTrigger><PopoverContent className="w-auto p-0"><Calendar mode="single" selected={value ? utcDay(value) : undefined} onSelect={d => onChange(d ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12)).toISOString() : '')} /></PopoverContent></Popover><Button variant="ghost" onClick={() => onChange('')}>Clear</Button></div></div>
 }
 export function PlanningEditor({ tripId, feeCents, currencyCode, component }: { tripId: string; feeCents: number; currencyCode: string; component?: { id: string; depositCents: number; depositDueAt: string | null; finalDueAt: string | null } }) {
   const [open, setOpen] = useState(false), [amount, setAmount] = useState(String((component?.depositCents ?? feeCents) / 100))

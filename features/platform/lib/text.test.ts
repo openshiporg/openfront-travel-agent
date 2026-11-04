@@ -13,3 +13,8 @@ test('dateRange handles both, one or no dates', () => {
   assert.match(dateRange(null, '2027-05-06T12:00:00Z'), /^Until May 6, 2027$/)
   assert.equal(dateRange(null, undefined), '')
 })
+
+test('dates format in UTC so the server and browser time zones never change the day', () => {
+  assert.equal(dateRange('2027-04-02T23:30:00.000Z', null), 'From Apr 2, 2027')
+  assert.equal(dateRange('2027-04-03T00:30:00.000Z', '2027-04-12T12:00:00.000Z'), 'Apr 3, 2027 to Apr 12, 2027')
+})
