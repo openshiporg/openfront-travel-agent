@@ -1,3 +1,4 @@
+import { GraphQLError } from 'graphql';
 import {randomBytes,createHash} from 'node:crypto';
 import {guardKeystonePrismaResults} from '../lib/prisma-result';
 import {permissions, type Permission} from '../access';
@@ -17,15 +18,17 @@ const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperC
 export async function lockTransactionKey(tx:any,key:string){await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${key},0))) AS acquired`;}
 function authorize(context:any,permission:Permission){if(!permissions[permission]({session:context.session}))throw new Error('Not authorized');}
 async function audit(tx:any,context:any,action:string,list:string,id:string,before:any,after:any){await tx.auditEvent.create({data:{actorId:context.session?.itemId||null,action,targetList:list,targetId:id,before:before?JSON.parse(JSON.stringify(before)):undefined,after:after?JSON.parse(JSON.stringify(after)):undefined,requestId:randomBytes(12).toString('hex')}});}
+/** Operator rule violations are written for the advisor; tag them so the dashboard shows them (database/driver text is still filtered client-side). */
+async function userFacing(run:()=>Promise<any>):Promise<any>{try{return await run();}catch(e:any){if(e instanceof GraphQLError)throw e;throw new GraphQLError(String(e?.message||'Request failed'),{extensions:{code:'KS_USER_INPUT_ERROR'}});}}
 async function command(context:any,operation:string,input:any,permission:Permission,run:(tx:any)=>Promise<any>){
  authorize(context,permission);if(!input.idempotencyKey?.trim())throw new Error('Idempotency key required');
- return guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{
+ return userFacing(()=>guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{
   await lockTransactionKey(tx,`travel-idempotency:${input.idempotencyKey}`);
   const {attempt,replay}=await getOrCreateIdempotencyAttempt(tx,{key:input.idempotencyKey,requestPath:operation,requestParams:{...input,actorId:context.session.itemId}});
   if(replay&&attempt.recoveryPoint==='completed')return attempt.responseBody;
   const result=await run(tx);const json=JSON.parse(JSON.stringify(result));
   await updateIdempotencyAttempt(tx,attempt.id,'completed',json,200);return json;
- },{timeout:20000});
+ },{timeout:20000}));
 }
 async function createProposalOptions(tx:any,proposalId:string,options:any[],currencyCode:string){
  for(const [sort,option] of options.entries()){
@@ -35,11 +38,21 @@ async function createProposalOptions(tx:any,proposalId:string,options:any[],curr
  }
 }
 /** Creates a sent invoice with its payment collection and lines. Caller holds the trip lock. */
-async function createInvoice(tx:any,context:any,t:any,lines:any[],dueAt?:any,fixedToken?:string){
+const partyName=(v:any)=>{const n=String(v||'').replace(/\s+/g,' ').trim();if(!n||n.length>80)throw new Error('Party name required (80 characters maximum)');return n;};
+async function partyTrip(tx:any,context:any,tripId:any){const t=await trip(tx,String(tripId||''));
+ if(t.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may manage parties and rooms');
+ if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');return t;}
+/** Travelers must be on this trip, and a traveler pays through one party only. */
+async function partyTravelerIds(tx:any,t:any,raw:any,exceptPartyId?:string){
+ const ids:string[]=[...new Set<string>((Array.isArray(raw)?raw:[]).map(String))];if(!ids.length)return ids;
+ const found=await tx.traveler.findMany({where:{id:{in:ids},trips:{some:{id:t.id}}},select:{id:true}});if(found.length!==ids.length)throw new Error('Traveler is not on this trip');
+ const other=await tx.tripParty.findFirst({where:{tripId:t.id,...(exceptPartyId?{NOT:{id:exceptPartyId}}:{}),travelers:{some:{id:{in:ids}}}},select:{name:true}});if(other)throw new Error(`A traveler is already in the party "${other.name}"`);
+ return ids;}
+async function createInvoice(tx:any,context:any,t:any,lines:any[],dueAt?:any,fixedToken?:string,partyId?:string|null){
  if(!lines?.length)throw new Error('Invoice lines required');let total=0;
  for(const l of lines){integerMoney(l.amountCents);total+=l.amountCents;}integerMoney(total);const token=fixedToken||randomBytes(32).toString('base64url');
  const collection=await tx.paymentCollection.create({data:{amount:total,currencyCode:t.currencyCode}});
- const invoice=await tx.clientInvoice.create({data:{tripId:t.id,number:code('INV'),status:'sent',totalCents:total,collectedCents:0,dueAt:dueAt?new Date(dueAt):new Date(),publicToken:hash(token),currencyCode:t.currencyCode,paymentCollectionId:collection.id}});
+ const invoice=await tx.clientInvoice.create({data:{tripId:t.id,number:code('INV'),status:'sent',totalCents:total,collectedCents:0,dueAt:dueAt?new Date(dueAt):new Date(),publicToken:hash(token),currencyCode:t.currencyCode,paymentCollectionId:collection.id,...(partyId?{partyId}:{})}});
  for(const l of lines)await tx.clientInvoiceLine.create({data:{invoiceId:invoice.id,description:l.description,amountCents:l.amountCents,unitPriceCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind,currencyCode:t.currencyCode,snapshot:{description:l.description,amountCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind}}});
  await audit(tx,context,'invoice','ClientInvoice',invoice.id,null,invoice);return {invoice,token};
 }
@@ -243,6 +256,44 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await tx.proposal.update({where:{id:p.id},data:{status:'sent',sentAt:new Date(),publicToken:hash(token)}});if(t.status==='planning')await transition(tx,context,t,'proposal_sent');
  await audit(tx,context,'send','Proposal',p.id,{status:p.status},{status:'sent'});return {id:p.id,token};
  }),
+ addTripParty:(context,input)=>command(context,'addTripParty',input,'canManageTrips',async tx=>{
+ const t=await partyTrip(tx,context,input.tripId);const name=partyName(input.name);
+ if(await tx.tripParty.count({where:{tripId:t.id}})>=40)throw new Error('At most 40 parties per trip');
+ if(await tx.tripParty.findFirst({where:{tripId:t.id,name:{equals:name,mode:'insensitive'}}}))throw new Error('A party with this name already exists');
+ const ids=await partyTravelerIds(tx,t,input.travelerIds);const secret=randomBytes(32).toString('base64url');
+ const row=await tx.tripParty.create({data:{name,tripId:t.id,portalToken:hash(secret),...(ids.length?{travelers:{connect:ids.map((id:string)=>({id}))}}:{})}});
+ await audit(tx,context,'add_party','TripParty',row.id,null,{name,travelers:ids.length});return {id:row.id,token:secret};
+ }),
+ editTripParty:(context,input)=>command(context,'editTripParty',input,'canManageTrips',async tx=>{
+ const row=await tx.tripParty.findUnique({where:{id:String(input.partyId||'')},include:{travelers:{select:{id:true}}}});if(!row||!row.tripId)throw new Error('Party not found');const t=await partyTrip(tx,context,row.tripId);
+ const name=input.name===undefined?row.name:partyName(input.name);
+ if(name.toLowerCase()!==row.name.toLowerCase()&&await tx.tripParty.findFirst({where:{tripId:t.id,name:{equals:name,mode:'insensitive'},NOT:{id:row.id}}}))throw new Error('A party with this name already exists');
+ let travelers:any=undefined;if(input.travelerIds!==undefined){const ids=await partyTravelerIds(tx,t,input.travelerIds,row.id);travelers={set:ids.map((id:string)=>({id}))};
+  const gone=row.travelers.map((x:any)=>x.id).filter((id:string)=>!ids.includes(id));if(gone.length&&await tx.tripRoom.count({where:{partyId:row.id,guests:{some:{id:{in:gone}}}}}))throw new Error('Remove those travelers from this party\'s rooms first');}
+ await tx.tripParty.update({where:{id:row.id},data:{name,...(travelers?{travelers}:{})}});
+ await audit(tx,context,'edit_party','TripParty',row.id,{name:row.name,travelers:row.travelers.length},{name,travelers:travelers?input.travelerIds.length:row.travelers.length});return {id:row.id};
+ }),
+ shareTripParty:(context,input)=>command(context,'shareTripParty',input,'canManageTrips',async tx=>{
+ const row=await tx.tripParty.findUnique({where:{id:String(input.partyId||'')}});if(!row||!row.tripId)throw new Error('Party not found');await partyTrip(tx,context,row.tripId);
+ const secret=randomBytes(32).toString('base64url');await tx.tripParty.update({where:{id:row.id},data:{portalToken:hash(secret)}});
+ await audit(tx,context,'share_party','TripParty',row.id,null,{name:row.name,rotated:true});return {id:row.id,token:secret};
+ }),
+ saveTripRoom:(context,input)=>command(context,'saveTripRoom',input,'canManageTrips',async tx=>{
+ const t=await partyTrip(tx,context,input.tripId);const label=String(input.label||'').trim(),roomType=String(input.roomType||'').trim();
+ if(!label||label.length>60)throw new Error('Room label required (60 characters maximum)');if(roomType.length>60)throw new Error('Room type is too long');
+ let party:any=null;if(input.partyId){party=await tx.tripParty.findUnique({where:{id:String(input.partyId)},include:{travelers:{select:{id:true}}}});if(!party||party.tripId!==t.id)throw new Error('Party not found in this trip');}
+ const guestIds:string[]=[...new Set<string>((Array.isArray(input.guestIds)?input.guestIds:[]).map(String))];if(guestIds.length>12)throw new Error('At most 12 guests per room');
+ const known=await tx.traveler.findMany({where:{id:{in:guestIds},trips:{some:{id:t.id}}},select:{id:true}});if(known.length!==guestIds.length)throw new Error('Guest is not a traveler on this trip');
+ if(party&&guestIds.some(g=>!party.travelers.some((x:any)=>x.id===g)))throw new Error('Guest is not in this party');
+ const clash=await tx.tripRoom.findFirst({where:{tripId:t.id,...(input.roomId?{NOT:{id:String(input.roomId)}}:{}),guests:{some:{id:{in:guestIds}}}},select:{label:true}});if(clash)throw new Error(`A guest is already in ${clash.label}`);
+ let row:any;if(input.roomId){const old=await tx.tripRoom.findUnique({where:{id:String(input.roomId)}});if(!old||old.tripId!==t.id)throw new Error('Room not found in this trip');row=await tx.tripRoom.update({where:{id:old.id},data:{label,roomType,partyId:party?party.id:null,guests:{set:guestIds.map(id=>({id}))}}});}
+ else{if(await tx.tripRoom.count({where:{tripId:t.id}})>=100)throw new Error('At most 100 rooms per trip');row=await tx.tripRoom.create({data:{label,roomType,tripId:t.id,partyId:party?party.id:null,guests:{connect:guestIds.map(id=>({id}))}}});}
+ await audit(tx,context,input.roomId?'edit_room':'add_room','TripRoom',row.id,null,{label,roomType,guests:guestIds.length});return {id:row.id};
+ }),
+ removeTripRoom:(context,input)=>command(context,'removeTripRoom',input,'canManageTrips',async tx=>{
+ const row=await tx.tripRoom.findUnique({where:{id:String(input.roomId||'')}});if(!row||!row.tripId)throw new Error('Room not found');await partyTrip(tx,context,row.tripId);
+ await tx.tripRoom.delete({where:{id:row.id}});await audit(tx,context,'remove_room','TripRoom',row.id,{label:row.label},null);return {id:row.id};
+ }),
  saveClientProfile:(context,input)=>command(context,'saveClientProfile',input,'canManageClients',async tx=>{
  const c=await tx.client.findUnique({where:{id:String(input.clientId||'')}});if(!c)throw new Error('Client not found');
  const next=parseProfile(input);const before=readProfile(c.travelProfile);
@@ -313,7 +364,9 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const t=await trip(tx,input.tripId);const result=await syncPaymentSchedule(tx,t);await audit(tx,context,'schedule','Trip',t.id,null,result);return result;
  }),
  issueClientInvoice:(context,input)=>command(context,'issueClientInvoice',input,'canManagePayments',async tx=>{
- const t=await trip(tx,input.tripId);const {invoice,token}=await createInvoice(tx,context,t,input.lines,input.dueAt);return {id:invoice.id,number:invoice.number,token};
+ const t=await trip(tx,input.tripId);let partyId:string|null=null;
+ if(input.partyId){const party=await tx.tripParty.findUnique({where:{id:String(input.partyId)}});if(!party||party.tripId!==t.id)throw new Error('Party not found in this trip');partyId=party.id;}
+ const {invoice,token}=await createInvoice(tx,context,t,input.lines,input.dueAt,undefined,partyId);return {id:invoice.id,number:invoice.number,token,partyId};
  }),
  recordClientPayment:(context,input)=>command(context,'recordClientPayment',input,'canManagePayments',async tx=>{
  const invoice=await tx.clientInvoice.findUnique({where:{id:input.invoiceId}});if(!invoice)throw new Error('Invoice not found');await trip(tx,invoice.tripId);integerMoney(input.amountCents);if(input.amountCents<1||invoice.status==='void'||input.amountCents>invoice.totalCents-invoice.collectedCents)throw new Error('Invalid payment amount');
@@ -398,6 +451,8 @@ const stripeProvider={id:'stripe-test',code:'pp_stripe',createPaymentFunction:'s
 /** Trip share token (itinerary link) or a sent/viewed/accepted proposal token; the same secret opens the client portal. */
 async function tripByPortalToken(db:any,token:string){
  if(!token||token.length<32)return null;
+ // A party token opens one paying party of a group trip and nothing else.
+ const party=await db.tripParty.findFirst({where:{portalToken:hash(token)},select:{id:true,tripId:true,name:true}});if(party?.tripId)return {id:party.tripId,partyId:party.id,partyName:party.name};
  const t=await db.trip.findFirst({where:{itineraryToken:hash(token)},select:{id:true}});if(t)return t;
  const p=await db.proposal.findFirst({where:{publicToken:hash(token),status:{in:['sent','viewed','accepted']}},select:{tripId:true}});
  return p?.tripId?{id:p.tripId}:null;
@@ -406,7 +461,7 @@ async function tripByPortalToken(db:any,token:string){
 async function findInvoiceByToken(db:any,token:string,extra:any={}){
  if(!token||token.length<32)return null;
  const m=/^p\.([a-z0-9]{20,40})\.(.{32,})$/i.exec(token);
- if(m){const t=await tripByPortalToken(db,m[2]);if(!t)return null;return db.clientInvoice.findFirst({where:{id:m[1],tripId:t.id},...extra});}
+ if(m){const t=await tripByPortalToken(db,m[2]);if(!t)return null;return db.clientInvoice.findFirst({where:{id:m[1],tripId:t.id,partyId:(t as any).partyId??null},...extra});}
  return db.clientInvoice.findFirst({where:{publicToken:hash(token)},...extra});
 }
 async function invoiceForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Invoice not found');const i=await findInvoiceByToken(context.prisma,token);if(!i||['void','paid'].includes(i.status))throw new Error('Invoice not payable');return i;}
@@ -444,13 +499,15 @@ export async function viewTripPortal(_root:any,{token}:any,context:any){
  const db=guardKeystonePrismaResults(context.prisma as any);const ref=await tripByPortalToken(db,token);if(!ref)throw new Error('Trip not found');
  const t=await db.trip.findUnique({where:{id:ref.id},select:{id:true,tripNumber:true,title:true,status:true,startDate:true,endDate:true,currencyCode:true,
   days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}},
-  invoices:{where:{status:{notIn:['draft','void']}},orderBy:{dueAt:'asc'},select:{id:true,number:true,status:true,totalCents:true,collectedCents:true,dueAt:true,currencyCode:true}},
-  schedule:{where:{status:'due'},orderBy:{dueAt:'asc'},select:{dueAt:true}}}});
+  invoices:{where:{status:{notIn:['draft','void']},partyId:(ref as any).partyId??null},orderBy:{dueAt:'asc'},select:{id:true,number:true,status:true,totalCents:true,collectedCents:true,dueAt:true,currencyCode:true}},
+  schedule:{where:{status:'due'},orderBy:{dueAt:'asc'},select:{dueAt:true}},
+  rooms:{where:(ref as any).partyId?{partyId:(ref as any).partyId}:{id:'none'},orderBy:{label:'asc'},select:{label:true,roomType:true,guests:{select:{id:true}}}}}});
  if(!t)throw new Error('Trip not found');
  const open=t.invoices.filter((i:any)=>i.status!=='paid'&&i.totalCents>i.collectedCents);
  const balanceCents=open.reduce((n:number,i:any)=>n+(i.totalCents-i.collectedCents),0);
- const dates=[...open.map((i:any)=>i.dueAt),...t.schedule.map((s:any)=>s.dueAt)].filter(Boolean).map((d:any)=>new Date(d).getTime());
- return {tripNumber:t.tripNumber,title:t.title,status:t.status,startDate:t.startDate,endDate:t.endDate,currencyCode:t.currencyCode,days:t.days,balanceCents,nextDueAt:dates.length?new Date(Math.min(...dates)).toISOString():null,
+ // The payment schedule is trip-wide, so only the whole-trip view may use it; a party's next due date comes from its own invoices.
+ const dates=[...open.map((i:any)=>i.dueAt),...((ref as any).partyId?[]:t.schedule.map((s:any)=>s.dueAt))].filter(Boolean).map((d:any)=>new Date(d).getTime());
+ return {...((ref as any).partyId?{partyName:(ref as any).partyName,rooms:t.rooms.map((r:any)=>({label:r.label,roomType:r.roomType,guests:r.guests.length}))}:{}),tripNumber:t.tripNumber,title:t.title,status:t.status,startDate:t.startDate,endDate:t.endDate,currencyCode:t.currencyCode,days:t.days,balanceCents,nextDueAt:dates.length?new Date(Math.min(...dates)).toISOString():null,
   invoices:t.invoices.map((i:any)=>({number:i.number,status:i.status,totalCents:i.totalCents,collectedCents:i.collectedCents,dueAt:i.dueAt,currencyCode:i.currencyCode,payToken:i.status==='paid'?null:`p.${i.id}.${token}`}))};
 }
 // Customer lookup: both the booking code and the email on file must match; only status data is returned.

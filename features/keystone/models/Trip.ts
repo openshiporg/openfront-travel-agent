@@ -26,6 +26,8 @@ export const Trip = list({
     components: relationship({ ref: "TripComponent.trip", many: true }),
     days: relationship({ ref: "ItineraryDay.trip", many: true }),
     invoices: relationship({ ref: "ClientInvoice.trip", many: true }),
+    parties: relationship({ ref: "TripParty.trip", many: true }),
+    rooms: relationship({ ref: "TripRoom.trip", many: true }),
     schedule: relationship({ ref: "PaymentSchedule.trip", many: true }),
     funds: relationship({ ref: "ClientFundsEntry.trip", many: true }),
     tasks: relationship({ ref: "Task.trip", many: true }),

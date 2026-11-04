@@ -146,6 +146,8 @@ model Traveler {
   clientId            String?         @map("client")
   trips               Trip[]          @relation("Traveler_trips")
   components          TripComponent[] @relation("Traveler_components")
+  parties             TripParty[]     @relation("Traveler_parties")
+  rooms               TripRoom[]      @relation("Traveler_rooms")
   documents           Document[]      @relation("Document_traveler")
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @default(now()) @updatedAt
@@ -210,6 +212,8 @@ model Trip {
   components       TripComponent[]    @relation("TripComponent_trip")
   days             ItineraryDay[]     @relation("ItineraryDay_trip")
   invoices         ClientInvoice[]    @relation("ClientInvoice_trip")
+  parties          TripParty[]        @relation("TripParty_trip")
+  rooms            TripRoom[]         @relation("TripRoom_trip")
   schedule         PaymentSchedule[]  @relation("PaymentSchedule_trip")
   funds            ClientFundsEntry[] @relation("ClientFundsEntry_trip")
   tasks            Task[]             @relation("Task_trip")
@@ -395,6 +399,8 @@ model ClientInvoice {
   number              String                   @unique @default("")
   trip                Trip?                    @relation("ClientInvoice_trip", fields: [tripId], references: [id])
   tripId              String?                  @map("trip")
+  party               TripParty?               @relation("ClientInvoice_party", fields: [partyId], references: [id])
+  partyId             String?                  @map("party")
   lines               ClientInvoiceLine[]      @relation("ClientInvoiceLine_invoice")
   status              ClientInvoiceStatusType? @default(draft)
   paymentCollection   PaymentCollection?       @relation("ClientInvoice_paymentCollection", fields: [paymentCollectionId], references: [id])
@@ -406,6 +412,7 @@ model ClientInvoice {
   updatedAt           DateTime                 @default(now()) @updatedAt
 
   @@index([tripId])
+  @@index([partyId])
 }
 
 model ClientInvoiceLine {
@@ -425,6 +432,37 @@ model ClientInvoiceLine {
   updatedAt      DateTime                   @default(now()) @updatedAt
 
   @@index([invoiceId])
+}
+
+model TripParty {
+  id          String          @id @default(cuid())
+  name        String          @default("")
+  portalToken String          @default("")
+  trip        Trip?           @relation("TripParty_trip", fields: [tripId], references: [id])
+  tripId      String?         @map("trip")
+  travelers   Traveler[]      @relation("Traveler_parties")
+  rooms       TripRoom[]      @relation("TripRoom_party")
+  invoices    ClientInvoice[] @relation("ClientInvoice_party")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
+
+  @@index([tripId])
+}
+
+model TripRoom {
+  id        String     @id @default(cuid())
+  label     String     @default("")
+  roomType  String     @default("")
+  trip      Trip?      @relation("TripRoom_trip", fields: [tripId], references: [id])
+  tripId    String?    @map("trip")
+  party     TripParty? @relation("TripRoom_party", fields: [partyId], references: [id])
+  partyId   String?    @map("party")
+  guests    Traveler[] @relation("Traveler_rooms")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+
+  @@index([tripId])
+  @@index([partyId])
 }
 
 model PaymentSchedule {

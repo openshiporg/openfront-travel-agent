@@ -908,6 +908,10 @@ type Traveler {
   tripsCount(where: TripWhereInput! = {}): Int
   components(where: TripComponentWhereInput! = {}, orderBy: [TripComponentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripComponentWhereUniqueInput): [TripComponent!]
   componentsCount(where: TripComponentWhereInput! = {}): Int
+  parties(where: TripPartyWhereInput! = {}, orderBy: [TripPartyOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripPartyWhereUniqueInput): [TripParty!]
+  partiesCount(where: TripPartyWhereInput! = {}): Int
+  rooms(where: TripRoomWhereInput! = {}, orderBy: [TripRoomOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripRoomWhereUniqueInput): [TripRoom!]
+  roomsCount(where: TripRoomWhereInput! = {}): Int
   documents(where: DocumentWhereInput! = {}, orderBy: [DocumentOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: DocumentWhereUniqueInput): [Document!]
   documentsCount(where: DocumentWhereInput! = {}): Int
   createdAt: DateTime
@@ -934,6 +938,8 @@ input TravelerWhereInput {
   client: ClientWhereInput
   trips: TripManyRelationFilter
   components: TripComponentManyRelationFilter
+  parties: TripPartyManyRelationFilter
+  rooms: TripRoomManyRelationFilter
   documents: DocumentManyRelationFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
@@ -943,6 +949,18 @@ input TripComponentManyRelationFilter {
   every: TripComponentWhereInput
   some: TripComponentWhereInput
   none: TripComponentWhereInput
+}
+
+input TripPartyManyRelationFilter {
+  every: TripPartyWhereInput
+  some: TripPartyWhereInput
+  none: TripPartyWhereInput
+}
+
+input TripRoomManyRelationFilter {
+  every: TripRoomWhereInput
+  some: TripRoomWhereInput
+  none: TripRoomWhereInput
 }
 
 input DocumentManyRelationFilter {
@@ -977,6 +995,8 @@ input TravelerUpdateInput {
   client: ClientRelateToOneForUpdateInput
   trips: TripRelateToManyForUpdateInput
   components: TripComponentRelateToManyForUpdateInput
+  parties: TripPartyRelateToManyForUpdateInput
+  rooms: TripRoomRelateToManyForUpdateInput
   documents: DocumentRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -993,6 +1013,20 @@ input TripComponentRelateToManyForUpdateInput {
   set: [TripComponentWhereUniqueInput!]
   create: [TripComponentCreateInput!]
   connect: [TripComponentWhereUniqueInput!]
+}
+
+input TripPartyRelateToManyForUpdateInput {
+  disconnect: [TripPartyWhereUniqueInput!]
+  set: [TripPartyWhereUniqueInput!]
+  create: [TripPartyCreateInput!]
+  connect: [TripPartyWhereUniqueInput!]
+}
+
+input TripRoomRelateToManyForUpdateInput {
+  disconnect: [TripRoomWhereUniqueInput!]
+  set: [TripRoomWhereUniqueInput!]
+  create: [TripRoomCreateInput!]
+  connect: [TripRoomWhereUniqueInput!]
 }
 
 input DocumentRelateToManyForUpdateInput {
@@ -1019,6 +1053,8 @@ input TravelerCreateInput {
   client: ClientRelateToOneForCreateInput
   trips: TripRelateToManyForCreateInput
   components: TripComponentRelateToManyForCreateInput
+  parties: TripPartyRelateToManyForCreateInput
+  rooms: TripRoomRelateToManyForCreateInput
   documents: DocumentRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -1032,6 +1068,16 @@ input ClientRelateToOneForCreateInput {
 input TripComponentRelateToManyForCreateInput {
   create: [TripComponentCreateInput!]
   connect: [TripComponentWhereUniqueInput!]
+}
+
+input TripPartyRelateToManyForCreateInput {
+  create: [TripPartyCreateInput!]
+  connect: [TripPartyWhereUniqueInput!]
+}
+
+input TripRoomRelateToManyForCreateInput {
+  create: [TripRoomCreateInput!]
+  connect: [TripRoomWhereUniqueInput!]
 }
 
 input DocumentRelateToManyForCreateInput {
@@ -1283,6 +1329,10 @@ type Trip {
   daysCount(where: ItineraryDayWhereInput! = {}): Int
   invoices(where: ClientInvoiceWhereInput! = {}, orderBy: [ClientInvoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceWhereUniqueInput): [ClientInvoice!]
   invoicesCount(where: ClientInvoiceWhereInput! = {}): Int
+  parties(where: TripPartyWhereInput! = {}, orderBy: [TripPartyOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripPartyWhereUniqueInput): [TripParty!]
+  partiesCount(where: TripPartyWhereInput! = {}): Int
+  rooms(where: TripRoomWhereInput! = {}, orderBy: [TripRoomOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripRoomWhereUniqueInput): [TripRoom!]
+  roomsCount(where: TripRoomWhereInput! = {}): Int
   schedule(where: PaymentScheduleWhereInput! = {}, orderBy: [PaymentScheduleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentScheduleWhereUniqueInput): [PaymentSchedule!]
   scheduleCount(where: PaymentScheduleWhereInput! = {}): Int
   funds(where: ClientFundsEntryWhereInput! = {}, orderBy: [ClientFundsEntryOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientFundsEntryWhereUniqueInput): [ClientFundsEntry!]
@@ -1338,6 +1388,8 @@ input TripWhereInput {
   components: TripComponentManyRelationFilter
   days: ItineraryDayManyRelationFilter
   invoices: ClientInvoiceManyRelationFilter
+  parties: TripPartyManyRelationFilter
+  rooms: TripRoomManyRelationFilter
   schedule: PaymentScheduleManyRelationFilter
   funds: ClientFundsEntryManyRelationFilter
   tasks: TaskManyRelationFilter
@@ -1421,6 +1473,8 @@ input TripUpdateInput {
   components: TripComponentRelateToManyForUpdateInput
   days: ItineraryDayRelateToManyForUpdateInput
   invoices: ClientInvoiceRelateToManyForUpdateInput
+  parties: TripPartyRelateToManyForUpdateInput
+  rooms: TripRoomRelateToManyForUpdateInput
   schedule: PaymentScheduleRelateToManyForUpdateInput
   funds: ClientFundsEntryRelateToManyForUpdateInput
   tasks: TaskRelateToManyForUpdateInput
@@ -1500,6 +1554,8 @@ input TripCreateInput {
   components: TripComponentRelateToManyForCreateInput
   days: ItineraryDayRelateToManyForCreateInput
   invoices: ClientInvoiceRelateToManyForCreateInput
+  parties: TripPartyRelateToManyForCreateInput
+  rooms: TripRoomRelateToManyForCreateInput
   schedule: PaymentScheduleRelateToManyForCreateInput
   funds: ClientFundsEntryRelateToManyForCreateInput
   tasks: TaskRelateToManyForCreateInput
@@ -2587,6 +2643,7 @@ type ClientInvoice {
   dueAt: DateTime
   number: String
   trip: Trip
+  party: TripParty
   lines(where: ClientInvoiceLineWhereInput! = {}, orderBy: [ClientInvoiceLineOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceLineWhereUniqueInput): [ClientInvoiceLine!]
   linesCount(where: ClientInvoiceLineWhereInput! = {}): Int
   status: ClientInvoiceStatusType
@@ -2625,6 +2682,7 @@ input ClientInvoiceWhereInput {
   dueAt: DateTimeNullableFilter
   number: StringFilter
   trip: TripWhereInput
+  party: TripPartyWhereInput
   lines: ClientInvoiceLineManyRelationFilter
   status: ClientInvoiceStatusTypeNullableFilter
   paymentCollection: PaymentCollectionWhereInput
@@ -2668,6 +2726,7 @@ input ClientInvoiceUpdateInput {
   dueAt: DateTime
   number: String
   trip: TripRelateToOneForUpdateInput
+  party: TripPartyRelateToOneForUpdateInput
   lines: ClientInvoiceLineRelateToManyForUpdateInput
   status: ClientInvoiceStatusType
   paymentCollection: PaymentCollectionRelateToOneForUpdateInput
@@ -2676,6 +2735,12 @@ input ClientInvoiceUpdateInput {
   currencyCode: String
   createdAt: DateTime
   updatedAt: DateTime
+}
+
+input TripPartyRelateToOneForUpdateInput {
+  create: TripPartyCreateInput
+  connect: TripPartyWhereUniqueInput
+  disconnect: Boolean
 }
 
 input ClientInvoiceLineRelateToManyForUpdateInput {
@@ -2703,6 +2768,7 @@ input ClientInvoiceCreateInput {
   dueAt: DateTime
   number: String
   trip: TripRelateToOneForCreateInput
+  party: TripPartyRelateToOneForCreateInput
   lines: ClientInvoiceLineRelateToManyForCreateInput
   status: ClientInvoiceStatusType
   paymentCollection: PaymentCollectionRelateToOneForCreateInput
@@ -2711,6 +2777,11 @@ input ClientInvoiceCreateInput {
   currencyCode: String
   createdAt: DateTime
   updatedAt: DateTime
+}
+
+input TripPartyRelateToOneForCreateInput {
+  create: TripPartyCreateInput
+  connect: TripPartyWhereUniqueInput
 }
 
 input ClientInvoiceLineRelateToManyForCreateInput {
@@ -2833,6 +2904,138 @@ input ClientInvoiceLineCreateInput {
 input ClientInvoiceRelateToOneForCreateInput {
   create: ClientInvoiceCreateInput
   connect: ClientInvoiceWhereUniqueInput
+}
+
+type TripParty {
+  id: ID!
+  name: String
+  portalToken: String
+  trip: Trip
+  travelers(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
+  travelersCount(where: TravelerWhereInput! = {}): Int
+  rooms(where: TripRoomWhereInput! = {}, orderBy: [TripRoomOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripRoomWhereUniqueInput): [TripRoom!]
+  roomsCount(where: TripRoomWhereInput! = {}): Int
+  invoices(where: ClientInvoiceWhereInput! = {}, orderBy: [ClientInvoiceOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceWhereUniqueInput): [ClientInvoice!]
+  invoicesCount(where: ClientInvoiceWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TripPartyWhereUniqueInput {
+  id: ID
+}
+
+input TripPartyWhereInput {
+  AND: [TripPartyWhereInput!]
+  OR: [TripPartyWhereInput!]
+  NOT: [TripPartyWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  portalToken: StringFilter
+  trip: TripWhereInput
+  travelers: TravelerManyRelationFilter
+  rooms: TripRoomManyRelationFilter
+  invoices: ClientInvoiceManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input TripPartyOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  portalToken: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input TripPartyUpdateInput {
+  name: String
+  portalToken: String
+  trip: TripRelateToOneForUpdateInput
+  travelers: TravelerRelateToManyForUpdateInput
+  rooms: TripRoomRelateToManyForUpdateInput
+  invoices: ClientInvoiceRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TripPartyUpdateArgs {
+  where: TripPartyWhereUniqueInput!
+  data: TripPartyUpdateInput!
+}
+
+input TripPartyCreateInput {
+  name: String
+  portalToken: String
+  trip: TripRelateToOneForCreateInput
+  travelers: TravelerRelateToManyForCreateInput
+  rooms: TripRoomRelateToManyForCreateInput
+  invoices: ClientInvoiceRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type TripRoom {
+  id: ID!
+  label: String
+  roomType: String
+  trip: Trip
+  party: TripParty
+  guests(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
+  guestsCount(where: TravelerWhereInput! = {}): Int
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TripRoomWhereUniqueInput {
+  id: ID
+}
+
+input TripRoomWhereInput {
+  AND: [TripRoomWhereInput!]
+  OR: [TripRoomWhereInput!]
+  NOT: [TripRoomWhereInput!]
+  id: IDFilter
+  label: StringFilter
+  roomType: StringFilter
+  trip: TripWhereInput
+  party: TripPartyWhereInput
+  guests: TravelerManyRelationFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input TripRoomOrderByInput {
+  id: OrderDirection
+  label: OrderDirection
+  roomType: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input TripRoomUpdateInput {
+  label: String
+  roomType: String
+  trip: TripRelateToOneForUpdateInput
+  party: TripPartyRelateToOneForUpdateInput
+  guests: TravelerRelateToManyForUpdateInput
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input TripRoomUpdateArgs {
+  where: TripRoomWhereUniqueInput!
+  data: TripRoomUpdateInput!
+}
+
+input TripRoomCreateInput {
+  label: String
+  roomType: String
+  trip: TripRelateToOneForCreateInput
+  party: TripPartyRelateToOneForCreateInput
+  guests: TravelerRelateToManyForCreateInput
+  createdAt: DateTime
+  updatedAt: DateTime
 }
 
 type PaymentSchedule {
@@ -4810,6 +5013,18 @@ type Mutation {
   updateClientInvoiceLines(data: [ClientInvoiceLineUpdateArgs!]!): [ClientInvoiceLine]
   deleteClientInvoiceLine(where: ClientInvoiceLineWhereUniqueInput!): ClientInvoiceLine
   deleteClientInvoiceLines(where: [ClientInvoiceLineWhereUniqueInput!]!): [ClientInvoiceLine]
+  createTripParty(data: TripPartyCreateInput!): TripParty
+  createTripParties(data: [TripPartyCreateInput!]!): [TripParty]
+  updateTripParty(where: TripPartyWhereUniqueInput!, data: TripPartyUpdateInput!): TripParty
+  updateTripParties(data: [TripPartyUpdateArgs!]!): [TripParty]
+  deleteTripParty(where: TripPartyWhereUniqueInput!): TripParty
+  deleteTripParties(where: [TripPartyWhereUniqueInput!]!): [TripParty]
+  createTripRoom(data: TripRoomCreateInput!): TripRoom
+  createTripRooms(data: [TripRoomCreateInput!]!): [TripRoom]
+  updateTripRoom(where: TripRoomWhereUniqueInput!, data: TripRoomUpdateInput!): TripRoom
+  updateTripRooms(data: [TripRoomUpdateArgs!]!): [TripRoom]
+  deleteTripRoom(where: TripRoomWhereUniqueInput!): TripRoom
+  deleteTripRooms(where: [TripRoomWhereUniqueInput!]!): [TripRoom]
   createPaymentSchedule(data: PaymentScheduleCreateInput!): PaymentSchedule
   createPaymentSchedules(data: [PaymentScheduleCreateInput!]!): [PaymentSchedule]
   updatePaymentSchedule(where: PaymentScheduleWhereUniqueInput!, data: PaymentScheduleUpdateInput!): PaymentSchedule
@@ -4937,6 +5152,11 @@ type Mutation {
   reopenTask(input: TravelJSON!): TravelJSON
   updateProposalDraft(input: TravelJSON!): TravelJSON
   sendProposal(input: TravelJSON!): TravelJSON
+  addTripParty(input: TravelJSON!): TravelJSON
+  editTripParty(input: TravelJSON!): TravelJSON
+  shareTripParty(input: TravelJSON!): TravelJSON
+  saveTripRoom(input: TravelJSON!): TravelJSON
+  removeTripRoom(input: TravelJSON!): TravelJSON
   saveClientProfile(input: TravelJSON!): TravelJSON
   saveClientLoyalty(input: TravelJSON!): TravelJSON
   duplicateTrip(input: TravelJSON!): TravelJSON
@@ -5053,6 +5273,12 @@ type Query {
   clientInvoiceLine(where: ClientInvoiceLineWhereUniqueInput!): ClientInvoiceLine
   clientInvoiceLines(where: ClientInvoiceLineWhereInput! = {}, orderBy: [ClientInvoiceLineOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ClientInvoiceLineWhereUniqueInput): [ClientInvoiceLine!]
   clientInvoiceLinesCount(where: ClientInvoiceLineWhereInput! = {}): Int
+  tripParty(where: TripPartyWhereUniqueInput!): TripParty
+  tripParties(where: TripPartyWhereInput! = {}, orderBy: [TripPartyOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripPartyWhereUniqueInput): [TripParty!]
+  tripPartiesCount(where: TripPartyWhereInput! = {}): Int
+  tripRoom(where: TripRoomWhereUniqueInput!): TripRoom
+  tripRooms(where: TripRoomWhereInput! = {}, orderBy: [TripRoomOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripRoomWhereUniqueInput): [TripRoom!]
+  tripRoomsCount(where: TripRoomWhereInput! = {}): Int
   paymentSchedule(where: PaymentScheduleWhereUniqueInput!): PaymentSchedule
   paymentSchedules(where: PaymentScheduleWhereInput! = {}, orderBy: [PaymentScheduleOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: PaymentScheduleWhereUniqueInput): [PaymentSchedule!]
   paymentSchedulesCount(where: PaymentScheduleWhereInput! = {}): Int

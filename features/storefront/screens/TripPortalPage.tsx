@@ -13,6 +13,7 @@ export async function TripPortalPage({ params }: { params: Promise<{ token: stri
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">{t.title}</h1>
         <p className="text-sm text-muted-foreground">{[t.tripNumber, when].filter(Boolean).join(' · ')}</p>
+        {t.partyName ? <p className="text-sm">Payments for <span className="font-medium">{t.partyName}</span></p> : null}
       </header>
 
       <section aria-labelledby="balance" className="space-y-2 rounded-md border p-3">
@@ -33,6 +34,7 @@ export async function TripPortalPage({ params }: { params: Promise<{ token: stri
       </section>
 
       <section aria-labelledby="itinerary" className="space-y-3">
+        {t.rooms?.length ? <div className="space-y-1 pb-2"><h2 className="font-medium">Rooms</h2>{t.rooms.map((r: any, n: number) => <p key={n} className="text-sm">{[r.label, r.roomType, `${r.guests} guest${r.guests === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</p>)}</div> : null}
         <h2 id="itinerary" className="font-medium">Itinerary</h2>
         {t.days.length ? t.days.map((d: any, n: number) => (
           <div key={n} className="space-y-1 rounded-md border p-3">

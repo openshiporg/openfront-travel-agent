@@ -16,6 +16,8 @@ export const Traveler = list({
     client: relationship({ ref: "Client.travelers", many: false }),
     trips: relationship({ ref: "Trip.travelers", many: true }),
     components: relationship({ ref: "TripComponent.travelers", many: true }),
+    parties: relationship({ ref: "TripParty.travelers", many: true }),
+    rooms: relationship({ ref: "TripRoom.guests", many: true }),
     documents: relationship({ ref: "Document.traveler", many: true }),
     ...trackingFields,
   },

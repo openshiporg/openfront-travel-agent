@@ -18,11 +18,13 @@ import { ProposalBuilder } from '../components/ProposalBuilder'
 import { passportNeedsAction, PASSPORT_TEXT, type PassportStatus } from '@/features/keystone/lib/passport-check'
 import { ProfileEditor } from '../components/ProfileEditor'
 import { readProfile } from '@/features/keystone/lib/client-profile'
+import { PartyEditor, RoomEditor } from '../components/GroupEditors'
+import { allBalances, roomingProblems } from '@/features/keystone/lib/party-balance'
 import { supplierDue } from '../../lib/supplier-due'
 import { needsConfirmation, startsPhrase } from '../../lib/confirmation-state'
 import { AddDay, AddItem } from '../components/ItineraryEditor'
 
-const TABS = ['overview', 'travelers', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
+const TABS = ['overview', 'travelers', 'group', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
 function ClientPreferences({ client }: { client: any }) {
   const p = readProfile(client.travelProfile), programs: string[] = JSON.parse(client.loyaltyPrograms || '[]')
   const lines = [['Seat', p.seat], ['Room', p.room], ['Dietary', p.dietary], ['Notes', p.notes], ['Celebrating', p.celebrations.map((c) => joinParts([c.label, c.date ? day(c.date) : ''], ' ')).join(', ')], ['Loyalty', programs.length ? `${programs.join(', ')} (numbers on file)` : '']].filter(([, v]) => v)
@@ -31,6 +33,30 @@ function ClientPreferences({ client }: { client: any }) {
       {lines.length ? <dl className="space-y-1 text-sm">{lines.map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="shrink-0 text-muted-foreground">{k}</dt><dd className="min-w-0 break-words text-right">{v}</dd></div>)}</dl> : <p className="text-sm text-muted-foreground">No preferences recorded yet.</p>}
     </Panel>
   )
+}
+function GroupTab({ tripId, t, cur }: { tripId: string; t: any; cur: string }) {
+  const people = t.travelers.map((x: any) => ({ id: x.id, name: joinParts([x.firstName, x.lastName], ' ') }))
+  const parties = t.parties.map((p: any) => ({ id: p.id, name: p.name, travelerIds: p.travelers.map((x: any) => x.id) }))
+  const taken = new Set(parties.flatMap((p: any) => p.travelerIds))
+  const invs = t.invoices.map((i: any) => ({ id: i.id, number: i.number, status: i.status, totalCents: i.totalCents || 0, collectedCents: i.collectedCents || 0, dueAt: i.dueAt, currencyCode: i.currencyCode, partyId: i.party?.id || null }))
+  const rows = allBalances(invs, parties.map((p: any) => p.id))
+  const problems = roomingProblems(t.rooms.map((r: any) => ({ id: r.id, label: r.label, partyId: r.party?.id || null, guestIds: r.guests.map((g: any) => g.id) })), Object.fromEntries(parties.map((p: any) => [p.id, p.travelerIds])))
+  const unroomed = people.filter((p: any) => !t.rooms.some((r: any) => r.guests.some((g: any) => g.id === p.id)))
+  return <div className="space-y-4">
+    <Panel title="Paying parties" action={<PartyEditor tripId={tripId} available={people.filter((p: any) => !taken.has(p.id))} />}>
+      {parties.length ? <RowList>{parties.map((p: any) => { const b = rows.find((r) => r.partyId === p.id)!; return (
+        <Row key={p.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{p.name}</p><p className="truncate text-xs text-muted-foreground">{joinParts([`${p.travelerIds.length} traveler${p.travelerIds.length === 1 ? '' : 's'}`, `${money(b.paidCents, cur)} paid of ${money(b.billedCents, cur)}`, b.nextDueAt ? `next due ${day(b.nextDueAt)}` : ''])}</p></div>
+          <div className="flex flex-wrap items-center gap-2"><span className={`text-sm font-medium ${b.overdue ? 'text-red-600' : ''}`}>{b.overdue ? <span className="font-mono text-xs uppercase tracking-wide">Overdue · </span> : null}{money(b.balanceCents, cur)} due</span><PartyEditor tripId={tripId} party={p} available={people.filter((x: any) => !taken.has(x.id) || p.travelerIds.includes(x.id))} /><ActionButton operator="shareTripParty" input={{ partyId: p.id }} linkPrefix="/trip/">Party link</ActionButton></div></Row>) })}
+        {rows.find((r) => r.partyId === null) ? <Row><div className="min-w-0"><p className="text-sm font-medium">Whole trip (no party)</p><p className="text-xs text-muted-foreground">Invoices not assigned to a party</p></div><span className="text-sm font-medium">{money(rows.find((r) => r.partyId === null)!.balanceCents, cur)} due</span></Row> : null}</RowList> : <Empty>No parties yet. Add one to invoice and share by family or couple.</Empty>}
+    </Panel>
+    <Panel title="Rooming list" action={<RoomEditor tripId={tripId} parties={parties} travelers={people} />}>
+      {problems.length ? <p role="status" className="mb-2 text-sm text-red-600"><span className="font-mono text-xs uppercase tracking-wide">Check · </span>{problems.join('; ')}</p> : null}
+      {t.rooms.length ? <RowList>{t.rooms.map((r: any) => (
+        <Row key={r.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{joinParts([r.label, r.roomType])}</p><p className="truncate text-xs text-muted-foreground">{joinParts([r.party ? parties.find((p: any) => p.id === r.party.id)?.name : 'Any party', r.guests.map((g: any) => people.find((p: any) => p.id === g.id)?.name).filter(Boolean).join(', ') || 'No guests'])}</p></div>
+          <div className="flex gap-2"><RoomEditor tripId={tripId} parties={parties} travelers={people} room={{ id: r.id, label: r.label, roomType: r.roomType || '', partyId: r.party?.id || '', guestIds: r.guests.map((g: any) => g.id) }} /><ActionButton operator="removeTripRoom" input={{ roomId: r.id }} confirm={`Remove ${r.label}?`}>Remove</ActionButton></div></Row>))}</RowList> : <Empty>No rooms yet</Empty>}
+      {t.rooms.length && unroomed.length ? <p className="mt-2 text-xs text-muted-foreground">Not roomed yet: {unroomed.map((p: any) => p.name).join(', ')}</p> : null}
+    </Panel>
+  </div>
 }
 const NAMES: Record<string, string> = { funds: 'Client funds', proposals: 'Proposals' }
 const NEXT: Record<string, string> = { planning: 'proposal_sent', proposal_sent: 'accepted', accepted: 'booked', booked: 'final_payment_due', final_payment_due: 'paid_in_full' }
@@ -42,11 +68,13 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     id tripNumber title status startDate endDate planningFeeCents currencyCode totalSellCents totalCollectedCents balanceDueCents expectedCommissionCents
     client { id name email phone travelProfile loyaltyPrograms } advisor { name } destinations { name }
     passportChecks
+    parties(orderBy: { createdAt: asc }) { id name travelers { id } }
+    rooms(orderBy: { label: asc }) { id label roomType party { id } guests { id } }
     travelers { id firstName lastName passportOnFile nationality }
     proposals(orderBy: { version: desc }) { id version status introNote depositBps sentAt acceptedAt acceptedByName options(orderBy: { sort: asc }) { id title items(orderBy: { sort: asc }) { id kind title details sellCents estimatedCommissionBps supplier { id name } } } }
     components(orderBy: { startAt: asc }) { id kind title startAt endAt confirmationNumber confirmedAt confirmedBy { name } holdUntil supplierDueAt cancelPenaltySchedule bookingStatus paymentModel sellCents netCostCents commissionBps commissionCents commissionStatus depositCents depositDueAt finalDueAt supplier { name } allocations { amountCents } supplierPayments { amountCents } }
     days(orderBy: { date: asc }) { id date title items(orderBy: { sort: asc }) { id time title location } }
-    invoices(orderBy: { createdAt: asc }) { id number status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } payments(orderBy: { createdAt: asc }) { id amount refundedAmount status providerPaymentId paymentMethod processedAt } }
+    invoices(orderBy: { createdAt: asc }) { id number party { id name } status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } payments(orderBy: { createdAt: asc }) { id amount refundedAmount status providerPaymentId paymentMethod processedAt } }
     schedule(orderBy: { dueAt: asc }) { id kind amountCents dueAt status }
     funds(orderBy: { occurredAt: asc }) { id entryType amountCents reference occurredAt }
     tasks(orderBy: { dueAt: asc }) { id title type status dueAt completedAt completionNote completedBy { name } }
@@ -98,6 +126,8 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
       {active === 'travelers' && <Panel title="Travelers" action={<TravelerEditor tripId={id} />}>{t.travelers.length ? <RowList>{t.travelers.map((x: any) => (
         <Row key={x.id}><div className="min-w-0"><p className="text-sm font-medium">{x.firstName} {x.lastName}</p><p className="text-xs text-muted-foreground">{joinParts([x.nationality, `passport ${x.passportOnFile ? 'on file' : 'missing'}`])}</p>{(() => { const s = (JSON.parse(t.passportChecks || '[]').find((p: any) => p.id === x.id)?.status || 'missing') as PassportStatus; return <p className={`font-mono text-xs uppercase tracking-wide ${passportNeedsAction(s) ? 'text-red-600' : 'text-muted-foreground'}`}>{PASSPORT_TEXT[s]}</p> })()}</div><TravelerEditor tripId={id} traveler={x} /></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
 
+      {active === 'group' && <GroupTab tripId={id} t={t} cur={cur} />}
+
       {active === 'proposals' && <div className="flex justify-end"><ProposalBuilder tripId={id} currencyCode={cur} /></div>}
       {active === 'proposals' && (t.proposals.length ? t.proposals.map((p: any) => (
         <Panel key={p.id} title={`Version ${p.version}`} action={<div className="flex items-center gap-2"><StatusLabel status={p.status} />{p.status === 'draft' ? <ProposalBuilder tripId={id} currencyCode={cur} draft={{ id: p.id, version: p.version, introNote: p.introNote || '', depositBps: p.depositBps || 0, options: p.options.map((o: any) => ({ ...o, items: o.items.map((i: any) => ({ ...i, supplierId: i.supplier?.id || null })) })) }} /> : null}{p.status === 'draft' ? <ActionButton operator="sendProposal" input={{ proposalId: p.id }} linkPrefix="/proposal/">Send</ActionButton> : null}</div>}>
@@ -126,9 +156,9 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
 
       {active === 'payments' && (
         <div className="space-y-4">
-          <Panel title="Invoices" action={<span className="flex flex-wrap gap-2"><EntryDialog title="Issue invoice" trigger="Issue invoice" operator="issueClientInvoice" base={{ tripId: id }} fields={[{ name: 'description', label: 'Description' }, { name: 'kind', label: 'Kind', kind: 'select', options: [{ value: 'planning_fee', label: 'Planning fee' }, { value: 'component_deposit', label: 'Component deposit' }, { value: 'component_final', label: 'Component final' }, { value: 'insurance', label: 'Insurance' }] }, { name: 'amountCents', label: `Amount (${cur})`, kind: 'money' }, { name: 'dueAt', label: 'Due date', kind: 'date', optional: true }]} lineFields={['description', 'kind', 'amountCents']} /><ActionButton operator="generatePaymentSchedule" input={{ tripId: id }}>Generate schedule</ActionButton></span>}>{t.invoices.length ? <ul className="divide-y">{t.invoices.map((i: any) => (
+          <Panel title="Invoices" action={<span className="flex flex-wrap gap-2"><EntryDialog title="Issue invoice" trigger="Issue invoice" operator="issueClientInvoice" base={{ tripId: id }} fields={[{ name: 'description', label: 'Description' }, { name: 'kind', label: 'Kind', kind: 'select', options: [{ value: 'planning_fee', label: 'Planning fee' }, { value: 'component_deposit', label: 'Component deposit' }, { value: 'component_final', label: 'Component final' }, { value: 'insurance', label: 'Insurance' }] }, { name: 'amountCents', label: `Amount (${cur})`, kind: 'money' }, { name: 'dueAt', label: 'Due date', kind: 'date', optional: true }, ...(t.parties.length ? [{ name: 'partyId', label: 'Bill to', kind: 'select' as const, optional: true, options: [{ value: '', label: 'Whole trip' }, ...t.parties.map((p: any) => ({ value: p.id, label: p.name }))] }] : [])]} lineFields={['description', 'kind', 'amountCents']} /><ActionButton operator="generatePaymentSchedule" input={{ tripId: id }}>Generate schedule</ActionButton></span>}>{t.invoices.length ? <ul className="divide-y">{t.invoices.map((i: any) => (
             <li key={i.id} className="space-y-2 py-3">
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium">{i.number}<StatusLabel status={i.status} /></p><p className="text-xs text-muted-foreground">{i.lines.map((l: any) => l.description).join(' · ')}</p></div><span className="flex flex-wrap items-center gap-2 text-sm">{money(i.collectedCents, cur)} of {money(i.totalCents, cur)}{i.status !== 'void' && i.totalCents - i.collectedCents > 0 ? <EntryDialog title={`Record payment on ${i.number}`} trigger="Record payment" operator="recordClientPayment" base={{ invoiceId: i.id }} fields={[{ name: 'amountCents', label: `Amount (${cur}, up to ${money(i.totalCents - i.collectedCents, cur)})`, kind: 'money' }, { name: 'method', label: 'Method', kind: 'select', options: [{ value: 'check', label: 'Check' }, { value: 'wire', label: 'Wire' }, { value: 'cash', label: 'Cash' }] }, { name: 'reference', label: 'Reference (check or wire number)' }]} /> : null}</span></div>
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium">{i.number}<StatusLabel status={i.status} /></p><p className="text-xs text-muted-foreground">{joinParts([i.party?.name ? `Bill to ${i.party.name}` : '', ...i.lines.map((l: any) => l.description)])}</p></div><span className="flex flex-wrap items-center gap-2 text-sm">{money(i.collectedCents, cur)} of {money(i.totalCents, cur)}{i.status !== 'void' && i.totalCents - i.collectedCents > 0 ? <EntryDialog title={`Record payment on ${i.number}`} trigger="Record payment" operator="recordClientPayment" base={{ invoiceId: i.id }} fields={[{ name: 'amountCents', label: `Amount (${cur}, up to ${money(i.totalCents - i.collectedCents, cur)})`, kind: 'money' }, { name: 'method', label: 'Method', kind: 'select', options: [{ value: 'check', label: 'Check' }, { value: 'wire', label: 'Wire' }, { value: 'cash', label: 'Cash' }] }, { name: 'reference', label: 'Reference (check or wire number)' }]} /> : null}</span></div>
               {i.payments.map((p: any) => { const left = p.amount - p.refundedAmount; return (
                 <div key={p.id} className="flex flex-col gap-1 pl-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{p.providerPaymentId ? 'card' : 'manual'} · {label(p.status)} · {money(p.amount, cur)}{p.refundedAmount ? ` · ${money(p.refundedAmount, cur)} refunded` : ''}</p>

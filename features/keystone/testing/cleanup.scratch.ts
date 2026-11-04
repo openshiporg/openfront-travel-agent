@@ -25,6 +25,8 @@ export async function cleanupDepthFixtures(p: any, dryRun = false) {
     await tx.paymentSession.deleteMany({ where: { paymentCollectionId: { in: collectionIds } } })
     await tx.clientInvoiceLine.deleteMany({ where: { invoiceId: { in: invoiceIds } } })
     await tx.clientInvoice.deleteMany({ where: { id: { in: invoiceIds } } })
+    await tx.tripRoom.deleteMany({ where: { tripId: { in: tripIds } } })
+    await tx.tripParty.deleteMany({ where: { tripId: { in: tripIds } } })
     await tx.paymentCollection.deleteMany({ where: { id: { in: collectionIds } } })
     await tx.commissionAllocation.deleteMany({ where: { componentId: { in: compIds } } })
     for (const id of receiptIds) if ((await tx.commissionAllocation.count({ where: { receiptId: id } })) === 0) await tx.commissionReceipt.delete({ where: { id } })

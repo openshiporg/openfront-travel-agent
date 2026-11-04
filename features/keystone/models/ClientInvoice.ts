@@ -11,6 +11,7 @@ export const ClientInvoice = list({
     dueAt: timestamp(),
     number: code("INV"),
     trip: relationship({ ref: "Trip.invoices", many: false }),
+    party: relationship({ ref: "TripParty.invoices", many: false }),
     lines: relationship({ ref: "ClientInvoiceLine.invoice", many: true }),
     status: state(["draft", "sent", "partially_paid", "paid", "void"]),
     paymentCollection: relationship({ ref: "PaymentCollection.invoice", many: false }),
