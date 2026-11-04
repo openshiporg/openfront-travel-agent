@@ -144,6 +144,16 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await createProposalOptions(tx,p.id,input.options,input.currencyCode||'USD');
  await audit(tx,context,'build','Proposal',p.id,null,p);return p;
  }),
+ completeTask:(context,input)=>command(context,'completeTask',input,'canManageTasks',async tx=>{
+ const found=await tx.task.findUnique({where:{id:String(input.taskId||'')}});if(!found)throw new Error('Task not found');
+ if(found.tripId)await trip(tx,found.tripId);
+ const task=await tx.task.findUnique({where:{id:found.id}});
+ if(task.assigneeId&&task.assigneeId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assignee or a manager can complete this task');
+ if(task.status==='completed')return {id:task.id,status:'completed',alreadyCompleted:true};
+ if(task.status!=='open')throw new Error('Only open tasks can be completed');
+ const done=await tx.task.updateMany({where:{id:task.id,status:'open'},data:{status:'completed'}});if(done.count!==1)throw new Error('Task changed; reload and try again');
+ await audit(tx,context,'complete','Task',task.id,{status:'open'},{status:'completed',title:task.title,type:task.type});return {id:task.id,status:'completed'};
+ }),
  updateProposalDraft:(context,input)=>command(context,'updateProposalDraft',input,'canManageTrips',async tx=>{
  const found=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!found)throw new Error('Proposal not found');await trip(tx,found.tripId);
  const p=await tx.proposal.findUnique({where:{id:input.proposalId},include:{options:{include:{items:true}}}});if(p.status!=='draft')throw new Error('Only draft proposals can be edited');

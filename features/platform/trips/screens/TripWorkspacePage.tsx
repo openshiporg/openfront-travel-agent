@@ -123,7 +123,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
 
       {active === 'documents' && <Panel>{t.documents.length ? <RowList>{t.documents.map((x: any) => <Row key={x.id}><span className="text-sm">{x.title}</span><span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{label(x.kind)}</span></Row>)}</RowList> : <Empty>No documents</Empty>}</Panel>}
 
-      {active === 'tasks' && <Panel>{t.tasks.length ? <RowList>{t.tasks.map((x: any) => <Row key={x.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{x.title}</p><p className="text-xs text-muted-foreground">{label(x.type)} · {day(x.dueAt)}</p></div><StatusLabel status={x.status} /></Row>)}</RowList> : <Empty>No tasks</Empty>}</Panel>}
+      {active === 'tasks' && <Panel>{t.tasks.length ? <RowList>{t.tasks.map((x: any) => <Row key={x.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{x.title}</p><p className="text-xs text-muted-foreground">{label(x.type)} · {day(x.dueAt)}</p></div><span className="flex items-center gap-3"><StatusLabel status={x.status} />{x.status === 'open' ? <ActionButton operator="completeTask" input={{ taskId: x.id }}>Complete</ActionButton> : null}</span></Row>)}</RowList> : <Empty>No tasks</Empty>}</Panel>}
     </PlatformPage>
   )
 }

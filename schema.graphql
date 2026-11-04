@@ -4887,6 +4887,7 @@ type Mutation {
   updateComponentTerms(input: TravelJSON!): TravelJSON
   createTripFromInquiry(input: TravelJSON!): TravelJSON
   buildProposal(input: TravelJSON!): TravelJSON
+  completeTask(input: TravelJSON!): TravelJSON
   updateProposalDraft(input: TravelJSON!): TravelJSON
   sendProposal(input: TravelJSON!): TravelJSON
   bookComponent(input: TravelJSON!): TravelJSON
