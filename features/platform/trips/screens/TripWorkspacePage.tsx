@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { query, money, day, label } from '../../lib/data'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
 import { StatusLabel } from '../../components/StatusLabel'
+import { joinParts, dateRange } from '../../lib/text'
 import { StatusTabs } from '../../components/StatusTabs'
 import { ActionButton } from '../../components/ActionButton'
 import { MoneyAction } from '../../components/MoneyAction'
@@ -50,7 +51,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     : ['Commission expected', money(t.expectedCommissionCents, cur), '']
 
   return (
-    <PlatformPage title={t.title} subtitle={`${t.tripNumber} · ${t.client?.name} · ${day(t.startDate)} to ${day(t.endDate)}`}
+    <PlatformPage title={t.title} subtitle={joinParts([t.tripNumber, t.client?.name, dateRange(t.startDate, t.endDate)])}
       crumbs={[{ label: 'Trips', href: '/dashboard/platform/trips' }, { label: t.title }]}
       actions={<div className="flex flex-wrap items-center gap-2"><StatusLabel status={t.status} />{next ? <ActionButton operator="transitionTrip" input={{ tripId: id, status: next }}>{`Mark ${label(next)}`}</ActionButton> : null}</div>}>
       <StatusTabs active={active} hrefFor={href} tabs={TABS.map((k) => ({ key: k, label: NAMES[k] || label(k).replace(/^./, (c) => c.toUpperCase()) }))} />
@@ -65,7 +66,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Advisor</dt><dd>{t.advisor?.name || '—'}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Destinations</dt><dd className="text-right">{t.destinations.map((x: any) => x.name).join(', ') || '—'}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Planning fee</dt><dd>{money(t.planningFeeCents, cur)}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Client</dt><dd className="text-right">{t.client?.name}<br /><span className="text-xs text-muted-foreground">{t.client?.email}</span></dd></div>
+            <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Client</dt><dd className="text-right">{t.client?.name || 'No client'}{t.client?.email ? <><br /><span className="text-xs text-muted-foreground">{t.client.email}</span></> : null}</dd></div>
           </dl></Panel>
           <Panel title="Next payments">{t.schedule.filter((s: any) => s.status === 'due').length ? <RowList>{t.schedule.filter((s: any) => s.status === 'due').slice(0, 5).map((s: any) => (
             <Row key={s.id}><span className="font-mono text-xs uppercase tracking-wide">{label(s.kind)} · {day(s.dueAt)}</span><span className="text-sm font-medium">{money(s.amountCents, cur)}</span></Row>))}</RowList> : <Empty>Nothing scheduled</Empty>}</Panel>
@@ -90,7 +91,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
         <Row key={c.id}>
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{c.title}</span><StatusLabel status={c.bookingStatus} /></p>
-            <p className="truncate text-xs text-muted-foreground">{c.supplier?.name} · {label(c.paymentModel)} · {c.confirmationNumber || 'No confirmation'} · {day(c.startAt)}</p>
+            <p className="truncate text-xs text-muted-foreground">{joinParts([c.supplier?.name, label(c.paymentModel), c.confirmationNumber || 'No confirmation', c.startAt ? day(c.startAt) : ''])}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium">{money(c.sellCents, cur)}</span><PlanningEditor tripId={id} feeCents={t.planningFeeCents} currencyCode={cur} component={c} />{c.paymentModel === 'agency_collects' && c.bookingStatus !== 'cancelled' && c.netCostCents - c.supplierPayments.reduce((n: number, p: any) => n + p.amountCents, 0) > 0 ? <EntryDialog title={`Pay supplier · ${money(c.netCostCents - c.supplierPayments.reduce((n: number, p: any) => n + p.amountCents, 0), cur)} remaining`} trigger="Pay supplier" operator="recordSupplierPayment" base={{ componentId: c.id }} fields={[{ name: 'amountCents', label: `Amount (${cur})`, kind: 'money' }, { name: 'method', label: 'Method', kind: 'select', options: [{ value: 'wire', label: 'Wire' }, { value: 'check', label: 'Check' }, { value: 'card', label: 'Card' }] }, { name: 'reference', label: 'Reference' }]} /> : null}{c.bookingStatus !== 'cancelled' ? <ActionButton operator="cancelComponent" input={{ componentId: c.id }} confirm="Cancel this component?">Cancel</ActionButton> : null}</div>
         </Row>))}</RowList> : <Empty>No components</Empty>}</Panel>}

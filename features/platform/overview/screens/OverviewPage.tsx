@@ -1,4 +1,5 @@
 import { query, money, day } from '../../lib/data'
+import { joinParts } from '../../lib/text'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
 import { StatusLabel } from '../../components/StatusLabel'
 
@@ -36,13 +37,13 @@ export async function OverviewPage() {
         <Panel title="Payments due">
           {d.due.length ? <RowList>{d.due.slice(0, 8).map((r: any) => (
             <Row key={r.id} href={`/dashboard/platform/trips/${r.trip?.id}`}>
-              <div className="min-w-0"><p className="truncate text-sm font-medium">{r.trip?.title}</p><p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{r.kind.replace(/_/g, ' ')} · {day(r.dueAt)}</p></div>
+              <div className="min-w-0"><p className="truncate text-sm font-medium">{r.trip?.title}</p><p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{joinParts([r.kind.replace(/_/g, ' '), r.dueAt ? day(r.dueAt) : ''])}</p></div>
               <span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span>
             </Row>))}</RowList> : <Empty>No payments due in the next 30 days</Empty>}
         </Panel>
         <Panel title="Traveling now">
           {d.traveling.length ? <RowList>{d.traveling.map((t: any) => (
-            <Row key={t.id} href={`/dashboard/platform/trips/${t.id}`}><div className="min-w-0"><p className="truncate text-sm font-medium">{t.title}</p><p className="text-xs text-muted-foreground">{t.client?.name} · returns {day(t.endDate)}</p></div></Row>))}</RowList> : <Empty>Nobody is traveling</Empty>}
+            <Row key={t.id} href={`/dashboard/platform/trips/${t.id}`}><div className="min-w-0"><p className="truncate text-sm font-medium">{t.title}</p><p className="text-xs text-muted-foreground">{joinParts([t.client?.name, t.endDate ? `returns ${day(t.endDate)}` : ''])}</p></div></Row>))}</RowList> : <Empty>Nobody is traveling</Empty>}
         </Panel>
         <Panel title="Open inquiries">
           {d.inquiries.length ? <RowList>{d.inquiries.map((i: any) => (

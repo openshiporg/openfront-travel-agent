@@ -3,6 +3,7 @@ import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/Platf
 import { StatusLabel } from '../../components/StatusLabel'
 import { StatusTabs } from '../../components/StatusTabs'
 import { MoneyAction } from '../../components/MoneyAction'
+import { joinParts } from '../../lib/text'
 import { ReceiptForm } from '../components/ReceiptForm'
 
 const TABS = ['expected', 'invoiced', 'received', 'short_paid', 'written_off']
@@ -30,7 +31,7 @@ export async function CommissionBoardPage({ searchParams }: { searchParams: Prom
         return <Row key={c.id}><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{c.title}</span><StatusLabel status={active} /></p><p className="truncate text-xs text-muted-foreground">{c.supplier?.name} · <a className="underline" href={`/dashboard/platform/trips/${c.trip?.id}?tab=commissions`}>{c.trip?.title}</a> · {(c.commissionBps / 100).toFixed(2)}% · travel ends {day(c.endAt)}</p></div><div className="flex flex-wrap items-center gap-2"><span className="text-sm">{money(got, c.currencyCode)} of {money(c.commissionCents, c.currencyCode)}</span>{['expected', 'short_paid'].includes(active) && c.commissionCents - got > 0 ? <MoneyAction kind="writeoff" label="Write off" targetId={c.id} maxCents={c.commissionCents - got} approvedId={d.managerApprovals.find((a: any) => a.targetId === c.id && a.amountCents === c.commissionCents - got && a.requestedBy?.id === d.me?.id)?.id || null} /> : null}</div></Row>
       })}</RowList> : <Empty>Nothing in this status</Empty>}</Panel>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Recent receipts">{d.commissionReceipts.length ? <RowList>{d.commissionReceipts.map((r: any) => <Row key={r.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{r.supplier?.name}</p><p className="truncate text-xs text-muted-foreground">{r.reference} · {day(r.receivedAt)} · {r.allocations.map((a: any) => a.component?.title).join(', ')}</p></div><span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span></Row>)}</RowList> : <Empty>No receipts</Empty>}</Panel>
+        <Panel title="Recent receipts">{d.commissionReceipts.length ? <RowList>{d.commissionReceipts.map((r: any) => <Row key={r.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{r.supplier?.name}</p><p className="truncate text-xs text-muted-foreground">{joinParts([r.reference, r.receivedAt ? day(r.receivedAt) : '', r.allocations.map((a: any) => a.component?.title).filter(Boolean).join(', ')])}</p></div><span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span></Row>)}</RowList> : <Empty>No receipts</Empty>}</Panel>
         <Panel title="Advisor payouts">{payouts.size ? <RowList>{[...payouts.values()].map((p) => <Row key={p.name}><span className="text-sm font-medium">{p.name}</span><span className="text-sm">{money(p.total)}</span></Row>)}</RowList> : <Empty>No advisor ledger entries</Empty>}</Panel>
       </div>
     </PlatformPage>

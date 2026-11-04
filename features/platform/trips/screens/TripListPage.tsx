@@ -1,4 +1,5 @@
 import { query, money, day, label } from '../../lib/data'
+import { joinParts, dateRange } from '../../lib/text'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
 import { StatusLabel } from '../../components/StatusLabel'
 import { StatusTabs } from '../../components/StatusTabs'
@@ -18,7 +19,7 @@ export async function TripListPage({ searchParams }: { searchParams: Promise<{ s
           <Row key={t.id} href={`/dashboard/platform/trips/${t.id}`}>
             <div className="min-w-0">
               <p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{t.title}</span><StatusLabel status={t.status} /></p>
-              <p className="truncate text-xs text-muted-foreground">{t.tripNumber} · {t.client?.name} · {t.advisor?.name} · {day(t.startDate)} to {day(t.endDate)}</p>
+              <p className="truncate text-xs text-muted-foreground">{joinParts([t.tripNumber, t.client?.name, t.advisor?.name, dateRange(t.startDate, t.endDate)])}</p>
             </div>
             <div className="text-xs sm:text-right"><p className="text-sm font-medium">{money(t.totalSellCents, t.currencyCode)}</p><p className="text-muted-foreground">{money(t.balanceDueCents, t.currencyCode)} due</p></div>
           </Row>))}</RowList> : <Empty>No trips in this status</Empty>}
