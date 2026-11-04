@@ -34,3 +34,12 @@ export function buildProposalPayload(introNote: string, options: DraftOption[]):
   }
   return { ok: true, introNote: introNote.trim(), options: out }
 }
+
+/** Percent text ("25", "12.5", "") to basis points; null when it is not 0 to 100 with at most two decimals. */
+export function depositBpsFromPercent(value: string): number | null {
+  const v = value.trim()
+  if (v === '') return 0
+  if (!/^\d+(\.\d{1,2})?$/.test(v)) return null
+  const pct = Number(v)
+  return pct <= 100 ? Math.round(pct * 100) : null
+}

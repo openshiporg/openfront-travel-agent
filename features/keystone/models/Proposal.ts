@@ -6,6 +6,7 @@ export const Proposal = list({
   access: {...domainAccess("canManageTrips", true),},
   fields: {
     introNote: text(),
+    depositBps: integer({defaultValue:0,validation:{min:0,max:10000}}),
     acceptedByName: text(),
     publicToken: text(),
     acceptedSnapshotHash: text(),

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildProposalPayload, draftFromProposal } from './proposal-draft'
+import { buildProposalPayload, depositBpsFromPercent, draftFromProposal } from './proposal-draft'
 
 const item = (over = {}) => ({ title: 'Hotel', kind: 'hotel', sell: '1200.50', commissionPct: '10', ...over })
 
@@ -23,4 +23,12 @@ test('editing a saved proposal round-trips exactly and keeps supplier and detail
   assert.equal(draft[0].items[0].sell, '1200.50'); assert.equal(draft[0].items[0].commissionPct, '12.5'); assert.equal(draft[0].items[1].commissionPct, '')
   const p = buildProposalPayload('', draft)
   assert.ok(p.ok); if (p.ok) { assert.deepEqual(p.options[0].items[0], { title: 'Hotel', kind: 'hotel', sellCents: 120050, estimatedCommissionBps: 1250, supplierId: 'sup1', details: 'Sea view' }); assert.equal(p.options[0].items[1].sellCents, 5000); assert.equal('supplierId' in p.options[0].items[1], false) }
+})
+
+test('deposit percent converts to basis points', () => {
+  assert.equal(depositBpsFromPercent(''), 0)
+  assert.equal(depositBpsFromPercent('25'), 2500)
+  assert.equal(depositBpsFromPercent('12.5'), 1250)
+  assert.equal(depositBpsFromPercent('100'), 10000)
+  for (const bad of ['101', '-1', '1.234', 'abc', '10%']) assert.equal(depositBpsFromPercent(bad), null, bad)
 })

@@ -225,6 +225,7 @@ model Trip {
 model Proposal {
   id                   String              @id @default(cuid())
   introNote            String              @default("")
+  depositBps           Int?                @default(0)
   acceptedByName       String              @default("")
   publicToken          String              @default("")
   acceptedSnapshotHash String              @default("")

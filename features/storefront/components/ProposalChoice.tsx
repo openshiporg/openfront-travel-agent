@@ -8,12 +8,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { acceptProposalAction } from '../actions'
 import { dollars } from '../lib/format'
 
-export function ProposalChoice({ token, options, currency, status }: { token: string; options: any[]; currency: string; status: string }) {
+export function ProposalChoice({ token, options, currency, status, depositBps = 0 }: { token: string; options: any[]; currency: string; status: string; depositBps?: number }) {
   const [optionId, setOptionId] = useState(options[0]?.id || '')
   const [name, setName] = useState('')
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [accepted, setAccepted] = useState(status === 'accepted')
+  const [accepted, setAccepted] = useState(status === 'accepted'), [deposit, setDeposit] = useState<{ invoiceToken: string; number: string; paid: boolean } | null>(null)
+  const chosen = options.find((o) => o.id === optionId)
+  const depositCents = chosen ? Math.round(chosen.items.reduce((n: number, i: any) => n + i.sellCents, 0) * depositBps / 10000) : 0
   return (
     <div className="space-y-4">
       <RadioGroup value={optionId} onValueChange={setOptionId} className="space-y-3" disabled={accepted}>
@@ -27,11 +29,15 @@ export function ProposalChoice({ token, options, currency, status }: { token: st
           </Label>
         ))}
       </RadioGroup>
-      {accepted ? <p role="status" className="rounded-md border p-3 text-sm">Proposal accepted. Your advisor will send the invoice.</p> : (
+      {accepted ? <div role="status" className="space-y-2 rounded-md border p-3 text-sm">
+        <p>Proposal accepted.</p>
+        {deposit ? (deposit.paid ? <p>Your deposit {deposit.number} is paid.</p> : <p><a className="font-medium underline" href={`/invoice/${deposit.invoiceToken}`}>Pay your deposit ({deposit.number})</a> to confirm your booking.</p>) : <p>Your advisor will send the invoice.</p>}
+      </div> : (
         <>
+          {depositCents > 0 ? <p className="text-sm">A deposit of <span className="font-medium">{dollars(depositCents, currency)}</span> ({depositBps / 100}%) is invoiced when you accept. You can pay it right after.</p> : null}
           <div className="space-y-1"><Label htmlFor="who">Full name</Label><Input id="who" value={name} onChange={(e) => setName(e.target.value)} maxLength={200} /></div>
           {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
-          <Button disabled={pending || !name.trim() || !optionId} onClick={() => { setError(null); start(async () => { const r = await acceptProposalAction(token, optionId, name); if (r.ok) setAccepted(true); else setError(r.error) }) }}>{pending ? 'Saving' : 'Accept this option'}</Button>
+          <Button disabled={pending || !name.trim() || !optionId} onClick={() => { setError(null); start(async () => { const r = await acceptProposalAction(token, optionId, name); if (r.ok) { setAccepted(true); setDeposit(r.data?.deposit || null) } else setError(r.error) }) }}>{pending ? 'Saving' : 'Accept this option'}</Button>
         </>
       )}
     </div>

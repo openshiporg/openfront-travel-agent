@@ -1543,6 +1543,7 @@ input ClientFundsEntryRelateToManyForCreateInput {
 type Proposal {
   id: ID!
   introNote: String
+  depositBps: Int
   acceptedByName: String
   publicToken: String
   acceptedSnapshotHash: String
@@ -1577,6 +1578,7 @@ input ProposalWhereInput {
   NOT: [ProposalWhereInput!]
   id: IDFilter
   introNote: StringFilter
+  depositBps: IntNullableFilter
   acceptedByName: StringFilter
   publicToken: StringFilter
   acceptedSnapshotHash: StringFilter
@@ -1606,6 +1608,7 @@ input ProposalOptionManyRelationFilter {
 input ProposalOrderByInput {
   id: OrderDirection
   introNote: OrderDirection
+  depositBps: OrderDirection
   acceptedByName: OrderDirection
   publicToken: OrderDirection
   acceptedSnapshotHash: OrderDirection
@@ -1619,6 +1622,7 @@ input ProposalOrderByInput {
 
 input ProposalUpdateInput {
   introNote: String
+  depositBps: Int
   acceptedByName: String
   publicToken: String
   acceptedSnapshotHash: String
@@ -1653,6 +1657,7 @@ input ProposalUpdateArgs {
 
 input ProposalCreateInput {
   introNote: String
+  depositBps: Int
   acceptedByName: String
   publicToken: String
   acceptedSnapshotHash: String

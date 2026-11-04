@@ -29,6 +29,19 @@ async function createProposalOptions(tx:any,proposalId:string,options:any[],curr
   for(const [index,item] of (option.items||[]).entries()){integerMoney(item.sellCents);commissionCents(item.sellCents,item.estimatedCommissionBps||0);await tx.proposalItem.create({data:{optionId:o.id,title:item.title,kind:item.kind,supplierId:item.supplierId||null,details:item.details||'',sellCents:item.sellCents,estimatedCommissionBps:item.estimatedCommissionBps||0,sort:index,currencyCode}});}
  }
 }
+/** Creates a sent invoice with its payment collection and lines. Caller holds the trip lock. */
+async function createInvoice(tx:any,context:any,t:any,lines:any[],dueAt?:any,fixedToken?:string){
+ if(!lines?.length)throw new Error('Invoice lines required');let total=0;
+ for(const l of lines){integerMoney(l.amountCents);total+=l.amountCents;}integerMoney(total);const token=fixedToken||randomBytes(32).toString('base64url');
+ const collection=await tx.paymentCollection.create({data:{amount:total,currencyCode:t.currencyCode}});
+ const invoice=await tx.clientInvoice.create({data:{tripId:t.id,number:code('INV'),status:'sent',totalCents:total,collectedCents:0,dueAt:dueAt?new Date(dueAt):new Date(),publicToken:hash(token),currencyCode:t.currencyCode,paymentCollectionId:collection.id}});
+ for(const l of lines)await tx.clientInvoiceLine.create({data:{invoiceId:invoice.id,description:l.description,amountCents:l.amountCents,unitPriceCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind,currencyCode:t.currencyCode,snapshot:{description:l.description,amountCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind}}});
+ await audit(tx,context,'invoice','ClientInvoice',invoice.id,null,invoice);return {invoice,token};
+}
+/** Deposit link is derived from the proposal token the client already holds, so a repeated acceptance can return the same link without storing a raw secret. */
+const depositToken=(proposalToken:string)=>hash(`proposal-deposit:${proposalToken}`);
+const depositBpsOf=(v:any)=>{const n=v===undefined||v===null||v===''?0:Number(v);if(!Number.isInteger(n)||n<0||n>10000)throw new Error('Deposit must be 0 to 100 percent');return n;};
+const depositCentsFor=(items:any[],bps:number)=>Math.round(items.reduce((n:number,i:any)=>n+i.sellCents,0)*bps/10000);
 const taskNote=(v:any)=>{const n=String(v||'').trim();if(n.length>500)throw new Error('Note must be 500 characters or fewer');return n;};
 /** Locks the task's trip, then checks the actor is the assignee, or (when unassigned) the trip's advisor, or a role manager. */
 async function taskForChange(tx:any,context:any,taskId:any){
@@ -186,7 +199,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  buildProposal:(context,input)=>command(context,'buildProposal',input,'canManageTrips',async tx=>{
  await trip(tx,input.tripId);const prior=await tx.proposal.aggregate({where:{tripId:input.tripId},_max:{version:true}});
  if(!Array.isArray(input.options)||!input.options.length)throw new Error('Proposal options required');
- const p=await tx.proposal.create({data:{tripId:input.tripId,version:(prior._max.version||0)+1,status:'draft',introNote:input.introNote||''}});
+ const p=await tx.proposal.create({data:{tripId:input.tripId,version:(prior._max.version||0)+1,status:'draft',introNote:input.introNote||'',depositBps:depositBpsOf(input.depositBps)}});
  await createProposalOptions(tx,p.id,input.options,input.currencyCode||'USD');
  await audit(tx,context,'build','Proposal',p.id,null,p);return p;
  }),
@@ -209,10 +222,10 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const found=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!found)throw new Error('Proposal not found');await trip(tx,found.tripId);
  const p=await tx.proposal.findUnique({where:{id:input.proposalId},include:{options:{include:{items:true}}}});if(p.status!=='draft')throw new Error('Only draft proposals can be edited');
  if(!Array.isArray(input.options)||!input.options.length)throw new Error('Proposal options required');
- const before={introNote:p.introNote,options:p.options.map((o:any)=>({title:o.title,items:o.items.map((i:any)=>({title:i.title,kind:i.kind,sellCents:i.sellCents,estimatedCommissionBps:i.estimatedCommissionBps}))}))};
+ const before={introNote:p.introNote,depositBps:p.depositBps,options:p.options.map((o:any)=>({title:o.title,items:o.items.map((i:any)=>({title:i.title,kind:i.kind,sellCents:i.sellCents,estimatedCommissionBps:i.estimatedCommissionBps}))}))};
  await tx.proposalItem.deleteMany({where:{optionId:{in:p.options.map((o:any)=>o.id)}}});await tx.proposalOption.deleteMany({where:{proposalId:p.id}});
- await createProposalOptions(tx,p.id,input.options,input.currencyCode||'USD');await tx.proposal.update({where:{id:p.id},data:{introNote:String(input.introNote||'').trim()}});
- await audit(tx,context,'edit_draft','Proposal',p.id,before,{introNote:input.introNote||'',options:input.options});return {id:p.id,version:p.version};
+ await createProposalOptions(tx,p.id,input.options,input.currencyCode||'USD');await tx.proposal.update({where:{id:p.id},data:{introNote:String(input.introNote||'').trim(),depositBps:depositBpsOf(input.depositBps)}});
+ await audit(tx,context,'edit_draft','Proposal',p.id,before,{introNote:input.introNote||'',depositBps:depositBpsOf(input.depositBps),options:input.options});return {id:p.id,version:p.version};
  }),
  sendProposal:(context,input)=>command(context,'sendProposal',input,'canManageTrips',async tx=>{
  const p=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!p||p.status!=='draft')throw new Error('Only draft proposals may be sent');const t=await trip(tx,p.tripId);
@@ -230,12 +243,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const t=await trip(tx,input.tripId);const result=await syncPaymentSchedule(tx,t);await audit(tx,context,'schedule','Trip',t.id,null,result);return result;
  }),
  issueClientInvoice:(context,input)=>command(context,'issueClientInvoice',input,'canManagePayments',async tx=>{
- const t=await trip(tx,input.tripId);if(!input.lines?.length)throw new Error('Invoice lines required');let total=0;
- for(const l of input.lines){integerMoney(l.amountCents);total+=l.amountCents;}integerMoney(total);const token=randomBytes(32).toString('base64url');
- const collection=await tx.paymentCollection.create({data:{amount:total,currencyCode:t.currencyCode}});
- const invoice=await tx.clientInvoice.create({data:{tripId:t.id,number:code('INV'),status:'sent',totalCents:total,collectedCents:0,dueAt:input.dueAt?new Date(input.dueAt):new Date(),publicToken:hash(token),currencyCode:t.currencyCode,paymentCollectionId:collection.id}});
- for(const l of input.lines)await tx.clientInvoiceLine.create({data:{invoiceId:invoice.id,description:l.description,amountCents:l.amountCents,unitPriceCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind,currencyCode:t.currencyCode,snapshot:{description:l.description,amountCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind}}});
- await audit(tx,context,'invoice','ClientInvoice',invoice.id,null,invoice);return {id:invoice.id,number:invoice.number,token};
+ const t=await trip(tx,input.tripId);const {invoice,token}=await createInvoice(tx,context,t,input.lines,input.dueAt);return {id:invoice.id,number:invoice.number,token};
  }),
  recordClientPayment:(context,input)=>command(context,'recordClientPayment',input,'canManagePayments',async tx=>{
  const invoice=await tx.clientInvoice.findUnique({where:{id:input.invoiceId}});if(!invoice)throw new Error('Invoice not found');await trip(tx,invoice.tripId);integerMoney(input.amountCents);if(input.amountCents<1||invoice.status==='void'||input.amountCents>invoice.totalCents-invoice.collectedCents)throw new Error('Invalid payment amount');
@@ -297,14 +305,22 @@ export async function submitInquiry(_root:any,{input}:any,context:any){
  const row=await guardKeystonePrismaResults(context.prisma as any).inquiry.create({data:{name:input.name.slice(0,200),email:input.email.slice(0,254),phone:input.phone?.slice(0,80)||'',destinations:input.destinations?.slice(0,2000)||'',tripType:input.tripType||'family',partySize:input.partySize||1,budgetCents:integerMoney(input.budgetCents||0),status:'new',source:'website',currencyCode:'USD'}});return {id:row.id};
 }
 async function proposalForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Proposal not found');const p=await context.prisma.proposal.findFirst({where:{publicToken:hash(token)},include:{options:{include:{items:{orderBy:{sort:'asc'}}}},trip:{select:{id:true,title:true,status:true,currencyCode:true}}}});if(!p||!['sent','viewed','accepted'].includes(p.status))throw new Error('Proposal not found');return p;}
-export async function viewProposal(_root:any,{token}:any,context:any){const p=await proposalForToken(context,token);if(p.status==='sent')await guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{const r=await tx.proposal.updateMany({where:{id:p.id,status:'sent'},data:{status:'viewed'}});if(r.count)await audit(tx,context,'view','Proposal',p.id,{status:'sent'},{status:'viewed'});});return {id:p.id,version:p.version,status:p.status,introNote:p.introNote,trip:p.trip,options:p.options.map((o:any)=>({id:o.id,title:o.title,items:o.items.map((i:any)=>({id:i.id,title:i.title,details:i.details,kind:i.kind,sellCents:i.sellCents,currencyCode:i.currencyCode}))}))};}
+export async function viewProposal(_root:any,{token}:any,context:any){const p=await proposalForToken(context,token);if(p.status==='sent')await guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{const r=await tx.proposal.updateMany({where:{id:p.id,status:'sent'},data:{status:'viewed'}});if(r.count)await audit(tx,context,'view','Proposal',p.id,{status:'sent'},{status:'viewed'});});return {id:p.id,version:p.version,status:p.status,introNote:p.introNote,depositBps:p.depositBps||0,trip:p.trip,options:p.options.map((o:any)=>({id:o.id,title:o.title,items:o.items.map((i:any)=>({id:i.id,title:i.title,details:i.details,kind:i.kind,sellCents:i.sellCents,currencyCode:i.currencyCode}))}))};}
+async function acceptedResult(tx:any,p:any,token:string){
+ if(!(p.depositBps>0))return {id:p.id,status:'accepted'};
+ const inv=await tx.clientInvoice.findFirst({where:{publicToken:hash(depositToken(token))},select:{number:true,status:true}});
+ return inv?{id:p.id,status:'accepted',deposit:{invoiceToken:depositToken(token),number:inv.number,paid:inv.status==='paid'}}:{id:p.id,status:'accepted'};
+}
 export async function acceptProposal(_root:any,{token,optionId,name,idempotencyKey}:any,context:any){
  const proof=await proposalForToken(context,token);if(!name?.trim()||!idempotencyKey)throw new Error('Name and idempotency key required');
- return guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{await trip(tx,proof.tripId);const p=await tx.proposal.findUnique({where:{id:proof.id},include:{options:{include:{items:true}}}});if(p.status==='accepted')return {id:p.id,status:'accepted'};if(!['sent','viewed'].includes(p.status))throw new Error('Proposal no longer available');const option=p.options.find((o:any)=>o.id===optionId);if(!option)throw new Error('Option not found');
+ return guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{await trip(tx,proof.tripId);const p=await tx.proposal.findUnique({where:{id:proof.id},include:{options:{include:{items:true}}}});if(p.status==='accepted')return acceptedResult(tx,p,token);if(!['sent','viewed'].includes(p.status))throw new Error('Proposal no longer available');const option=p.options.find((o:any)=>o.id===optionId);if(!option)throw new Error('Option not found');
  const snapshot={proposalId:p.id,version:p.version,optionId,name:name.trim(),acceptedAt:new Date().toISOString(),items:option.items.map((i:any)=>({title:i.title,details:i.details,kind:i.kind,sellCents:i.sellCents,quantity:1,feesCents:0,taxCents:0,currencyCode:i.currencyCode,supplierId:i.supplierId,estimatedCommissionBps:i.estimatedCommissionBps}))};
  await tx.proposal.update({where:{id:p.id},data:{status:'accepted',acceptedByName:name.trim(),acceptedAt:new Date(),acceptedSnapshot:snapshot,acceptedSnapshotHash:hash(JSON.stringify(snapshot))}});
  for(const i of option.items)await tx.tripComponent.create({data:{tripId:p.tripId,supplierId:i.supplierId,title:i.title,kind:i.kind,sellCents:i.sellCents,currencyCode:i.currencyCode,commissionBps:i.estimatedCommissionBps,commissionCents:commissionCents(i.sellCents,i.estimatedCommissionBps),bookingStatus:'quoted',paymentModel:'client_pays_supplier',commissionStatus:'expected',purchaseSnapshot:snapshot.items.find((x:any)=>x.title===i.title)}});
- const t=await tx.trip.findUnique({where:{id:p.tripId}});if(t.status==='proposal_sent')await transition(tx,context,t,'accepted');await audit(tx,context,'accept','Proposal',p.id,{status:p.status},{status:'accepted',snapshotHash:hash(JSON.stringify(snapshot))});return {id:p.id,status:'accepted'};
+ const t=await tx.trip.findUnique({where:{id:p.tripId}});if(t.status==='proposal_sent')await transition(tx,context,t,'accepted');await audit(tx,context,'accept','Proposal',p.id,{status:p.status},{status:'accepted',snapshotHash:hash(JSON.stringify(snapshot)),depositBps:p.depositBps||0});
+ const depositCents=depositCentsFor(option.items,p.depositBps||0);
+ if(depositCents>0){const fresh=await tx.trip.findUnique({where:{id:p.tripId}});await createInvoice(tx,context,fresh,[{description:`Deposit · ${option.title} (${(p.depositBps/100).toString()}%)`,amountCents:depositCents,kind:'component_deposit'}],new Date(),depositToken(token));}
+ return acceptedResult(tx,p,token);
  });
 }
 export async function viewItinerary(_root:any,{token}:any,context:any){if(!token||token.length<32)throw new Error('Itinerary not found');const t=await context.prisma.trip.findFirst({where:{itineraryToken:hash(token)},select:{tripNumber:true,title:true,startDate:true,endDate:true,days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}}}});if(!t)throw new Error('Itinerary not found');return t;}
