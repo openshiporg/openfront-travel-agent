@@ -81,6 +81,7 @@ export const User = list({
     onboardingStatus: select({options:['not_started','in_progress','completed','dismissed'],defaultValue:'not_started',access:{update:permissions.canManageOnboarding}}),
     tasks: relationship({ref:'Task.assignee',many:true}),
     trips: relationship({ref:'Trip.advisor',many:true}),
+    insuranceOffers: relationship({ref:'InsuranceOffer.recordedBy',many:true}),
     inquiries: relationship({ref:'Inquiry.assignedAdvisor',many:true}),
     commissionLedger: relationship({ref:'AdvisorCommissionLedger.advisor',many:true,access:{create:()=>false,update:()=>false}}),
     auditEvents: relationship({ref:'AuditEvent.actor',many:true,access:{create:()=>false,update:()=>false}}),

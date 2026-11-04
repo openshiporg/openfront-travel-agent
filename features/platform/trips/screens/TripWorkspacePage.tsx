@@ -19,6 +19,8 @@ import { passportNeedsAction, PASSPORT_TEXT, type PassportStatus } from '@/featu
 import { ProfileEditor } from '../components/ProfileEditor'
 import { readProfile } from '@/features/keystone/lib/client-profile'
 import { PartyEditor, RoomEditor } from '../components/GroupEditors'
+import { InsuranceEditor } from '../components/InsuranceEditor'
+import { INSURANCE_TEXT, insuranceNeedsAction, type InsuranceStatus } from '@/features/keystone/lib/insurance-offer'
 import { allBalances, roomingProblems } from '@/features/keystone/lib/party-balance'
 import { supplierDue } from '../../lib/supplier-due'
 import { needsConfirmation, startsPhrase } from '../../lib/confirmation-state'
@@ -33,6 +35,25 @@ function ClientPreferences({ client }: { client: any }) {
       {lines.length ? <dl className="space-y-1 text-sm">{lines.map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="shrink-0 text-muted-foreground">{k}</dt><dd className="min-w-0 break-words text-right">{v}</dd></div>)}</dl> : <p className="text-sm text-muted-foreground">No preferences recorded yet.</p>}
     </Panel>
   )
+}
+/** Pre-departure readiness: passport validity and travel insurance, per traveler. Only open items and recorded waivers are listed. */
+function PreDeparture({ t }: { t: any }) {
+  const name = (x: any) => joinParts([x.firstName, x.lastName], ' ')
+  const ins = JSON.parse(t.insuranceChecks || '[]'), pass = JSON.parse(t.passportChecks || '[]')
+  const items = t.travelers.flatMap((x: any) => {
+    const i = ins.find((c: any) => c.id === x.id), p = pass.find((c: any) => c.id === x.id)
+    const out: { key: string; who: string; text: string; bad: boolean }[] = []
+    const is = (i?.status || 'not_offered') as InsuranceStatus, ps = (p?.status || 'missing') as PassportStatus
+    if (insuranceNeedsAction(is)) out.push({ key: x.id + 'i', who: name(x), text: INSURANCE_TEXT[is], bad: true })
+    if (is === 'declined') out.push({ key: x.id + 'w', who: name(x), text: `Insurance declined ${i?.recordedAt ? day(i.recordedAt) : ''}`.trim(), bad: false })
+    if (passportNeedsAction(ps)) out.push({ key: x.id + 'p', who: name(x), text: PASSPORT_TEXT[ps], bad: true })
+    return out
+  })
+  const open = items.filter((x: any) => x.bad).length
+  return <Panel title="Pre-departure checks">
+    {items.length ? <ul className="divide-y">{items.map((x: any) => <li key={x.key} className="flex flex-col gap-0.5 py-2 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="min-w-0 truncate font-medium">{x.who}</span><span className={`font-mono text-xs uppercase tracking-wide ${x.bad ? 'text-red-600' : 'text-muted-foreground'}`}>{x.text}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">Passports and insurance are settled for every traveler.</p>}
+    {open ? <p className="mt-2 text-xs text-muted-foreground">{open} open item{open === 1 ? '' : 's'}. Use the Travelers tab to resolve them.</p> : null}
+  </Panel>
 }
 function GroupTab({ tripId, t, cur }: { tripId: string; t: any; cur: string }) {
   const people = t.travelers.map((x: any) => ({ id: x.id, name: joinParts([x.firstName, x.lastName], ' ') }))
@@ -68,6 +89,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     id tripNumber title status startDate endDate planningFeeCents currencyCode totalSellCents totalCollectedCents balanceDueCents expectedCommissionCents
     client { id name email phone travelProfile loyaltyPrograms } advisor { name } destinations { name }
     passportChecks
+    insuranceChecks
     parties(orderBy: { createdAt: asc }) { id name travelers { id } }
     rooms(orderBy: { label: asc }) { id label roomType party { id } guests { id } }
     travelers { id firstName lastName passportOnFile nationality }
@@ -112,6 +134,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
             {[['Total sell', money(t.totalSellCents, cur), ''], ['Collected', money(t.totalCollectedCents, cur), ''], ['Balance due', money(t.balanceDueCents, cur), ''], commissionCard].map(([l, v, sub]: any) => (
               <div key={l} className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="mt-1 text-lg font-semibold">{v}</p>{sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}</div>))}
           </div>
+          {t.travelers.length ? <PreDeparture t={t} /> : null}
           <Panel title="Trip" action={<PlanningEditor tripId={id} feeCents={t.planningFeeCents} currencyCode={cur} />}><dl className="space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Advisor</dt><dd>{t.advisor?.name || '—'}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Destinations</dt><dd className="text-right">{t.destinations.map((x: any) => x.name).join(', ') || '—'}</dd></div>
@@ -124,7 +147,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
       )}
 
       {active === 'travelers' && <Panel title="Travelers" action={<TravelerEditor tripId={id} />}>{t.travelers.length ? <RowList>{t.travelers.map((x: any) => (
-        <Row key={x.id}><div className="min-w-0"><p className="text-sm font-medium">{x.firstName} {x.lastName}</p><p className="text-xs text-muted-foreground">{joinParts([x.nationality, `passport ${x.passportOnFile ? 'on file' : 'missing'}`])}</p>{(() => { const s = (JSON.parse(t.passportChecks || '[]').find((p: any) => p.id === x.id)?.status || 'missing') as PassportStatus; return <p className={`font-mono text-xs uppercase tracking-wide ${passportNeedsAction(s) ? 'text-red-600' : 'text-muted-foreground'}`}>{PASSPORT_TEXT[s]}</p> })()}</div><TravelerEditor tripId={id} traveler={x} /></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
+        <Row key={x.id}><div className="min-w-0"><p className="text-sm font-medium">{x.firstName} {x.lastName}</p><p className="text-xs text-muted-foreground">{joinParts([x.nationality, `passport ${x.passportOnFile ? 'on file' : 'missing'}`])}</p>{(() => { const c = JSON.parse(t.insuranceChecks || '[]').find((p: any) => p.id === x.id); const s = (c?.status || 'not_offered') as InsuranceStatus; return <p className={`font-mono text-xs uppercase tracking-wide ${insuranceNeedsAction(s) ? 'text-red-600' : 'text-muted-foreground'}`}>{INSURANCE_TEXT[s]}{c?.recordedAt && s !== 'not_offered' ? ` · ${day(c.recordedAt)}` : ''}</p> })()}{(() => { const c = JSON.parse(t.insuranceChecks || '[]').find((p: any) => p.id === x.id); return c?.waiverNote ? <p className="text-xs text-muted-foreground">Waiver: {c.waiverNote}</p> : null })()}{(() => { const s = (JSON.parse(t.passportChecks || '[]').find((p: any) => p.id === x.id)?.status || 'missing') as PassportStatus; return <p className={`font-mono text-xs uppercase tracking-wide ${passportNeedsAction(s) ? 'text-red-600' : 'text-muted-foreground'}`}>{PASSPORT_TEXT[s]}</p> })()}</div><div className="flex flex-wrap gap-2"><InsuranceEditor tripId={id} travelerId={x.id} name={joinParts([x.firstName, x.lastName], ' ')} current={(JSON.parse(t.insuranceChecks || '[]').find((p: any) => p.id === x.id)?.status || 'not_offered')} /><TravelerEditor tripId={id} traveler={x} /></div></Row>))}</RowList> : <Empty>No travelers</Empty>}</Panel>}
 
       {active === 'group' && <GroupTab tripId={id} t={t} cur={cur} />}
 

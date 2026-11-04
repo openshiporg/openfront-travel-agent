@@ -21,6 +21,7 @@ model User {
   onboardingStatus               String?                   @default("not_started")
   tasks                          Task[]                    @relation("Task_assignee")
   trips                          Trip[]                    @relation("Trip_advisor")
+  insuranceOffers                InsuranceOffer[]          @relation("InsuranceOffer_recordedBy")
   inquiries                      Inquiry[]                 @relation("Inquiry_assignedAdvisor")
   commissionLedger               AdvisorCommissionLedger[] @relation("AdvisorCommissionLedger_advisor")
   auditEvents                    AuditEvent[]              @relation("AuditEvent_actor")
@@ -133,24 +134,25 @@ model Client {
 }
 
 model Traveler {
-  id                  String          @id @default(cuid())
-  firstName           String          @default("")
-  lastName            String          @default("")
-  knownTravelerNumber String          @default("")
-  nationality         String          @default("")
-  notes               String          @default("")
+  id                  String           @id @default(cuid())
+  firstName           String           @default("")
+  lastName            String           @default("")
+  knownTravelerNumber String           @default("")
+  nationality         String           @default("")
+  notes               String           @default("")
   dateOfBirth         DateTime?
   passportExpiresAt   DateTime?
-  passportOnFile      Boolean         @default(false)
-  client              Client?         @relation("Traveler_client", fields: [clientId], references: [id])
-  clientId            String?         @map("client")
-  trips               Trip[]          @relation("Traveler_trips")
-  components          TripComponent[] @relation("Traveler_components")
-  parties             TripParty[]     @relation("Traveler_parties")
-  rooms               TripRoom[]      @relation("Traveler_rooms")
-  documents           Document[]      @relation("Document_traveler")
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @default(now()) @updatedAt
+  passportOnFile      Boolean          @default(false)
+  client              Client?          @relation("Traveler_client", fields: [clientId], references: [id])
+  clientId            String?          @map("client")
+  trips               Trip[]           @relation("Traveler_trips")
+  components          TripComponent[]  @relation("Traveler_components")
+  parties             TripParty[]      @relation("Traveler_parties")
+  insuranceOffers     InsuranceOffer[] @relation("InsuranceOffer_traveler")
+  rooms               TripRoom[]       @relation("Traveler_rooms")
+  documents           Document[]       @relation("Document_traveler")
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @default(now()) @updatedAt
 
   @@index([clientId])
 }
@@ -213,6 +215,7 @@ model Trip {
   days             ItineraryDay[]     @relation("ItineraryDay_trip")
   invoices         ClientInvoice[]    @relation("ClientInvoice_trip")
   parties          TripParty[]        @relation("TripParty_trip")
+  insuranceOffers  InsuranceOffer[]   @relation("InsuranceOffer_trip")
   rooms            TripRoom[]         @relation("TripRoom_trip")
   schedule         PaymentSchedule[]  @relation("PaymentSchedule_trip")
   funds            ClientFundsEntry[] @relation("ClientFundsEntry_trip")
@@ -463,6 +466,25 @@ model TripRoom {
 
   @@index([tripId])
   @@index([partyId])
+}
+
+model InsuranceOffer {
+  id           String                      @id @default(cuid())
+  trip         Trip?                       @relation("InsuranceOffer_trip", fields: [tripId], references: [id])
+  tripId       String?                     @map("trip")
+  traveler     Traveler?                   @relation("InsuranceOffer_traveler", fields: [travelerId], references: [id])
+  travelerId   String?                     @map("traveler")
+  decision     InsuranceOfferDecisionType? @default(offered)
+  waiverNote   String                      @default("")
+  recordedAt   DateTime?
+  recordedBy   User?                       @relation("InsuranceOffer_recordedBy", fields: [recordedById], references: [id])
+  recordedById String?                     @map("recordedBy")
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @default(now()) @updatedAt
+
+  @@index([tripId])
+  @@index([travelerId])
+  @@index([recordedById])
 }
 
 model PaymentSchedule {
@@ -950,6 +972,12 @@ enum ClientInvoiceLineKindType {
   component_deposit
   component_final
   insurance
+}
+
+enum InsuranceOfferDecisionType {
+  offered
+  accepted
+  declined
 }
 
 enum PaymentScheduleKindType {

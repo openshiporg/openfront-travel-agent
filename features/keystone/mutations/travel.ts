@@ -1,5 +1,6 @@
 import { GraphQLError } from 'graphql';
 import {randomBytes,createHash} from 'node:crypto';
+import {parseDecision,parseWaiverNote} from '../lib/insurance-offer';
 import {guardKeystonePrismaResults} from '../lib/prisma-result';
 import {permissions, type Permission} from '../access';
 import {getOrCreateIdempotencyAttempt,updateIdempotencyAttempt} from '../utils/idempotency';
@@ -255,6 +256,15 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const token=randomBytes(32).toString('base64url');await tx.proposal.updateMany({where:{tripId:p.tripId,status:{in:['sent','viewed']}},data:{status:'superseded'}});
  await tx.proposal.update({where:{id:p.id},data:{status:'sent',sentAt:new Date(),publicToken:hash(token)}});if(t.status==='planning')await transition(tx,context,t,'proposal_sent');
  await audit(tx,context,'send','Proposal',p.id,{status:p.status},{status:'sent'});return {id:p.id,token};
+ }),
+ recordInsuranceOffer:(context,input)=>command(context,'recordInsuranceOffer',input,'canManageTrips',async tx=>{
+ const t=await partyTrip(tx,context,input.tripId);const decision=parseDecision(input.decision);
+ const waiverNote=decision==='declined'?parseWaiverNote(input.waiverNote):'';
+ const tr=await tx.traveler.findFirst({where:{id:String(input.travelerId||''),trips:{some:{id:t.id}}},select:{id:true}});if(!tr)throw new Error('Traveler is not on this trip');
+ const last=await tx.insuranceOffer.findFirst({where:{tripId:t.id,travelerId:tr.id},orderBy:[{recordedAt:'desc'},{createdAt:'desc'}],select:{decision:true,waiverNote:true}});
+ if(last&&last.decision===decision&&(last.waiverNote||'')===waiverNote)throw new Error('That answer is already on record');
+ const row=await tx.insuranceOffer.create({data:{tripId:t.id,travelerId:tr.id,decision,waiverNote,recordedAt:new Date(),recordedById:context.session.itemId}});
+ await audit(tx,context,'insurance_'+decision,'InsuranceOffer',row.id,last?{decision:last.decision}:null,{decision,travelerId:tr.id,waiverRecorded:decision==='declined'});return {id:row.id,decision,recordedAt:row.recordedAt};
  }),
  addTripParty:(context,input)=>command(context,'addTripParty',input,'canManageTrips',async tx=>{
  const t=await partyTrip(tx,context,input.tripId);const name=partyName(input.name);
