@@ -98,7 +98,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
 
       {active === 'itinerary' && <div className="flex flex-wrap justify-end gap-2"><AddDay tripId={id} /><ActionButton operator="shareItinerary" input={{ tripId: id }} linkPrefix="/itinerary/">Share itinerary</ActionButton></div>}
       {active === 'itinerary' && (t.days.length ? t.days.map((dd: any) => (
-        <Panel key={dd.id} title={`${day(dd.date)} · ${dd.title}`} action={<AddItem tripId={id} dayId={dd.id} />}><RowList>{dd.items.map((i: any) => <Row key={i.id}><span className="text-sm">{i.time} {i.title}</span><span className="text-xs text-muted-foreground">{i.location}</span></Row>)}</RowList></Panel>)) : <Panel><Empty>No itinerary days</Empty></Panel>)}
+        <Panel key={dd.id} title={`${day(dd.date)} · ${dd.title}`} action={<AddItem tripId={id} dayId={dd.id} />}>{dd.items.length ? <RowList>{dd.items.map((i: any) => <Row key={i.id}><span className="text-sm">{joinParts([i.time, i.title], ' ')}</span>{i.location ? <span className="text-xs text-muted-foreground">{i.location}</span> : null}</Row>)}</RowList> : <p className="text-sm text-muted-foreground">No items yet</p>}</Panel>)) : <Panel><Empty>No itinerary days</Empty></Panel>)}
 
       {active === 'payments' && (
         <div className="space-y-4">
