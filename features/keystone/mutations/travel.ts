@@ -231,12 +231,8 @@ export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:an
  const {getPaymentStatus}=await import('../utils/paymentProviderAdapter');const inv=await invoiceForToken(context,token);
  const session=await context.prisma.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,data:{path:['paymentIntentId'],equals:paymentIntentId}}});if(!session)throw new Error('Payment not found');
  const status=await getPaymentStatus({provider:stripeProvider,paymentId:paymentIntentId});if(status.status!=='succeeded'||status.amount!==session.amount||status.currencyCode!==inv.currencyCode)return {status:status.status};
- return guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{await trip(tx,inv.tripId);const cur=await tx.clientInvoice.findUnique({where:{id:inv.id}});
-  if(await tx.payment.findUnique({where:{idempotencyKey:`stripe:${paymentIntentId}`}}))return {status:'succeeded',invoiceStatus:cur.status};
-  const p=await tx.payment.create({data:{orderId:inv.id,paymentCollectionId:inv.paymentCollectionId,amount:session.amount,currencyCode:inv.currencyCode,status:'succeeded',idempotencyKey:`stripe:${paymentIntentId}`,providerPaymentId:paymentIntentId,processedAt:new Date()}});
-  const collected=cur.collectedCents+session.amount;await tx.clientInvoice.update({where:{id:inv.id},data:{collectedCents:collected,status:collected>=cur.totalCents?'paid':'partially_paid'}});
-  await postFunds(tx,context,{tripId:inv.tripId,entryType:'receipt',amountCents:session.amount,currencyCode:inv.currencyCode,reference:p.id,entryKey:`receipt:${p.id}`});
-  await audit(tx,context,'receive','Payment',p.id,null,{amountCents:session.amount});return {status:'succeeded',invoiceStatus:collected>=cur.totalCents?'paid':'partially_paid',number:inv.number};});
+ const {settleInvoicePayment}=await import('../lib/invoice-settlement');
+ return settleInvoicePayment(context,{paymentIntentId,amount:status.amount,currencyCode:status.currencyCode,invoiceId:inv.id});
 }
 
 const DESTINATION_SELECT={name:true,slug:true,country:true,specialty:true};
