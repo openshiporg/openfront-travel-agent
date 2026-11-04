@@ -12,30 +12,31 @@ generator client {
 }
 
 model User {
-  id                      String                    @id @default(cuid())
-  name                    String                    @default("")
-  email                   String                    @unique @default("")
-  password                String
-  role                    Role?                     @relation("User_role", fields: [roleId], references: [id])
-  roleId                  String?                   @map("role")
-  onboardingStatus        String?                   @default("not_started")
-  tasks                   Task[]                    @relation("Task_assignee")
-  trips                   Trip[]                    @relation("Trip_advisor")
-  inquiries               Inquiry[]                 @relation("Inquiry_assignedAdvisor")
-  commissionLedger        AdvisorCommissionLedger[] @relation("AdvisorCommissionLedger_advisor")
-  auditEvents             AuditEvent[]              @relation("AuditEvent_actor")
-  requestedApprovals      ManagerApproval[]         @relation("ManagerApproval_requestedBy")
-  approvedApprovals       ManagerApproval[]         @relation("ManagerApproval_approvedBy")
-  processedPayments       Payment[]                 @relation("Payment_processedBy")
-  requestedRefunds        Refund[]                  @relation("Refund_requestedBy")
-  approvedRefunds         Refund[]                  @relation("Refund_approvedBy")
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @default(now()) @updatedAt
-  passwordResetToken      String?
-  passwordResetIssuedAt   DateTime?
-  passwordResetRedeemedAt DateTime?
-  from_OAuthToken_user    OAuthToken[]              @relation("OAuthToken_user")
-  from_Task_completedBy   Task[]                    @relation("Task_completedBy")
+  id                             String                    @id @default(cuid())
+  name                           String                    @default("")
+  email                          String                    @unique @default("")
+  password                       String
+  role                           Role?                     @relation("User_role", fields: [roleId], references: [id])
+  roleId                         String?                   @map("role")
+  onboardingStatus               String?                   @default("not_started")
+  tasks                          Task[]                    @relation("Task_assignee")
+  trips                          Trip[]                    @relation("Trip_advisor")
+  inquiries                      Inquiry[]                 @relation("Inquiry_assignedAdvisor")
+  commissionLedger               AdvisorCommissionLedger[] @relation("AdvisorCommissionLedger_advisor")
+  auditEvents                    AuditEvent[]              @relation("AuditEvent_actor")
+  requestedApprovals             ManagerApproval[]         @relation("ManagerApproval_requestedBy")
+  approvedApprovals              ManagerApproval[]         @relation("ManagerApproval_approvedBy")
+  processedPayments              Payment[]                 @relation("Payment_processedBy")
+  requestedRefunds               Refund[]                  @relation("Refund_requestedBy")
+  approvedRefunds                Refund[]                  @relation("Refund_approvedBy")
+  createdAt                      DateTime                  @default(now())
+  updatedAt                      DateTime                  @default(now()) @updatedAt
+  passwordResetToken             String?
+  passwordResetIssuedAt          DateTime?
+  passwordResetRedeemedAt        DateTime?
+  from_OAuthToken_user           OAuthToken[]              @relation("OAuthToken_user")
+  from_TripComponent_confirmedBy TripComponent[]           @relation("TripComponent_confirmedBy")
+  from_Task_completedBy          Task[]                    @relation("Task_completedBy")
 
   @@index([roleId])
 }
@@ -292,6 +293,8 @@ model TripComponent {
   finalDueAt            DateTime?
   holdUntil             DateTime?
   confirmedAt           DateTime?
+  confirmedBy           User?                              @relation("TripComponent_confirmedBy", fields: [confirmedById], references: [id])
+  confirmedById         String?                            @map("confirmedBy")
   cancelPenaltySchedule Json?
   purchaseSnapshot      Json?
   trip                  Trip?                              @relation("TripComponent_trip", fields: [tripId], references: [id])
@@ -314,6 +317,7 @@ model TripComponent {
   createdAt             DateTime                           @default(now())
   updatedAt             DateTime                           @default(now()) @updatedAt
 
+  @@index([confirmedById])
   @@index([tripId])
   @@index([supplierId])
 }

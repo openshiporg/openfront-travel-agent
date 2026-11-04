@@ -1914,6 +1914,7 @@ type TripComponent {
   finalDueAt: DateTime
   holdUntil: DateTime
   confirmedAt: DateTime
+  confirmedBy: User
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
   trip: Trip
@@ -1997,6 +1998,7 @@ input TripComponentWhereInput {
   finalDueAt: DateTimeNullableFilter
   holdUntil: DateTimeNullableFilter
   confirmedAt: DateTimeNullableFilter
+  confirmedBy: UserWhereInput
   trip: TripWhereInput
   supplier: SupplierWhereInput
   kind: TripComponentKindTypeNullableFilter
@@ -2101,6 +2103,7 @@ input TripComponentUpdateInput {
   finalDueAt: DateTime
   holdUntil: DateTime
   confirmedAt: DateTime
+  confirmedBy: UserRelateToOneForUpdateInput
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
   trip: TripRelateToOneForUpdateInput
@@ -2162,6 +2165,7 @@ input TripComponentCreateInput {
   finalDueAt: DateTime
   holdUntil: DateTime
   confirmedAt: DateTime
+  confirmedBy: UserRelateToOneForCreateInput
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
   trip: TripRelateToOneForCreateInput

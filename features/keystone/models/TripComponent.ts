@@ -18,6 +18,7 @@ export const TripComponent = list({
     finalDueAt: timestamp(),
     holdUntil: timestamp(),
     confirmedAt: timestamp(),
+    confirmedBy: relationship({ ref: "User", many: false, access: { create: () => false, update: () => false } }),
     cancelPenaltySchedule: json(),
     purchaseSnapshot: json(),
     trip: relationship({ ref: "Trip.components", many: false }),

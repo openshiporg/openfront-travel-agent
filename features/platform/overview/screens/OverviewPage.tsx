@@ -1,3 +1,4 @@
+import { startsPhrase } from '../../lib/confirmation-state'
 import { query, money, day } from '../../lib/data'
 import { joinParts } from '../../lib/text'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
@@ -10,6 +11,7 @@ export async function OverviewPage() {
   const d = await query(`query Overview($in30: DateTime!, $now: DateTime!) {
     due: paymentSchedules(where: { status: { equals: due }, dueAt: { lte: $in30 } }, orderBy: { dueAt: asc }, take: 50) { id kind amountCents currencyCode dueAt trip { id tripNumber title } }
     components: tripComponents(where: { bookingStatus: { not: { equals: cancelled } } }, take: 500) { commissionCents commissionStatus allocations { amountCents } }
+    unconfirmed: tripComponents(where: { bookingStatus: { in: [quoted, held, booked, ticketed] }, confirmationNumber: { equals: "" }, startAt: { gte: $now, lte: $in30 }, trip: { status: { notIn: [cancelled, completed] } } }, orderBy: { startAt: asc }, take: 50) { id title kind startAt bookingStatus trip { id title } }
     traveling: trips(where: { status: { equals: traveling } }, take: 20) { id tripNumber title endDate client { name } }
     openTasks: tasks(where: { status: { equals: open }, dueAt: { lt: $now } }, orderBy: { dueAt: asc }, take: 50) { id title dueAt status trip { id title } assignee { name } }
     inquiries(where: { status: { in: [new, qualifying, proposal] } }, orderBy: { createdAt: desc }, take: 10) { id name tripType destinations status }
@@ -50,6 +52,13 @@ export async function OverviewPage() {
               <div className="min-w-0"><p className="truncate text-sm font-medium">{t.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([t.trip?.title, t.assignee?.name || 'Unassigned'])}</p></div>
               <span className="text-sm text-red-600">{daysOverdue(t)}d late</span>
             </Row>))}</RowList> : <Empty>No overdue tasks</Empty>}
+        </Panel>
+        <Panel title="Missing confirmations">
+          {d.unconfirmed.length ? <RowList>{d.unconfirmed.slice(0, 6).map((c: any) => (
+            <Row key={c.id} href={`/dashboard/platform/trips/${c.trip.id}?tab=components`}>
+              <div className="min-w-0"><p className="truncate text-sm font-medium">{c.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([c.trip.title, startsPhrase(c)])}</p></div>
+              <StatusLabel status={c.bookingStatus} />
+            </Row>))}</RowList> : <Empty>Every component starting in the next 30 days is confirmed</Empty>}
         </Panel>
         <Panel title="Traveling now">
           {d.traveling.length ? <RowList>{d.traveling.map((t: any) => (
