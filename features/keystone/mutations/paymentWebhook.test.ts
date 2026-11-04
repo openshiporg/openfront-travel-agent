@@ -15,3 +15,14 @@ test('valid unsupported event is durably ignored; refund event stays failed for 
   const raw=payload({type});const result=await handleTravelPaymentWebhook(context,raw,headers(raw));assert.equal(result.success,type==='payment_intent.created');assert.equal(updates.at(-1).status,type==='refund.updated'?'failed':'ignored')
  }
 })
+
+test('signature layer: tampered body, wrong secret, missing header and stale timestamp are all refused; a correct one verifies',async()=>{
+ const raw=payload();const good=headers(raw)
+ const context={prisma:{}}
+ await assert.rejects(()=>handleTravelPaymentWebhook(context,raw.replace('1000','1'),good),/signature/)
+ const wrong={'stripe-signature':stripe.webhooks.generateTestHeaderString({payload:raw,secret:'whsec_other'})}
+ await assert.rejects(()=>handleTravelPaymentWebhook(context,raw,wrong),/signature/)
+ await assert.rejects(()=>handleTravelPaymentWebhook(context,raw,{}),/signature/)
+ const stale={'stripe-signature':stripe.webhooks.generateTestHeaderString({payload:raw,secret:process.env.STRIPE_WEBHOOK_SECRET!,timestamp:Math.floor(Date.now()/1000)-3600})}
+ await assert.rejects(()=>handleTravelPaymentWebhook(context,raw,stale),/signature/)
+})
