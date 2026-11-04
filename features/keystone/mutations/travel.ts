@@ -7,6 +7,7 @@ import {consumeManagerApproval} from '../utils/managerApproval';
 import {validateDocumentUpload,documentStorageKey} from '../lib/documents';
 import {isObjectStorageConfigured,assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
 import {dayShift,shiftDate} from '../lib/trip-copy';
+import {parseProfile,readProfile,applyLoyalty} from '../lib/client-profile';
 import {parsePassportExpiry} from '../lib/passport-check';
 import {commissionForecast,FORECAST_BOOKING} from '../lib/commission-forecast';
 import {toCsv,centsDecimal} from '../lib/csv';
@@ -241,6 +242,21 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const token=randomBytes(32).toString('base64url');await tx.proposal.updateMany({where:{tripId:p.tripId,status:{in:['sent','viewed']}},data:{status:'superseded'}});
  await tx.proposal.update({where:{id:p.id},data:{status:'sent',sentAt:new Date(),publicToken:hash(token)}});if(t.status==='planning')await transition(tx,context,t,'proposal_sent');
  await audit(tx,context,'send','Proposal',p.id,{status:p.status},{status:'sent'});return {id:p.id,token};
+ }),
+ saveClientProfile:(context,input)=>command(context,'saveClientProfile',input,'canManageClients',async tx=>{
+ const c=await tx.client.findUnique({where:{id:String(input.clientId||'')}});if(!c)throw new Error('Client not found');
+ const next=parseProfile(input);const before=readProfile(c.travelProfile);
+ const changed=(['seat','room','dietary','notes'] as const).filter(k=>before[k]!==next[k]);if(JSON.stringify(before.celebrations)!==JSON.stringify(next.celebrations))changed.push('celebrations' as any);
+ await tx.client.update({where:{id:c.id},data:{travelProfile:next as any}});
+ await audit(tx,context,'edit_client_profile','Client',c.id,null,{changed});return {id:c.id,changed};
+ }),
+ saveClientLoyalty:(context,input)=>command(context,'saveClientLoyalty',input,'canManageClients',async tx=>{
+ const c=await tx.client.findUnique({where:{id:String(input.clientId||'')}});if(!c)throw new Error('Client not found');
+ const r=applyLoyalty(c.loyaltyNumbers,input.program,input.number);
+ if(Object.keys(r.map).length>20)throw new Error('At most 20 loyalty programs per client');
+ await tx.client.update({where:{id:c.id},data:{loyaltyNumbers:r.map as any}});
+ // Program name and action only; the number is never audited or returned.
+ await audit(tx,context,'edit_client_loyalty','Client',c.id,null,{program:r.program,action:r.action});return {id:c.id,program:r.program,action:r.action};
  }),
  duplicateTrip:(context,input)=>command(context,'duplicateTrip',input,'canManageTrips',async tx=>{
   const src=await trip(tx,String(input.tripId||''));

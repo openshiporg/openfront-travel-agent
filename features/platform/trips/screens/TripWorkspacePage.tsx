@@ -16,11 +16,22 @@ import { TravelerEditor } from '../components/TravelerEditor'
 import { EntryDialog } from '../../components/EntryDialog'
 import { ProposalBuilder } from '../components/ProposalBuilder'
 import { passportNeedsAction, PASSPORT_TEXT, type PassportStatus } from '@/features/keystone/lib/passport-check'
+import { ProfileEditor } from '../components/ProfileEditor'
+import { readProfile } from '@/features/keystone/lib/client-profile'
 import { supplierDue } from '../../lib/supplier-due'
 import { needsConfirmation, startsPhrase } from '../../lib/confirmation-state'
 import { AddDay, AddItem } from '../components/ItineraryEditor'
 
 const TABS = ['overview', 'travelers', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
+function ClientPreferences({ client }: { client: any }) {
+  const p = readProfile(client.travelProfile), programs: string[] = JSON.parse(client.loyaltyPrograms || '[]')
+  const lines = [['Seat', p.seat], ['Room', p.room], ['Dietary', p.dietary], ['Notes', p.notes], ['Celebrating', p.celebrations.map((c) => joinParts([c.label, c.date ? day(c.date) : ''], ' ')).join(', ')], ['Loyalty', programs.length ? `${programs.join(', ')} (numbers on file)` : '']].filter(([, v]) => v)
+  return (
+    <Panel title={`Preferences · ${client.name}`} action={<div className="flex flex-wrap items-center gap-2"><ProfileEditor clientId={client.id} clientName={client.name} profile={p} /><EntryDialog title={`Loyalty number · ${client.name}`} trigger="Add loyalty" operator="saveClientLoyalty" base={{ clientId: client.id }} fields={[{ name: 'program', label: 'Program (reuse a name to update or clear it)', kind: 'text' }, { name: 'number', label: 'Number (write-only, blank removes the program)', kind: 'text', optional: true, sendEmpty: true }]} /></div>}>
+      {lines.length ? <dl className="space-y-1 text-sm">{lines.map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="shrink-0 text-muted-foreground">{k}</dt><dd className="min-w-0 break-words text-right">{v}</dd></div>)}</dl> : <p className="text-sm text-muted-foreground">No preferences recorded yet.</p>}
+    </Panel>
+  )
+}
 const NAMES: Record<string, string> = { funds: 'Client funds', proposals: 'Proposals' }
 const NEXT: Record<string, string> = { planning: 'proposal_sent', proposal_sent: 'accepted', accepted: 'booked', booked: 'final_payment_due', final_payment_due: 'paid_in_full' }
 
@@ -29,7 +40,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
   const active = TABS.includes(tab) ? tab : 'overview'
   const d = await query(`query Trip($id: ID!) { trip(where: { id: $id }) {
     id tripNumber title status startDate endDate planningFeeCents currencyCode totalSellCents totalCollectedCents balanceDueCents expectedCommissionCents
-    client { id name email phone } advisor { name } destinations { name }
+    client { id name email phone travelProfile loyaltyPrograms } advisor { name } destinations { name }
     passportChecks
     travelers { id firstName lastName passportOnFile nationality }
     proposals(orderBy: { version: desc }) { id version status introNote depositBps sentAt acceptedAt acceptedByName options(orderBy: { sort: asc }) { id title items(orderBy: { sort: asc }) { id kind title details sellCents estimatedCommissionBps supplier { id name } } } }
@@ -66,6 +77,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
       actions={<div className="flex flex-wrap items-center gap-2"><StatusLabel status={t.status} /><EntryDialog title="Copy this trip" trigger="Copy trip" operator="duplicateTrip" base={{ tripId: id }} redirectTo="/dashboard/platform/trips/{id}" fields={[{ name: 'title', label: 'Title for the copy', initial: `${t.title} (copy)` }, { name: 'startDate', label: 'New start date (dates shift to match)', kind: 'date', optional: true, initial: t.startDate ? String(t.startDate).slice(0, 10) : '' }]} />{next ? <ActionButton operator="transitionTrip" input={{ tripId: id, status: next }}>{`Mark ${label(next)}`}</ActionButton> : null}</div>}>
       <StatusTabs active={active} hrefFor={href} tabs={TABS.map((k) => ({ key: k, label: NAMES[k] || label(k).replace(/^./, (c) => c.toUpperCase()) }))} />
 
+      {t.client ? <ClientPreferences client={t.client} /> : null}
       {active === 'overview' && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="grid grid-cols-2 gap-3 lg:col-span-2 lg:grid-cols-4">

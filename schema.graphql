@@ -783,7 +783,9 @@ type Client {
   preferences: String
   source: String
   preferenceTags: JSON
+  travelProfile: JSON
   loyaltyNumbers: JSON
+  loyaltyPrograms: String
   marketingConsent: Boolean
   travelers(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
   travelersCount(where: TravelerWhereInput! = {}): Int
@@ -846,6 +848,7 @@ input ClientUpdateInput {
   preferences: String
   source: String
   preferenceTags: JSON
+  travelProfile: JSON
   loyaltyNumbers: JSON
   marketingConsent: Boolean
   travelers: TravelerRelateToManyForUpdateInput
@@ -875,6 +878,7 @@ input ClientCreateInput {
   preferences: String
   source: String
   preferenceTags: JSON
+  travelProfile: JSON
   loyaltyNumbers: JSON
   marketingConsent: Boolean
   travelers: TravelerRelateToManyForCreateInput
@@ -4933,6 +4937,8 @@ type Mutation {
   reopenTask(input: TravelJSON!): TravelJSON
   updateProposalDraft(input: TravelJSON!): TravelJSON
   sendProposal(input: TravelJSON!): TravelJSON
+  saveClientProfile(input: TravelJSON!): TravelJSON
+  saveClientLoyalty(input: TravelJSON!): TravelJSON
   duplicateTrip(input: TravelJSON!): TravelJSON
   exportCommissionForecast(input: TravelJSON!): TravelJSON
   setSupplierDue(input: TravelJSON!): TravelJSON

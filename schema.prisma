@@ -122,6 +122,7 @@ model Client {
   preferences      String     @default("")
   source           String     @default("")
   preferenceTags   Json?
+  travelProfile    Json?
   loyaltyNumbers   Json?
   marketingConsent Boolean    @default(false)
   travelers        Traveler[] @relation("Traveler_client")
