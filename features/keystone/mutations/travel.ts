@@ -4,6 +4,7 @@ import {permissions, type Permission} from '../access';
 import {getOrCreateIdempotencyAttempt,updateIdempotencyAttempt} from '../utils/idempotency';
 import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,fundsDelta,integerMoney,assertTransition,refundableRemaining,assertRefundAmount,requiresApproval,overpaymentCents,writeOffRemaining} from '../lib/travel-money';
 import {consumeManagerApproval} from '../utils/managerApproval';
+import {planningAmount,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
 export async function lockTransactionKey(tx:any,key:string){await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${key},0))) AS acquired`;}
@@ -80,6 +81,23 @@ export async function refundClientPayment(context:any,input:any){
  },{timeout:20000});
 }
 export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
+ updateTripPlanning:(context,input)=>command(context,'updateTripPlanning',input,'canManageTrips',async tx=>{
+ const t=await trip(tx,input.tripId);if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');
+ const amount=planningAmount(input.planningFeeCents);
+ if(amount!==t.planningFeeCents){
+  if(await tx.clientInvoiceLine.count({where:{kind:'planning_fee',invoice:{tripId:t.id,status:{not:'void'}}}}))throw new Error('Planning fee is already invoiced');
+  if(await tx.paymentSchedule.count({where:{tripId:t.id,kind:'planning_fee',status:{in:['invoiced','paid']}}}))throw new Error('Planning fee schedule is already committed');
+ }
+ const row=await tx.trip.update({where:{id:t.id},data:{planningFeeCents:amount}});await syncPaymentSchedule(tx,row);
+ await audit(tx,context,'edit_planning_fee','Trip',t.id,{planningFeeCents:t.planningFeeCents},{planningFeeCents:amount});return {id:t.id};
+ }),
+ updateComponentTerms:(context,input)=>command(context,'updateComponentTerms',input,'canManageTrips',async tx=>{
+ const t=await trip(tx,input.tripId);if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');
+ const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c||c.tripId!==t.id)throw new Error('Component not found in this trip');if(c.bookingStatus==='cancelled')throw new Error('Component is cancelled');
+ if(await tx.paymentSchedule.count({where:{componentId:c.id,status:{in:['invoiced','paid']}}}))throw new Error('Component schedule is already committed');
+ const terms=componentTerms(input,c.sellCents);await tx.tripComponent.update({where:{id:c.id},data:terms});await syncPaymentSchedule(tx,t);
+ await audit(tx,context,'edit_payment_terms','TripComponent',c.id,{depositCents:c.depositCents,depositDueAt:c.depositDueAt,finalDueAt:c.finalDueAt},terms);return {id:c.id};
+ }),
  createTripFromInquiry:(context,input)=>command(context,'createTripFromInquiry',input,'canManageTrips',async tx=>{
  const inquiry=await tx.inquiry.findUnique({where:{id:input.inquiryId}});if(!inquiry)throw new Error('Inquiry not found');await lockTransactionKey(tx,`inquiry:${inquiry.id}`);
  let clientId=inquiry.clientId;if(!clientId)clientId=(await tx.client.create({data:{name:inquiry.name,email:inquiry.email,phone:inquiry.phone}})).id;
@@ -108,11 +126,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  if(t.status==='accepted')await transition(tx,context,t,'booked');await audit(tx,context,'book','TripComponent',row.id,c,row);return row;
  }),
  generatePaymentSchedule:(context,input)=>command(context,'generatePaymentSchedule',input,'canManagePayments',async tx=>{
- const t=await trip(tx,input.tripId);const components=await tx.tripComponent.findMany({where:{tripId:t.id,paymentModel:'agency_collects',bookingStatus:{not:'cancelled'}}});const rows:any[]=[];
- if(t.planningFeeCents>0)rows.push({scheduleKey:`${t.id}:planning_fee`,tripId:t.id,kind:'planning_fee',amountCents:t.planningFeeCents,dueAt:t.createdAt});
- for(const c of components){if(c.depositCents&&c.depositDueAt)rows.push({scheduleKey:`${c.id}:component_deposit`,tripId:t.id,componentId:c.id,kind:'component_deposit',amountCents:c.depositCents,dueAt:c.depositDueAt});if(c.finalDueAt)rows.push({scheduleKey:`${c.id}:component_final`,tripId:t.id,componentId:c.id,kind:'component_final',amountCents:c.sellCents-c.depositCents,dueAt:c.finalDueAt});}
- for(const row of rows){await tx.paymentSchedule.upsert({where:{scheduleKey:row.scheduleKey},update:{},create:{...row,currencyCode:t.currencyCode,status:'due'}});await tx.task.upsert({where:{taskKey:`reminder:${row.scheduleKey}`},update:{},create:{taskKey:`reminder:${row.scheduleKey}`,tripId:t.id,assigneeId:t.advisorId,title:row.kind,type:row.kind==='component_final'?'final_due':'deposit_due',dueAt:new Date(new Date(row.dueAt).getTime()-7*86400000),status:'open'}});}
- return {count:rows.length};
+ const t=await trip(tx,input.tripId);const result=await syncPaymentSchedule(tx,t);await audit(tx,context,'schedule','Trip',t.id,null,result);return result;
  }),
  issueClientInvoice:(context,input)=>command(context,'issueClientInvoice',input,'canManagePayments',async tx=>{
  const t=await trip(tx,input.tripId);if(!input.lines?.length)throw new Error('Invoice lines required');let total=0;

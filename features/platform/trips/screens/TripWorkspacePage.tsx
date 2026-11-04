@@ -5,6 +5,7 @@ import { StatusLabel } from '../../components/StatusLabel'
 import { StatusTabs } from '../../components/StatusTabs'
 import { ActionButton } from '../../components/ActionButton'
 import { MoneyAction } from '../../components/MoneyAction'
+import { PlanningEditor } from '../components/PlanningEditor'
 
 const TABS = ['overview', 'travelers', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
 const NAMES: Record<string, string> = { funds: 'Client funds', proposals: 'Proposals' }
@@ -56,7 +57,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
             {[['Total sell', money(t.totalSellCents, cur), ''], ['Collected', money(t.totalCollectedCents, cur), ''], ['Balance due', money(t.balanceDueCents, cur), ''], commissionCard].map(([l, v, sub]: any) => (
               <div key={l} className="rounded-lg border p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="mt-1 text-lg font-semibold">{v}</p>{sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}</div>))}
           </div>
-          <Panel title="Trip"><dl className="space-y-1 text-sm">
+          <Panel title="Trip" action={<PlanningEditor tripId={id} feeCents={t.planningFeeCents} currencyCode={cur} />}><dl className="space-y-1 text-sm">
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Advisor</dt><dd>{t.advisor?.name || '—'}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Destinations</dt><dd className="text-right">{t.destinations.map((x: any) => x.name).join(', ') || '—'}</dd></div>
             <div className="flex justify-between gap-4"><dt className="text-muted-foreground">Planning fee</dt><dd>{money(t.planningFeeCents, cur)}</dd></div>
@@ -86,7 +87,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
             <p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{c.title}</span><StatusLabel status={c.bookingStatus} /></p>
             <p className="truncate text-xs text-muted-foreground">{c.supplier?.name} · {label(c.paymentModel)} · {c.confirmationNumber || 'No confirmation'} · {day(c.startAt)}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium">{money(c.sellCents, cur)}</span>{c.bookingStatus !== 'cancelled' ? <ActionButton operator="cancelComponent" input={{ componentId: c.id }} confirm="Cancel this component?">Cancel</ActionButton> : null}</div>
+          <div className="flex flex-wrap items-center gap-2"><span className="text-sm font-medium">{money(c.sellCents, cur)}</span><PlanningEditor tripId={id} feeCents={t.planningFeeCents} currencyCode={cur} component={c} />{c.bookingStatus !== 'cancelled' ? <ActionButton operator="cancelComponent" input={{ componentId: c.id }} confirm="Cancel this component?">Cancel</ActionButton> : null}</div>
         </Row>))}</RowList> : <Empty>No components</Empty>}</Panel>}
 
       {active === 'itinerary' && <div className="flex justify-end"><ActionButton operator="shareItinerary" input={{ tripId: id }} linkPrefix="/itinerary/">Share itinerary</ActionButton></div>}
