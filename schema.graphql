@@ -4933,6 +4933,7 @@ type Mutation {
   updateProposalDraft(input: TravelJSON!): TravelJSON
   sendProposal(input: TravelJSON!): TravelJSON
   duplicateTrip(input: TravelJSON!): TravelJSON
+  exportCommissionForecast(input: TravelJSON!): TravelJSON
   setSupplierDue(input: TravelJSON!): TravelJSON
   holdComponent(input: TravelJSON!): TravelJSON
   bookComponent(input: TravelJSON!): TravelJSON

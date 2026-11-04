@@ -7,6 +7,8 @@ import {consumeManagerApproval} from '../utils/managerApproval';
 import {validateDocumentUpload,documentStorageKey} from '../lib/documents';
 import {isObjectStorageConfigured,assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
 import {dayShift,shiftDate} from '../lib/trip-copy';
+import {commissionForecast,FORECAST_BOOKING} from '../lib/commission-forecast';
+import {toCsv,centsDecimal} from '../lib/csv';
 import {planningAmount,planningDate,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
@@ -253,6 +255,13 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
   for(const k of manual)await tx.task.create({data:{taskKey:`copy:${copy.id}:${k.id}`,tripId:copy.id,assigneeId:context.session.itemId,title:k.title,type:'follow_up',status:'open',dueAt:shiftDate(k.dueAt,shift)}});
   await audit(tx,context,'duplicate','Trip',copy.id,null,{sourceTripId:src.id,sourceNumber:src.tripNumber,components:componentIds.size,days:full.days.length,items,tasks:manual.length,shiftDays:shift});
   return {id:copy.id,tripNumber:copy.tripNumber,components:componentIds.size,days:full.days.length,items,tasks:manual.length,shiftDays:shift};
+ }),
+ exportCommissionForecast:(context,input)=>command(context,'exportCommissionForecast',input,'canReadPayments',async tx=>{
+ const comps=await tx.tripComponent.findMany({where:{bookingStatus:{in:FORECAST_BOOKING},commissionCents:{gt:0}},take:5000,orderBy:{endAt:'asc'},select:{id:true,title:true,bookingStatus:true,commissionStatus:true,commissionCents:true,currencyCode:true,startAt:true,endAt:true,supplier:{select:{id:true,name:true,commissionPaymentTermsDays:true}},trip:{select:{title:true}},allocations:{select:{amountCents:true}}}});
+ const f=commissionForecast(comps);const stamp=new Date().toISOString().slice(0,10);
+ const csv=toCsv(['Section','Name','Currency','Components','Expected','Received','Outstanding','Overdue'],[...f.bySupplier.map(r=>['Supplier',r.label,r.currencyCode,r.count,centsDecimal(r.expectedCents),centsDecimal(r.receivedCents),centsDecimal(r.outstandingCents),centsDecimal(r.overdueCents)]),...f.byMonth.map(r=>['Month due',r.label,r.currencyCode,r.count,centsDecimal(r.expectedCents),centsDecimal(r.receivedCents),centsDecimal(r.outstandingCents),centsDecimal(r.overdueCents)])])+'\r\n'+toCsv(['Overdue component','Trip','Supplier','Currency','Outstanding','Due date','Days late'],f.overdue.map(r=>[r.title,r.trip,r.supplier,r.currencyCode,centsDecimal(r.outstandingCents),r.dueAt.slice(0,10),r.daysLate]));
+ await audit(tx,context,'export_commission_forecast','TripComponent','forecast',null,{components:comps.length,suppliers:f.bySupplier.length,months:f.byMonth.length,overdue:f.overdue.length,bytes:csv.length});
+ return {filename:`commission-forecast-${stamp}.csv`,csv};
  }),
  setSupplierDue:(context,input)=>command(context,'setSupplierDue',input,'canManagePayments',async tx=>{
  const c0=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c0)throw new Error('Component not found');await trip(tx,c0.tripId);

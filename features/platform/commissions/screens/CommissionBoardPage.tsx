@@ -5,6 +5,8 @@ import { StatusTabs } from '../../components/StatusTabs'
 import { MoneyAction } from '../../components/MoneyAction'
 import { joinParts } from '../../lib/text'
 import { ReceiptForm } from '../components/ReceiptForm'
+import { ForecastExport } from '../components/ForecastExport'
+import { commissionForecast } from '@/features/keystone/lib/commission-forecast'
 
 const TABS = ['expected', 'invoiced', 'received', 'short_paid', 'written_off']
 
@@ -19,13 +21,26 @@ export async function CommissionBoardPage({ searchParams }: { searchParams: Prom
     overpaymentApprovals: managerApprovals(where: { status: { in: [requested, approved] }, actionType: { equals: commission_overpayment } }, orderBy: { requestedAt: desc }, take: 100) { id actionType targetId amountCents reason status expiresAt requestedBy { id } approvedBy { id } }
     managerApprovals(where: { status: { equals: approved }, actionType: { equals: commission_writeoff } }, take: 100) { id targetId amountCents requestedBy { id } }
     me: authenticatedItem { ... on User { id } }
+    forecast: tripComponents(where: { bookingStatus: { in: [booked, ticketed] }, commissionCents: { gt: 0 } }, take: 5000) { id title bookingStatus commissionStatus commissionCents currencyCode startAt endAt supplier { id name commissionPaymentTermsDays } trip { title } allocations { amountCents } }
     advisorCommissionLedgers(take: 500) { amountCents advisor { id name } }
   }`)
   const payouts = new Map<string, { name: string; total: number }>()
   for (const e of d.advisorCommissionLedgers) { const p = payouts.get(e.advisor.id) || { name: e.advisor.name, total: 0 }; p.total += e.amountCents; payouts.set(e.advisor.id, p) }
   const openComponents = d.open.map((c: any) => ({ id: c.id, title: c.title, tripTitle: c.trip?.title || '', supplierId: c.supplier.id, supplierName: c.supplier.name, currencyCode: c.currencyCode, remainingCents: c.commissionCents - c.allocations.reduce((n: number, a: any) => n + a.amountCents, 0) })).filter((c: any) => c.remainingCents > 0)
+  const fc = commissionForecast(d.forecast)
+  const cur = (r: { currencyCode: string }) => r.currencyCode
   return (
-    <PlatformPage title="Commissions" subtitle="Expected, received and short-paid supplier commissions" actions={<ReceiptForm components={openComponents} approvals={d.overpaymentApprovals} actorId={d.me?.id || ''} />}>
+    <PlatformPage title="Commissions" subtitle="Expected, received and short-paid supplier commissions" actions={<><ForecastExport /><ReceiptForm components={openComponents} approvals={d.overpaymentApprovals} actorId={d.me?.id || ''} /></>}>
+      <Panel title="Forecast: expected vs received">
+        {fc.overdue.length ? <div role="status" className="border-b px-4 py-3 text-sm text-red-600"><span className="font-mono text-xs uppercase tracking-wide">Overdue · </span>{fc.overdue.length} receivable{fc.overdue.length === 1 ? '' : 's'} past the supplier's payment terms</div> : null}
+        {fc.bySupplier.length ? <>
+          <p className="px-4 pt-3 font-mono text-xs uppercase tracking-wide text-muted-foreground">By supplier</p>
+          <RowList>{fc.bySupplier.map((r) => <Row key={`${r.key}${r.currencyCode}`}><div className="min-w-0"><p className="truncate text-sm font-medium">{r.label}</p><p className="truncate text-xs text-muted-foreground">{joinParts([`${r.count} component${r.count === 1 ? '' : 's'}`, `${money(r.receivedCents, cur(r))} received of ${money(r.expectedCents, cur(r))}`])}</p></div><span className={`text-sm ${r.overdueCents ? 'text-red-600' : ''}`}>{money(r.outstandingCents, cur(r))} due{r.overdueCents ? <span className="block font-mono text-xs uppercase tracking-wide">{money(r.overdueCents, cur(r))} overdue</span> : null}</span></Row>)}</RowList>
+          <p className="px-4 pt-3 font-mono text-xs uppercase tracking-wide text-muted-foreground">By month due</p>
+          <RowList>{fc.byMonth.map((r) => <Row key={`${r.key}${r.currencyCode}`}><div className="min-w-0"><p className="truncate text-sm font-medium">{r.key === 'none' ? 'No date yet' : new Date(`${r.key}-01T12:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</p><p className="truncate text-xs text-muted-foreground">{money(r.receivedCents, cur(r))} received of {money(r.expectedCents, cur(r))}</p></div><span className={`text-sm ${r.overdueCents ? 'text-red-600' : ''}`}>{money(r.outstandingCents, cur(r))} due</span></Row>)}</RowList>
+          {fc.overdue.length ? <><p className="px-4 pt-3 font-mono text-xs uppercase tracking-wide text-red-600">Overdue receivables</p><RowList>{fc.overdue.map((r) => <Row key={r.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{r.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([r.supplier, r.trip, `due ${day(r.dueAt)}`])}</p></div><span className="text-sm text-red-600">{money(r.outstandingCents, r.currencyCode)}<span className="block text-xs">{r.daysLate}d late</span></span></Row>)}</RowList></> : null}
+        </> : <Empty>No confirmed bookings with commission yet</Empty>}
+      </Panel>
       <StatusTabs active={active} hrefFor={(k) => `/dashboard/platform/commissions?status=${k}`} tabs={TABS.map((k) => ({ key: k, label: label(k), count: d[k] }))} />
       <Panel>{d.components.length ? <RowList>{d.components.map((c: any) => {
         const got = c.allocations.reduce((n: number, a: any) => n + a.amountCents, 0)
