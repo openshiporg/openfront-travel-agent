@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { runOperator } from '../../actions/operators'
 import { toCents } from '../../lib/cents'
 import { planReceipt, type OpenComponent } from '../../lib/receipt-plan'
@@ -27,7 +27,7 @@ export function ReceiptForm({ components }: { components: OpenComponent[] }) {
     setOpen(false); setAmounts({}); setReference(''); router.refresh()
   })
   return <><Button variant="outline" size="sm" onClick={() => setOpen(true)} disabled={!components.length}>Record receipt</Button>
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-[min(32rem,calc(100vw-2rem))] overflow-y-auto"><DialogHeader><DialogTitle>Record commission receipt</DialogTitle></DialogHeader>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-[min(32rem,calc(100vw-2rem))] overflow-y-auto"><DialogHeader><DialogTitle>Record commission receipt</DialogTitle><DialogDescription className="sr-only">Record a supplier commission payment and allocate it to open commissions.</DialogDescription></DialogHeader>
       <div className="space-y-4">
         <div className="space-y-1"><Label htmlFor="receipt-supplier">Supplier</Label><select id="receipt-supplier" className="h-9 w-full rounded-md border bg-background px-3 text-sm" value={supplierId} onChange={(e) => { setSupplierId(e.target.value); setAmounts({}) }}><option value="">Choose</option>{suppliers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></div>
         <div className="space-y-1"><Label htmlFor="receipt-reference">Reference (statement or deposit)</Label><Input id="receipt-reference" value={reference} onChange={(e) => setReference(e.target.value)} /></div>

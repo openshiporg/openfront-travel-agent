@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { runOperator } from '../actions/operators'
 import { toCents } from '../lib/cents'
 
@@ -28,7 +28,7 @@ export function EntryDialog({ title, trigger, operator, fields, base, lineFields
     setOpen(false); router.refresh()
   })
   return <><Button variant="outline" size="sm" onClick={() => setOpen(true)}>{trigger}</Button>
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-[min(28rem,calc(100vw-2rem))]"><DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-[min(28rem,calc(100vw-2rem))]"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription className="sr-only">{title}</DialogDescription></DialogHeader>
       <div className="space-y-4">{fields.map((f) => <div key={f.name} className="space-y-1"><Label htmlFor={`entry-${operator}-${f.name}`}>{f.label}</Label>
         {f.kind === 'select'
           ? <select id={`entry-${operator}-${f.name}`} className="h-9 w-full rounded-md border bg-background px-3 text-sm" value={values[f.name]} onChange={(e) => setValues({ ...values, [f.name]: e.target.value })}><option value="">Choose</option>{f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>

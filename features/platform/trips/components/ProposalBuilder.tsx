@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { runOperator } from '../../actions/operators'
 import { buildProposalPayload, ITEM_KINDS, type DraftOption } from '../../lib/proposal-draft'
 
@@ -26,7 +26,7 @@ export function ProposalBuilder({ tripId, currencyCode }: { tripId: string; curr
     setOpen(false); setIntro(''); setOptions([blankOption()]); router.refresh()
   })
   return <><Button variant="outline" size="sm" onClick={() => setOpen(true)}>New proposal</Button>
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-[min(36rem,calc(100vw-2rem))] overflow-y-auto"><DialogHeader><DialogTitle>New proposal draft</DialogTitle></DialogHeader>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-[min(36rem,calc(100vw-2rem))] overflow-y-auto"><DialogHeader><DialogTitle>New proposal draft</DialogTitle><DialogDescription className="sr-only">Create a draft proposal with options and priced items.</DialogDescription></DialogHeader>
       <div className="space-y-4">
         <div className="space-y-1"><Label htmlFor="proposal-intro">Introduction for the client</Label><Textarea id="proposal-intro" value={intro} onChange={(e) => setIntro(e.target.value)} /></div>
         {options.map((o, oi) => <div key={oi} className="space-y-3 rounded-lg border p-3">

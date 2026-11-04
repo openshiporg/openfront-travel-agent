@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { runOperator } from '../../actions/operators'
 
 function DateField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
@@ -25,5 +25,5 @@ export function PlanningEditor({ tripId, feeCents, currencyCode, component }: { 
     if (!r.success) return setError(r.error)
     setOpen(false); router.refresh()
   })
-  return <><Button variant="outline" size="sm" onClick={() => setOpen(true)}>{component ? 'Edit payment terms' : 'Edit planning fee'}</Button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-[min(28rem,calc(100vw-2rem))]"><DialogHeader><DialogTitle>{component ? 'Component payment terms' : 'Planning fee'}</DialogTitle></DialogHeader><div className="space-y-4"><div className="space-y-1"><Label htmlFor="planning-amount">{component ? 'Deposit' : 'Planning fee'} ({currencyCode})</Label><Input id="planning-amount" value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" /></div>{component ? <><DateField label="Deposit due" value={deposit} onChange={setDeposit} /><DateField label="Final payment due" value={final} onChange={setFinal} /></> : null}{error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}<Button disabled={pending} onClick={save}>{pending ? 'Saving' : 'Save'}</Button></div></DialogContent></Dialog></>
+  return <><Button variant="outline" size="sm" onClick={() => setOpen(true)}>{component ? 'Edit payment terms' : 'Edit planning fee'}</Button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-[min(28rem,calc(100vw-2rem))]"><DialogHeader><DialogTitle>{component ? 'Component payment terms' : 'Planning fee'}</DialogTitle><DialogDescription className="sr-only">Edit the amount and due dates used to build the payment schedule.</DialogDescription></DialogHeader><div className="space-y-4"><div className="space-y-1"><Label htmlFor="planning-amount">{component ? 'Deposit' : 'Planning fee'} ({currencyCode})</Label><Input id="planning-amount" value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" /></div>{component ? <><DateField label="Deposit due" value={deposit} onChange={setDeposit} /><DateField label="Final payment due" value={final} onChange={setFinal} /></> : null}{error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}<Button disabled={pending} onClick={save}>{pending ? 'Saving' : 'Save'}</Button></div></DialogContent></Dialog></>
 }

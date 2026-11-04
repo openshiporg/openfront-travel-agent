@@ -3,7 +3,7 @@
 import React from 'react';
 import { Loader2, CircleCheck, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useOnboardingState } from '../hooks/useOnboardingState';
@@ -24,7 +24,7 @@ const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ isOpen, onClose }) 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
       <DialogContent className="max-w-[min(32rem,calc(100vw-2rem))]">
-        <DialogHeader><DialogTitle>Agency setup</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Agency setup</DialogTitle><DialogDescription className="sr-only">Set up the agency details used across trips and invoices.</DialogDescription></DialogHeader>
         {s.step === 'template' && (
           <div className="space-y-4">
             <RadioGroup value={s.selectedTemplate} onValueChange={(v) => s.setSelectedTemplate(v as any)} className="space-y-2">

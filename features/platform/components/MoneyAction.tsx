@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { runOperator } from '../actions/operators'
 import { requestApproval } from '../actions/approvals'
 import { matchingApproval, type ApprovalCandidate } from '../lib/approval-match'
@@ -57,7 +57,7 @@ export function MoneyAction({ kind, targetId, maxCents, thresholdCents, approved
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>{label}</Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-[min(26rem,calc(100vw-2rem))]">
-          <DialogHeader><DialogTitle>{kind === 'refund' ? 'Refund payment' : 'Write off commission'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{kind === 'refund' ? 'Refund payment' : 'Write off commission'}</DialogTitle><DialogDescription className="sr-only">{kind === 'refund' ? 'Refund part or all of this payment back to the client.' : 'Write off the unreceived commission on this component.'}</DialogDescription></DialogHeader>
           <div className="space-y-3">
             {kind === 'refund' ? (
               <div className="space-y-1"><Label htmlFor="amt">Amount (USD), up to {(maxCents / 100).toFixed(2)}</Label><Input id="amt" inputMode="decimal" value={dollars} onChange={(e) => setDollars(e.target.value)} /></div>
