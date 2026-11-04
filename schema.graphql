@@ -4880,6 +4880,9 @@ type Mutation {
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
   sendUserPasswordResetLink(email: String!): Boolean!
   redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
+  requestDocumentUpload(input: TravelJSON!): TravelJSON
+  completeDocumentUpload(input: TravelJSON!): TravelJSON
+  documentDownloadUrl(input: TravelJSON!): TravelJSON
   saveTripTraveler(input: TravelJSON!): TravelJSON
   addItineraryDay(input: TravelJSON!): TravelJSON
   addItineraryItem(input: TravelJSON!): TravelJSON

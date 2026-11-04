@@ -4,6 +4,9 @@ import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/Platf
 import { StatusLabel } from '../../components/StatusLabel'
 import { joinParts, dateRange } from '../../lib/text'
 import { StatusTabs } from '../../components/StatusTabs'
+import { DocumentUploader } from '../components/DocumentUploader'
+import { DocumentDownload } from '../components/DocumentDownload'
+import { isObjectStorageConfigured } from '../../../integrations/storage'
 import { ActionButton } from '../../components/ActionButton'
 import { MoneyAction } from '../../components/MoneyAction'
 import { PlanningEditor } from '../components/PlanningEditor'
@@ -30,7 +33,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     schedule(orderBy: { dueAt: asc }) { id kind amountCents dueAt status }
     funds(orderBy: { occurredAt: asc }) { id entryType amountCents reference occurredAt }
     tasks(orderBy: { dueAt: asc }) { id title type status dueAt }
-    documents { id kind title }
+    documents(orderBy: { createdAt: desc }) { id kind title mimeType byteSize verifiedAt traveler { firstName lastName } }
   }
     agencySettingsRecords(take: 1) { refundApprovalThresholdCents }
     managerApprovals(where: { status: { equals: approved } }, take: 100) { id actionType targetId amountCents reason status expiresAt requestedBy { id } approvedBy { id } }
@@ -121,7 +124,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
         return <Row key={c.id}><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-medium"><span className="truncate">{c.title}</span><StatusLabel status={c.commissionStatus} /></p><p className="text-xs text-muted-foreground">{c.supplier?.name} · {(c.commissionBps / 100).toFixed(2)}%</p></div><span className="text-sm">{money(got, cur)} of {money(c.commissionCents, cur)}</span></Row>
       })}</RowList> : <Empty>No commissions</Empty>}</Panel>}
 
-      {active === 'documents' && <Panel>{t.documents.length ? <RowList>{t.documents.map((x: any) => <Row key={x.id}><span className="text-sm">{x.title}</span><span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{label(x.kind)}</span></Row>)}</RowList> : <Empty>No documents</Empty>}</Panel>}
+      {active === 'documents' && <Panel title="Documents" action={<DocumentUploader tripId={id} travelers={t.travelers.map((x: any) => ({ id: x.id, name: joinParts([x.firstName, x.lastName]) }))} storageConfigured={isObjectStorageConfigured()} />}>{t.documents.length ? <RowList>{t.documents.map((x: any) => <Row key={x.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{x.title}</p><p className="truncate text-xs text-muted-foreground">{joinParts([label(x.kind), x.traveler ? joinParts([x.traveler.firstName, x.traveler.lastName], ' ') : null, `${Math.max(1, Math.round(x.byteSize / 1024))} KB`])}</p></div><span className="flex items-center gap-3">{x.verifiedAt ? <DocumentDownload documentId={x.id} /> : <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Upload unverified</span>}</span></Row>)}</RowList> : <Empty>No documents</Empty>}</Panel>}
 
       {active === 'tasks' && <Panel>{t.tasks.length ? <RowList>{t.tasks.map((x: any) => <Row key={x.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{x.title}</p><p className="text-xs text-muted-foreground">{label(x.type)} · {day(x.dueAt)}</p></div><span className="flex items-center gap-3"><StatusLabel status={x.status} />{x.status === 'open' ? <ActionButton operator="completeTask" input={{ taskId: x.id }}>Complete</ActionButton> : null}</span></Row>)}</RowList> : <Empty>No tasks</Empty>}</Panel>}
     </PlatformPage>

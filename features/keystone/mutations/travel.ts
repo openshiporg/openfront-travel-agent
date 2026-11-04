@@ -4,6 +4,7 @@ import {permissions, type Permission} from '../access';
 import {getOrCreateIdempotencyAttempt,updateIdempotencyAttempt} from '../utils/idempotency';
 import {commissionCents,advisorSplit,penaltyCents,fundsAfter,supplierRemainder,fundsDelta,integerMoney,assertTransition,refundableRemaining,assertRefundAmount,requiresApproval,overpaymentCents,writeOffRemaining} from '../lib/travel-money';
 import {consumeManagerApproval} from '../utils/managerApproval';
+import {assertObjectStorageConfigured,signObjectRequest,verifyUploadedObject,type ObjectMetadata} from '../../integrations/storage';
 import {planningAmount,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
@@ -91,7 +92,50 @@ export async function refundClientPayment(context:any,input:any){
   return {refundId:refund.id,status:'succeeded',amountCents:refund.amount};
  },{timeout:20000});
 }
+const DOCUMENT_TYPES=new Set(['application/pdf','image/jpeg','image/png','image/webp','text/plain']);
+const DOCUMENT_KINDS=['passport','visa','insurance','supplier_confirmation','signed_terms'];
+const MAX_DOCUMENT_BYTES=25*1024*1024;
+const objectOf=(d:any):ObjectMetadata=>({key:d.storageKey,contentType:d.mimeType,byteSize:d.byteSize,checksumSha256:d.checksumSha256});
+/** Documents are private: only the assigned advisor or a role manager may add or read them. */
+async function documentTrip(db:any,context:any,tripId:string){
+ const t=await db.trip.findUnique({where:{id:tripId}});if(!t)throw new Error('Trip not found');
+ if(t.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may manage this trip\'s documents');return t;
+}
+async function loadDocument(context:any,permission:Permission,documentId:string){
+ authorize(context,permission);const d=await context.prisma.document.findUnique({where:{id:String(documentId||'')}});if(!d||!d.tripId)throw new Error('Document not found');
+ await documentTrip(context.prisma,context,d.tripId);return d;
+}
 export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
+ requestDocumentUpload:async(context,input)=>{
+  authorize(context,'canManageDocuments');assertObjectStorageConfigured();
+  const fileName=String(input.fileName||'').trim().replace(/[^A-Za-z0-9._-]+/g,'-');if(!fileName||fileName.startsWith('.'))throw new Error('File name is invalid');
+  const mimeType=String(input.mimeType||'').trim().toLowerCase();if(!DOCUMENT_TYPES.has(mimeType))throw new Error('This file type is not allowed; use PDF, JPEG, PNG, WebP or plain text');
+  if(!Number.isSafeInteger(input.byteSize)||input.byteSize<1||input.byteSize>MAX_DOCUMENT_BYTES)throw new Error('File size must be between 1 byte and 25 MB');
+  const checksumSha256=String(input.checksumSha256||'').trim().toLowerCase();if(!/^[a-f0-9]{64}$/.test(checksumSha256))throw new Error('SHA-256 checksum must be 64 hexadecimal characters');
+  if(!DOCUMENT_KINDS.includes(input.kind))throw new Error('Choose a document kind');
+  const title=String(input.title||'').trim();if(!title)throw new Error('Title required');
+  const doc=await command(context,'requestDocumentUpload',input,'canManageDocuments',async tx=>{
+   const t=await trip(tx,input.tripId);await documentTrip(tx,context,t.id);
+   if(input.travelerId&&!(await tx.traveler.findFirst({where:{id:String(input.travelerId),trips:{some:{id:t.id}}}})))throw new Error('Traveler is not on this trip');
+   const d=await tx.document.create({data:{title,kind:input.kind,tripId:t.id,travelerId:input.travelerId||null,mimeType,byteSize:input.byteSize,checksumSha256,storageKey:`trips/${t.id}/documents/${randomBytes(16).toString('hex')}/${fileName}`}});
+   await audit(tx,context,'request_upload','Document',d.id,null,{title,kind:input.kind,mimeType,byteSize:input.byteSize,checksumSha256});return {id:d.id,storageKey:d.storageKey};
+  });
+  const signed=signObjectRequest('PUT',objectOf({...doc,storageKey:doc.storageKey,mimeType,byteSize:input.byteSize,checksumSha256}));
+  return {documentId:doc.id,uploadUrl:signed.url,expiresAt:signed.expiresAt,headers:Object.entries(signed.headers).map(([name,value])=>({name,value}))};
+ },
+ completeDocumentUpload:async(context,input)=>{
+  const doc=await loadDocument(context,'canManageDocuments',input.documentId);if(doc.verifiedAt)return {id:doc.id,verified:true,alreadyVerified:true};
+  assertObjectStorageConfigured();await verifyUploadedObject(objectOf(doc));
+  return command(context,'completeDocumentUpload',input,'canManageDocuments',async tx=>{
+   await trip(tx,doc.tripId);const done=await tx.document.updateMany({where:{id:doc.id,verifiedAt:null},data:{verifiedAt:new Date()}});
+   if(done.count===1)await audit(tx,context,'verify_upload','Document',doc.id,{verifiedAt:null},{verified:true,checksumSha256:doc.checksumSha256});return {id:doc.id,verified:true};
+  });
+ },
+ documentDownloadUrl:async(context,input)=>{
+  const doc=await loadDocument(context,'canManageDocuments',input.documentId);if(!doc.verifiedAt)throw new Error('This document has not finished uploading');assertObjectStorageConfigured();
+  const signed=signObjectRequest('GET',objectOf(doc),120);await context.prisma.auditEvent.create({data:{actorId:context.session.itemId,action:'download',targetList:'Document',targetId:doc.id,requestId:randomBytes(12).toString('hex')}});
+  return {url:signed.url,expiresAt:signed.expiresAt};
+ },
  saveTripTraveler:(context,input)=>command(context,'saveTripTraveler',input,'canManageClients',async tx=>{
  authorize(context,'canManageTrips');const t=await trip(tx,input.tripId);
  if(t.advisorId!==context.session.itemId&&!permissions.canManageRoles({session:context.session}))throw new Error('Only the assigned advisor may edit travelers');
