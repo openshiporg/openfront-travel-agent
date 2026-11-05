@@ -18,6 +18,7 @@ export const Inquiry = list({
     tripType: state(["honeymoon", "family", "group", "corporate", "cruise", "adventure"]),
     partySize: integer({defaultValue:1,validation:{min:1}}),
     status: state(["new", "qualifying", "proposal", "won", "lost"]),
+    lostReason: text({ access: { create: () => false, update: () => false } }),
     trips: relationship({ ref: "Trip.inquiry", many: true }),
     currencyCode: currency(),
     ...trackingFields,

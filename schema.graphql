@@ -1128,6 +1128,7 @@ type Inquiry {
   tripType: InquiryTripTypeType
   partySize: Int
   status: InquiryStatusType
+  lostReason: String
   trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
   tripsCount(where: TripWhereInput! = {}): Int
   currencyCode: String
@@ -1174,6 +1175,7 @@ input InquiryWhereInput {
   tripType: InquiryTripTypeTypeNullableFilter
   partySize: IntNullableFilter
   status: InquiryStatusTypeNullableFilter
+  lostReason: StringFilter
   trips: TripManyRelationFilter
   currencyCode: StringFilter
   createdAt: DateTimeFilter
@@ -1218,6 +1220,7 @@ input InquiryOrderByInput {
   tripType: OrderDirection
   partySize: OrderDirection
   status: OrderDirection
+  lostReason: OrderDirection
   currencyCode: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -1237,6 +1240,7 @@ input InquiryUpdateInput {
   tripType: InquiryTripTypeType
   partySize: Int
   status: InquiryStatusType
+  lostReason: String
   trips: TripRelateToManyForUpdateInput
   currencyCode: String
   createdAt: DateTime
@@ -1262,6 +1266,7 @@ input InquiryCreateInput {
   tripType: InquiryTripTypeType
   partySize: Int
   status: InquiryStatusType
+  lostReason: String
   trips: TripRelateToManyForCreateInput
   currencyCode: String
   createdAt: DateTime
@@ -5267,6 +5272,7 @@ type Mutation {
   updateTripPlanning(input: TravelJSON!): TravelJSON
   updateComponentTerms(input: TravelJSON!): TravelJSON
   createTripFromInquiry(input: TravelJSON!): TravelJSON
+  moveInquiry(input: TravelJSON!): TravelJSON
   buildProposal(input: TravelJSON!): TravelJSON
   completeTask(input: TravelJSON!): TravelJSON
   reopenTask(input: TravelJSON!): TravelJSON

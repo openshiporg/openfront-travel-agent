@@ -14,6 +14,7 @@ import {parsePassportExpiry} from '../lib/passport-check';
 import {commissionForecast,FORECAST_BOOKING} from '../lib/commission-forecast';
 import {toCsv,centsDecimal} from '../lib/csv';
 import {planningAmount,planningDate,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
+import {assertInquiryMove,requiredText,assertClaimable,OPEN_COMMISSION,advisorOwed,assertPayout,componentEntry,tripCancelPlan} from '../lib/agency-workflow';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
 export async function lockTransactionKey(tx:any,key:string){await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${key},0))) AS acquired`;}
@@ -215,10 +216,20 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await audit(tx,context,'edit_payment_terms','TripComponent',c.id,{depositCents:c.depositCents,depositDueAt:c.depositDueAt,finalDueAt:c.finalDueAt},terms);return {id:c.id};
  }),
  createTripFromInquiry:(context,input)=>command(context,'createTripFromInquiry',input,'canManageTrips',async tx=>{
- const inquiry=await tx.inquiry.findUnique({where:{id:input.inquiryId}});if(!inquiry)throw new Error('Inquiry not found');await lockTransactionKey(tx,`inquiry:${inquiry.id}`);
+ await lockTransactionKey(tx,`inquiry:${String(input.inquiryId||'')}`);const inquiry=await tx.inquiry.findUnique({where:{id:String(input.inquiryId||'')}});if(!inquiry)throw new Error('Inquiry not found');if(['won','lost'].includes(inquiry.status))throw new Error(`Inquiry is ${inquiry.status}; reopen it first`);
  let clientId=inquiry.clientId;if(!clientId)clientId=(await tx.client.create({data:{name:inquiry.name,email:inquiry.email,phone:inquiry.phone}})).id;
  const row=await tx.trip.create({data:{tripNumber:code('TR'),title:input.title||inquiry.destinations,clientId,inquiryId:inquiry.id,advisorId:inquiry.assignedAdvisorId||context.session.itemId,startDate:inquiry.travelWindowStart,endDate:inquiry.travelWindowEnd,status:'planning',currencyCode:'USD'}});
  await tx.inquiry.update({where:{id:inquiry.id},data:{clientId,status:'proposal'}});await audit(tx,context,'create','Trip',row.id,null,row);return row;
+ }),
+ /** Lead pipeline: qualify, lose (with a reason) or reopen an inquiry. Won is set by the accepted proposal on its trip. */
+ moveInquiry:(context,input)=>command(context,'moveInquiry',input,'canManageTrips',async tx=>{
+ const id=String(input.inquiryId||'');await lockTransactionKey(tx,`inquiry:${id}`);const q=await tx.inquiry.findUnique({where:{id},include:{trips:{select:{id:true,status:true}}}});if(!q)throw new Error('Inquiry not found');
+ const next=String(input.status||'');if(next==='won')throw new Error('An inquiry is won when the client accepts a proposal on its trip');if(next==='proposal'&&!q.trips.length)throw new Error('Create a trip for this inquiry to move it to proposal');
+ assertInquiryMove(q.status,next);
+ if(next==='lost'&&q.trips.some((t:any)=>!['planning','proposal_sent','cancelled'].includes(t.status)))throw new Error('This inquiry has a trip the client already accepted');
+ const lostReason=next==='lost'?requiredText(input.reason,'Reason',3,300):'';
+ const moved=await tx.inquiry.updateMany({where:{id,status:q.status},data:{status:next,lostReason}});if(moved.count!==1)throw new Error('Inquiry changed concurrently');
+ await audit(tx,context,'move','Inquiry',id,{status:q.status},{status:next,...(lostReason?{lostReason}:{})});return {id,status:next};
  }),
  buildProposal:(context,input)=>command(context,'buildProposal',input,'canManageTrips',async tx=>{
  await trip(tx,input.tripId);const prior=await tx.proposal.aggregate({where:{tripId:input.tripId},_max:{version:true}});
@@ -450,7 +461,7 @@ export async function acceptProposal(_root:any,{token,optionId,name,idempotencyK
  const snapshot={proposalId:p.id,version:p.version,optionId,name:name.trim(),acceptedAt:new Date().toISOString(),items:option.items.map((i:any)=>({title:i.title,details:i.details,kind:i.kind,sellCents:i.sellCents,quantity:1,feesCents:0,taxCents:0,currencyCode:i.currencyCode,supplierId:i.supplierId,estimatedCommissionBps:i.estimatedCommissionBps}))};
  await tx.proposal.update({where:{id:p.id},data:{status:'accepted',acceptedByName:name.trim(),acceptedAt:new Date(),acceptedSnapshot:snapshot,acceptedSnapshotHash:hash(JSON.stringify(snapshot))}});
  for(const i of option.items)await tx.tripComponent.create({data:{tripId:p.tripId,supplierId:i.supplierId,title:i.title,kind:i.kind,sellCents:i.sellCents,currencyCode:i.currencyCode,commissionBps:i.estimatedCommissionBps,commissionCents:commissionCents(i.sellCents,i.estimatedCommissionBps),bookingStatus:'quoted',paymentModel:'client_pays_supplier',commissionStatus:'expected',purchaseSnapshot:snapshot.items.find((x:any)=>x.title===i.title)}});
- const t=await tx.trip.findUnique({where:{id:p.tripId}});if(t.status==='proposal_sent')await transition(tx,context,t,'accepted');await audit(tx,context,'accept','Proposal',p.id,{status:p.status},{status:'accepted',snapshotHash:hash(JSON.stringify(snapshot)),depositBps:p.depositBps||0});
+ const t=await tx.trip.findUnique({where:{id:p.tripId}});if(t.status==='proposal_sent')await transition(tx,context,t,'accepted');if(t.inquiryId){const q=await tx.inquiry.findUnique({where:{id:t.inquiryId}});if(q&&!['won','lost'].includes(q.status)){await tx.inquiry.update({where:{id:q.id},data:{status:'won',lostReason:''}});await audit(tx,context,'move','Inquiry',q.id,{status:q.status},{status:'won',tripId:t.id});}}await audit(tx,context,'accept','Proposal',p.id,{status:p.status},{status:'accepted',snapshotHash:hash(JSON.stringify(snapshot)),depositBps:p.depositBps||0});
  const depositCents=depositCentsFor(option.items,p.depositBps||0);
  if(depositCents>0){const fresh=await tx.trip.findUnique({where:{id:p.tripId}});await createInvoice(tx,context,fresh,[{description:`Deposit · ${option.title} (${(p.depositBps/100).toString()}%)`,amountCents:depositCents,kind:'component_deposit'}],new Date(),depositToken(token));}
  return acceptedResult(tx,p,token);
