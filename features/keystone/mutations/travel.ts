@@ -364,6 +364,13 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await tx.tripComponent.update({where:{id:c.id},data:{supplierDueAt:stored}});
  await audit(tx,context,'set_supplier_due','TripComponent',c.id,{supplierDueAt:c.supplierDueAt},{supplierDueAt:stored?stored.toISOString():null});return {id:c.id,supplierDueAt:stored?stored.toISOString():null};
  }),
+ /** Enter a reservation directly on the trip (booked elsewhere or quoted outside a proposal). It starts quoted; hold and book move it on. */
+ addTripComponent:(context,input)=>command(context,'addTripComponent',input,'canManageTrips',async tx=>{
+ const t=await itineraryTrip(tx,context,String(input.tripId||''));const e=componentEntry(input);
+ let supplierId:string|null=null;if(input.supplierId){const s=await tx.supplier.findUnique({where:{id:String(input.supplierId)},select:{id:true}});if(!s)throw new Error('Supplier not found');supplierId=s.id;}
+ const row=await tx.tripComponent.create({data:{tripId:t.id,supplierId,title:e.title,kind:e.kind,paymentModel:e.paymentModel,sellCents:e.sellCents,netCostCents:e.netCostCents,commissionBps:e.commissionBps,commissionCents:commissionCents(e.sellCents,e.commissionBps),commissionStatus:'expected',bookingStatus:'quoted',startAt:e.startAt,endAt:e.endAt,currencyCode:t.currencyCode,purchaseSnapshot:{title:e.title,sellCents:e.sellCents,netCostCents:e.netCostCents,quantity:1,feesCents:0,taxCents:0,currencyCode:t.currencyCode,source:'direct_entry'}}});
+ await audit(tx,context,'add_component','TripComponent',row.id,null,{title:e.title,kind:e.kind,sellCents:e.sellCents,netCostCents:e.netCostCents,commissionBps:e.commissionBps,paymentModel:e.paymentModel,supplierId});return {id:row.id};
+ }),
  holdComponent:(context,input)=>command(context,'holdComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);
  if(!['quoted','held'].includes(c.bookingStatus))throw new Error('Only quoted or held components can be held');

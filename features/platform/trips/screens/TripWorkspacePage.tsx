@@ -25,6 +25,7 @@ import { allBalances, roomingProblems } from '@/features/keystone/lib/party-bala
 import { supplierDue } from '../../lib/supplier-due'
 import { needsConfirmation, startsPhrase } from '../../lib/confirmation-state'
 import { AddDay, AddItem } from '../components/ItineraryEditor'
+import { ComponentEntry } from '../components/ComponentEntry'
 
 const TABS = ['overview', 'travelers', 'group', 'proposals', 'components', 'itinerary', 'payments', 'funds', 'commissions', 'documents', 'tasks']
 function ClientPreferences({ client }: { client: any }) {
@@ -105,6 +106,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     agencySettingsRecords(take: 1) { refundApprovalThresholdCents }
     managerApprovals(where: { status: { equals: approved } }, take: 100) { id actionType targetId amountCents reason status expiresAt requestedBy { id } approvedBy { id } }
     me: authenticatedItem { ... on User { id } }
+    suppliers(orderBy: { name: asc }, take: 500) { id name defaultCommissionBps }
   }`, { id })
   const t = d.trip
   const overdueCount = t.tasks.filter((x: any) => isOverdue(x)).length
@@ -163,6 +165,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
           {p.acceptedAt ? <p className="mt-3 text-xs text-muted-foreground">Accepted by {p.acceptedByName} on {day(p.acceptedAt)}</p> : null}
         </Panel>)) : <Panel><Empty>No proposals yet</Empty></Panel>)}
 
+      {active === 'components' && !['completed', 'cancelled'].includes(t.status) && <div className="flex justify-end"><ComponentEntry tripId={id} suppliers={d.suppliers} /></div>}
       {active === 'components' && <Panel>{t.components.length ? <RowList>{t.components.map((c: any) => (
         <Row key={c.id}>
           <div className="min-w-0">
