@@ -2015,6 +2015,8 @@ type TripComponent {
   holdUntil: DateTime
   supplierDueAt: DateTime
   confirmedAt: DateTime
+  commissionClaimedAt: DateTime
+  commissionClaimReference: String
   confirmedBy: User
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
@@ -2100,6 +2102,8 @@ input TripComponentWhereInput {
   holdUntil: DateTimeNullableFilter
   supplierDueAt: DateTimeNullableFilter
   confirmedAt: DateTimeNullableFilter
+  commissionClaimedAt: DateTimeNullableFilter
+  commissionClaimReference: StringFilter
   confirmedBy: UserWhereInput
   trip: TripWhereInput
   supplier: SupplierWhereInput
@@ -2182,6 +2186,8 @@ input TripComponentOrderByInput {
   holdUntil: OrderDirection
   supplierDueAt: OrderDirection
   confirmedAt: OrderDirection
+  commissionClaimedAt: OrderDirection
+  commissionClaimReference: OrderDirection
   kind: OrderDirection
   bookingStatus: OrderDirection
   paymentModel: OrderDirection
@@ -2207,6 +2213,8 @@ input TripComponentUpdateInput {
   holdUntil: DateTime
   supplierDueAt: DateTime
   confirmedAt: DateTime
+  commissionClaimedAt: DateTime
+  commissionClaimReference: String
   confirmedBy: UserRelateToOneForUpdateInput
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
@@ -2270,6 +2278,8 @@ input TripComponentCreateInput {
   holdUntil: DateTime
   supplierDueAt: DateTime
   confirmedAt: DateTime
+  commissionClaimedAt: DateTime
+  commissionClaimReference: String
   confirmedBy: UserRelateToOneForCreateInput
   cancelPenaltySchedule: JSON
   purchaseSnapshot: JSON
@@ -5300,6 +5310,7 @@ type Mutation {
   reverseEntry(input: TravelJSON!): TravelJSON
   cancelComponent(input: TravelJSON!): TravelJSON
   refundClientPayment(input: TravelJSON!): TravelJSON
+  claimCommission(input: TravelJSON!): TravelJSON
   writeOffCommission(input: TravelJSON!): TravelJSON
   shareItinerary(input: TravelJSON!): TravelJSON
   transitionTrip(input: TravelJSON!): TravelJSON

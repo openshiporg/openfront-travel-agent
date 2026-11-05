@@ -288,44 +288,46 @@ model ProposalItem {
 }
 
 model TripComponent {
-  id                    String                             @id @default(cuid())
-  title                 String                             @default("")
-  confirmationNumber    String                             @default("")
-  cancellationPolicy    String                             @default("")
-  sellCents             Int?                               @default(0)
-  netCostCents          Int?                               @default(0)
-  depositCents          Int?                               @default(0)
-  commissionCents       Int?                               @default(0)
-  startAt               DateTime?
-  endAt                 DateTime?
-  depositDueAt          DateTime?
-  finalDueAt            DateTime?
-  holdUntil             DateTime?
-  supplierDueAt         DateTime?
-  confirmedAt           DateTime?
-  confirmedBy           User?                              @relation("TripComponent_confirmedBy", fields: [confirmedById], references: [id])
-  confirmedById         String?                            @map("confirmedBy")
-  cancelPenaltySchedule Json?
-  purchaseSnapshot      Json?
-  trip                  Trip?                              @relation("TripComponent_trip", fields: [tripId], references: [id])
-  tripId                String?                            @map("trip")
-  supplier              Supplier?                          @relation("TripComponent_supplier", fields: [supplierId], references: [id])
-  supplierId            String?                            @map("supplier")
-  kind                  TripComponentKindType?             @default(hotel)
-  bookingStatus         TripComponentBookingStatusType?    @default(quoted)
-  paymentModel          TripComponentPaymentModelType?     @default(client_pays_supplier)
-  commissionBps         Int?                               @default(0)
-  commissionStatus      TripComponentCommissionStatusType? @default(expected)
-  travelers             Traveler[]                         @relation("Traveler_components")
-  itineraryItems        ItineraryItem[]                    @relation("ItineraryItem_component")
-  schedule              PaymentSchedule[]                  @relation("PaymentSchedule_component")
-  funds                 ClientFundsEntry[]                 @relation("ClientFundsEntry_component")
-  supplierPayments      SupplierPayment[]                  @relation("SupplierPayment_component")
-  allocations           CommissionAllocation[]             @relation("CommissionAllocation_component")
-  advisorLedger         AdvisorCommissionLedger[]          @relation("AdvisorCommissionLedger_component")
-  currencyCode          String                             @default("USD")
-  createdAt             DateTime                           @default(now())
-  updatedAt             DateTime                           @default(now()) @updatedAt
+  id                       String                             @id @default(cuid())
+  title                    String                             @default("")
+  confirmationNumber       String                             @default("")
+  cancellationPolicy       String                             @default("")
+  sellCents                Int?                               @default(0)
+  netCostCents             Int?                               @default(0)
+  depositCents             Int?                               @default(0)
+  commissionCents          Int?                               @default(0)
+  startAt                  DateTime?
+  endAt                    DateTime?
+  depositDueAt             DateTime?
+  finalDueAt               DateTime?
+  holdUntil                DateTime?
+  supplierDueAt            DateTime?
+  confirmedAt              DateTime?
+  commissionClaimedAt      DateTime?
+  commissionClaimReference String                             @default("")
+  confirmedBy              User?                              @relation("TripComponent_confirmedBy", fields: [confirmedById], references: [id])
+  confirmedById            String?                            @map("confirmedBy")
+  cancelPenaltySchedule    Json?
+  purchaseSnapshot         Json?
+  trip                     Trip?                              @relation("TripComponent_trip", fields: [tripId], references: [id])
+  tripId                   String?                            @map("trip")
+  supplier                 Supplier?                          @relation("TripComponent_supplier", fields: [supplierId], references: [id])
+  supplierId               String?                            @map("supplier")
+  kind                     TripComponentKindType?             @default(hotel)
+  bookingStatus            TripComponentBookingStatusType?    @default(quoted)
+  paymentModel             TripComponentPaymentModelType?     @default(client_pays_supplier)
+  commissionBps            Int?                               @default(0)
+  commissionStatus         TripComponentCommissionStatusType? @default(expected)
+  travelers                Traveler[]                         @relation("Traveler_components")
+  itineraryItems           ItineraryItem[]                    @relation("ItineraryItem_component")
+  schedule                 PaymentSchedule[]                  @relation("PaymentSchedule_component")
+  funds                    ClientFundsEntry[]                 @relation("ClientFundsEntry_component")
+  supplierPayments         SupplierPayment[]                  @relation("SupplierPayment_component")
+  allocations              CommissionAllocation[]             @relation("CommissionAllocation_component")
+  advisorLedger            AdvisorCommissionLedger[]          @relation("AdvisorCommissionLedger_component")
+  currencyCode             String                             @default("USD")
+  createdAt                DateTime                           @default(now())
+  updatedAt                DateTime                           @default(now()) @updatedAt
 
   @@index([confirmedById])
   @@index([tripId])

@@ -403,7 +403,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  recordCommissionReceipt:(context,input)=>command(context,'recordCommissionReceipt',input,'canManageCommissions',async tx=>{
  integerMoney(input.amountCents);if(!input.allocations?.length||input.allocations.reduce((n:number,a:any)=>n+a.amountCents,0)!==input.amountCents)throw new Error('Receipt allocations must equal amount');
  const settings=await tx.agencySettings.findFirst();const receipt=await tx.commissionReceipt.create({data:{supplierId:input.supplierId,amountCents:input.amountCents,receivedAt:new Date(),reference:input.reference,currencyCode:input.currencyCode||'USD'}});
- for(const a of [...input.allocations].sort((a:any,b:any)=>a.componentId.localeCompare(b.componentId))){integerMoney(a.amountCents);const c=await tx.tripComponent.findUnique({where:{id:a.componentId}});if(!c||c.supplierId!==input.supplierId||c.currencyCode!==(input.currencyCode||'USD'))throw new Error('Allocation supplier/currency mismatch');const t=await trip(tx,c.tripId);const prior=await tx.commissionAllocation.aggregate({where:{componentId:c.id},_sum:{amountCents:true}});const collected=(prior._sum.amountCents||0)+a.amountCents;const over=overpaymentCents(c.commissionCents,prior._sum.amountCents||0,a.amountCents);if(over>0)await consumeManagerApproval(tx,{approvalId:a.approvalId,actorId:context.session.itemId,actionType:'commission_overpayment',targetId:c.id,amountCents:over,reason:String(a.reason||''),entityType:'TripComponent',entityId:c.id});
+ for(const a of [...input.allocations].sort((a:any,b:any)=>a.componentId.localeCompare(b.componentId))){integerMoney(a.amountCents);const c=await tx.tripComponent.findUnique({where:{id:a.componentId}});if(!c||c.supplierId!==input.supplierId||c.currencyCode!==(input.currencyCode||'USD'))throw new Error('Allocation supplier/currency mismatch');if(c.commissionStatus==='written_off')throw new Error(`${c.title}: commission was written off`);const t=await trip(tx,c.tripId);const prior=await tx.commissionAllocation.aggregate({where:{componentId:c.id},_sum:{amountCents:true}});const collected=(prior._sum.amountCents||0)+a.amountCents;const over=overpaymentCents(c.commissionCents,prior._sum.amountCents||0,a.amountCents);if(over>0)await consumeManagerApproval(tx,{approvalId:a.approvalId,actorId:context.session.itemId,actionType:'commission_overpayment',targetId:c.id,amountCents:over,reason:String(a.reason||''),entityType:'TripComponent',entityId:c.id});
  await tx.commissionAllocation.create({data:{receiptId:receipt.id,componentId:c.id,amountCents:a.amountCents,overpaymentCents:over,approvalId:over>0?a.approvalId:null,currencyCode:c.currencyCode}});await tx.tripComponent.update({where:{id:c.id},data:{commissionStatus:collected>=c.commissionCents?'received':'short_paid'}});
  const split=advisorSplit(a.amountCents,settings?.hostAgencySplitBps||0);await tx.advisorCommissionLedger.create({data:{advisorId:t.advisorId,componentId:c.id,entryType:'allocation',amountCents:split.advisorCents,currencyCode:c.currencyCode,reference:receipt.id,occurredAt:new Date()}});
  if(over>0)await audit(tx,context,'overpayment','TripComponent',c.id,null,{overpaymentCents:over,approvalId:a.approvalId});
@@ -431,10 +431,23 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
   return {...cancelled,refund};
  },
  refundClientPayment:(context,input)=>refundClientPayment(context,input),
+ /** Claim commission from the supplier: records the claim reference and moves expected → invoiced. Receipts later move it to received or short-paid. */
+ claimCommission:(context,input)=>command(context,'claimCommission',input,'canManageCommissions',async tx=>{
+ const reference=requiredText(input.reference,'Claim reference',1,80);const ids:string[]=[...new Set<string>((Array.isArray(input.componentIds)?input.componentIds:[input.componentId]).filter(Boolean).map(String))].sort();
+ if(!ids.length)throw new Error('Choose at least one component');if(ids.length>100)throw new Error('Claim at most 100 components at once');
+ const first=await tx.tripComponent.findMany({where:{id:{in:ids}},select:{id:true,tripId:true,supplierId:true}});if(first.length!==ids.length)throw new Error('Component not found');
+ if(new Set(first.map((c:any)=>c.supplierId)).size!==1||!first[0].supplierId)throw new Error('A claim goes to one supplier: choose components from the same supplier');
+ for(const tripId of [...new Set<string>(first.map((c:any)=>c.tripId))].sort())await trip(tx,tripId);
+ const at=new Date();let total=0;
+ for(const id of ids){const c=await tx.tripComponent.findUnique({where:{id}});assertClaimable(c);
+  const moved=await tx.tripComponent.updateMany({where:{id,commissionStatus:'expected'},data:{commissionStatus:'invoiced',commissionClaimedAt:at,commissionClaimReference:reference}});if(moved.count!==1)throw new Error('Component changed concurrently');
+  total+=c.commissionCents;await audit(tx,context,'claim_commission','TripComponent',id,{commissionStatus:'expected'},{commissionStatus:'invoiced',reference,commissionCents:c.commissionCents});}
+ return {count:ids.length,totalCents:total,reference};
+ }),
  writeOffCommission:(context,input)=>command(context,'writeOffCommission',input,'canManageCommissions',async tx=>{
  if(!String(input.reason||'').trim())throw new Error('Reason required');
  const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c)throw new Error('Component not found');await trip(tx,c.tripId);
- if(!['expected','short_paid'].includes(c.commissionStatus))throw new Error('Only expected or short-paid commission can be written off');
+ if(!OPEN_COMMISSION.includes(c.commissionStatus))throw new Error('Only open (expected, claimed or short-paid) commission can be written off');
  const got=await tx.commissionAllocation.aggregate({where:{componentId:c.id},_sum:{amountCents:true}});const given=writeOffRemaining(c.commissionCents,got._sum.amountCents||0);
  await consumeManagerApproval(tx,{approvalId:input.approvalId,actorId:context.session.itemId,actionType:'commission_writeoff',targetId:c.id,amountCents:given,reason:String(input.reason),entityType:'TripComponent',entityId:c.id});
  const moved=await tx.tripComponent.updateMany({where:{id:c.id,commissionStatus:c.commissionStatus},data:{commissionStatus:'written_off'}});if(moved.count!==1)throw new Error('Component changed concurrently');

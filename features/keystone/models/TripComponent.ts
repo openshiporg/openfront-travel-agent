@@ -19,6 +19,8 @@ export const TripComponent = list({
     holdUntil: timestamp(),
     supplierDueAt: timestamp(),
     confirmedAt: timestamp(),
+    commissionClaimedAt: timestamp({ access: { create: () => false, update: () => false } }),
+    commissionClaimReference: text({ access: { create: () => false, update: () => false } }),
     confirmedBy: relationship({ ref: "User", many: false, access: { create: () => false, update: () => false } }),
     cancelPenaltySchedule: json(),
     purchaseSnapshot: json(),
