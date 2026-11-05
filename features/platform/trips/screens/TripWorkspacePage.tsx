@@ -81,13 +81,14 @@ function GroupTab({ tripId, t, cur }: { tripId: string; t: any; cur: string }) {
   </div>
 }
 const NAMES: Record<string, string> = { funds: 'Client funds', proposals: 'Proposals' }
+const CANCELLABLE = ['planning', 'proposal_sent', 'accepted', 'booked', 'final_payment_due', 'paid_in_full', 'traveling']
 const NEXT: Record<string, string> = { planning: 'proposal_sent', proposal_sent: 'accepted', accepted: 'booked', booked: 'final_payment_due', final_payment_due: 'paid_in_full' }
 
 export async function TripWorkspacePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const [{ id }, { tab = 'overview' }] = await Promise.all([params, searchParams])
   const active = TABS.includes(tab) ? tab : 'overview'
   const d = await query(`query Trip($id: ID!) { trip(where: { id: $id }) {
-    id tripNumber title status startDate endDate planningFeeCents currencyCode totalSellCents totalCollectedCents balanceDueCents expectedCommissionCents
+    id tripNumber title status cancelReason cancelledAt startDate endDate planningFeeCents currencyCode totalSellCents totalCollectedCents balanceDueCents expectedCommissionCents
     client { id name email phone travelProfile loyaltyPrograms } advisor { name } destinations { name }
     passportChecks
     insuranceChecks
@@ -126,7 +127,8 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
   return (
     <PlatformPage title={t.title} subtitle={joinParts([t.tripNumber, t.client?.name, dateRange(t.startDate, t.endDate)])}
       crumbs={[{ label: 'Trips', href: '/dashboard/platform/trips' }, { label: t.title }]}
-      actions={<div className="flex flex-wrap items-center gap-2"><StatusLabel status={t.status} /><EntryDialog title="Copy this trip" trigger="Copy trip" operator="duplicateTrip" base={{ tripId: id }} redirectTo="/dashboard/platform/trips/{id}" fields={[{ name: 'title', label: 'Title for the copy', initial: `${t.title} (copy)` }, { name: 'startDate', label: 'New start date (dates shift to match)', kind: 'date', optional: true, initial: t.startDate ? String(t.startDate).slice(0, 10) : '' }]} />{next ? <ActionButton operator="transitionTrip" input={{ tripId: id, status: next }}>{`Mark ${label(next)}`}</ActionButton> : null}</div>}>
+      actions={<div className="flex flex-wrap items-center gap-2"><StatusLabel status={t.status} /><EntryDialog title="Copy this trip" trigger="Copy trip" operator="duplicateTrip" base={{ tripId: id }} redirectTo="/dashboard/platform/trips/{id}" fields={[{ name: 'title', label: 'Title for the copy', initial: `${t.title} (copy)` }, { name: 'startDate', label: 'New start date (dates shift to match)', kind: 'date', optional: true, initial: t.startDate ? String(t.startDate).slice(0, 10) : '' }]} />{next ? <ActionButton operator="transitionTrip" input={{ tripId: id, status: next }}>{`Mark ${label(next)}`}</ActionButton> : null}{CANCELLABLE.includes(t.status) ? <EntryDialog title={`Cancel ${t.title}`} trigger="Cancel trip" operator="cancelTrip" base={{ tripId: id }} fields={[{ name: 'reason', label: 'Why is the trip cancelled' }]} /> : null}</div>}>
+      {t.status === 'cancelled' && t.cancelReason ? <p className="text-sm text-muted-foreground">Cancelled {day(t.cancelledAt)}: {t.cancelReason}</p> : null}
       <StatusTabs active={active} hrefFor={href} tabs={TABS.map((k) => ({ key: k, label: NAMES[k] || label(k).replace(/^./, (c) => c.toUpperCase()) }))} />
 
       {t.client ? <ClientPreferences client={t.client} /> : null}

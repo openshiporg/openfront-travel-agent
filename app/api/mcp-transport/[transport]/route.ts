@@ -283,7 +283,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
         }
       }, {
         name: 'travelOperation',
-        description: 'Run one agency operation through its custom mutation (same rules, audit and idempotency as the dashboard): createTripFromInquiry, buildProposal, sendProposal, bookComponent, generatePaymentSchedule, issueClientInvoice, recordClientPayment, recordSupplierPayment, recordCommissionReceipt, postClientFundsEntry, reverseEntry, cancelComponent, transitionTrip, shareItinerary.',
+        description: 'Run one agency operation through its custom mutation (same rules, audit and idempotency as the dashboard): createTripFromInquiry, buildProposal, sendProposal, bookComponent, generatePaymentSchedule, issueClientInvoice, recordClientPayment, recordSupplierPayment, recordCommissionReceipt, postClientFundsEntry, reverseEntry, cancelComponent, transitionTrip, shareItinerary, moveInquiry, claimCommission, payAdvisorCommission, addTripComponent, cancelTrip.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -627,7 +627,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
         }
         
         if (name === 'travelOperation') {
-          const TRAVEL_OPERATIONS = ['createTripFromInquiry', 'buildProposal', 'sendProposal', 'bookComponent', 'generatePaymentSchedule', 'issueClientInvoice', 'recordClientPayment', 'recordSupplierPayment', 'recordCommissionReceipt', 'postClientFundsEntry', 'reverseEntry', 'cancelComponent', 'transitionTrip', 'shareItinerary'];
+          const TRAVEL_OPERATIONS = ['createTripFromInquiry', 'buildProposal', 'sendProposal', 'bookComponent', 'generatePaymentSchedule', 'issueClientInvoice', 'recordClientPayment', 'recordSupplierPayment', 'recordCommissionReceipt', 'postClientFundsEntry', 'reverseEntry', 'cancelComponent', 'transitionTrip', 'shareItinerary', 'moveInquiry', 'claimCommission', 'payAdvisorCommission', 'addTripComponent', 'cancelTrip'];
           if (!TRAVEL_OPERATIONS.includes(args.operation)) throw new Error('Unknown operation');
           const input = JSON.parse(args.input);
           if (!input.idempotencyKey) input.idempotencyKey = crypto.randomUUID();

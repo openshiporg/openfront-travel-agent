@@ -471,7 +471,18 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await audit(tx,context,'write_off','TripComponent',c.id,{commissionStatus:c.commissionStatus},{commissionStatus:'written_off',writtenOffCents:given,reason:input.reason,approvalId:input.approvalId});return {id:c.id,writtenOffCents:given};
  }),
  shareItinerary:(context,input)=>command(context,'shareItinerary',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);const token=randomBytes(32).toString('base64url');await tx.trip.update({where:{id:t.id},data:{itineraryToken:hash(token)}});await audit(tx,context,'share','Trip',t.id,null,{itinerary:'shared'});return {id:t.id,token};}),
- transitionTrip:(context,input)=>command(context,'transitionTrip',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);await transition(tx,context,t,input.status);return {id:t.id,status:input.status};}),
+ /** Cancel a trip: refused while any component is booked or ticketed (cancel those first, with their penalties and refunds). Releases quotes and holds, closes hold tasks and withdraws open proposals. */
+ cancelTrip:(context,input)=>command(context,'cancelTrip',input,'canManageTrips',async tx=>{
+ const t=await itineraryTrip(tx,context,String(input.tripId||''));const reason=requiredText(input.reason,'Cancellation reason',3,300);assertTransition(t.status,'cancelled');
+ const comps=await tx.tripComponent.findMany({where:{tripId:t.id},select:{id:true,title:true,bookingStatus:true}});const plan=tripCancelPlan(comps);
+ if(plan.blockers.length)throw new Error(`Cancel the booked components first: ${plan.blockers.join(', ')}`);
+ for(const id of plan.release){const before=comps.find((c:any)=>c.id===id);await tx.tripComponent.update({where:{id},data:{bookingStatus:'cancelled',holdUntil:null}});await closeHoldTask(tx,id);await audit(tx,context,'release','TripComponent',id,{bookingStatus:before.bookingStatus},{bookingStatus:'cancelled',reason:'Trip cancelled'});}
+ const withdrawn=await tx.proposal.updateMany({where:{tripId:t.id,status:{in:['draft','sent','viewed']}},data:{status:'superseded'}});
+ const changed=await tx.trip.updateMany({where:{id:t.id,status:t.status},data:{status:'cancelled',cancelReason:reason,cancelledAt:new Date()}});if(changed.count!==1)throw new Error('Trip changed concurrently');
+ await audit(tx,context,'cancel','Trip',t.id,{status:t.status},{status:'cancelled',reason,releasedComponents:plan.release.length,withdrawnProposals:withdrawn.count});
+ return {id:t.id,status:'cancelled',released:plan.release.length,withdrawnProposals:withdrawn.count};
+ }),
+ transitionTrip:(context,input)=>command(context,'transitionTrip',input,'canManageTrips',async tx=>{if(input.status==='cancelled')throw new Error('Use Cancel trip, which checks bookings and needs a reason');const t=await trip(tx,input.tripId);await transition(tx,context,t,input.status);return {id:t.id,status:input.status};}),
  sweepTripDates:(context,input)=>command(context,'sweepTripDates',input,'canManageTrips',async tx=>{const rows=await tx.trip.findMany({where:{status:{in:['paid_in_full','traveling']}}});let count=0;for(const row of rows){const t=await trip(tx,row.id);if(t.status==='paid_in_full'&&t.startDate&&t.startDate<=new Date()){await transition(tx,context,t,'traveling');count++;}else if(t.status==='traveling'&&t.endDate&&t.endDate<new Date()){await transition(tx,context,t,'completed');count++;}}return {count};}),
 };
 export async function submitInquiry(_root:any,{input}:any,context:any){

@@ -1353,6 +1353,8 @@ type Trip {
   destinations(where: DestinationWhereInput! = {}, orderBy: [DestinationOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: DestinationWhereUniqueInput): [Destination!]
   destinationsCount(where: DestinationWhereInput! = {}): Int
   status: TripStatusType
+  cancelReason: String
+  cancelledAt: DateTime
   travelers(where: TravelerWhereInput! = {}, orderBy: [TravelerOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TravelerWhereUniqueInput): [Traveler!]
   travelersCount(where: TravelerWhereInput! = {}): Int
   proposals(where: ProposalWhereInput! = {}, orderBy: [ProposalOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: ProposalWhereUniqueInput): [Proposal!]
@@ -1419,6 +1421,8 @@ input TripWhereInput {
   inquiry: InquiryWhereInput
   destinations: DestinationManyRelationFilter
   status: TripStatusTypeNullableFilter
+  cancelReason: StringFilter
+  cancelledAt: DateTimeNullableFilter
   travelers: TravelerManyRelationFilter
   proposals: ProposalManyRelationFilter
   components: TripComponentManyRelationFilter
@@ -1488,6 +1492,8 @@ input TripOrderByInput {
   endDate: OrderDirection
   tripNumber: OrderDirection
   status: OrderDirection
+  cancelReason: OrderDirection
+  cancelledAt: OrderDirection
   itineraryToken: OrderDirection
   currencyCode: OrderDirection
   createdAt: OrderDirection
@@ -1505,6 +1511,8 @@ input TripUpdateInput {
   inquiry: InquiryRelateToOneForUpdateInput
   destinations: DestinationRelateToManyForUpdateInput
   status: TripStatusType
+  cancelReason: String
+  cancelledAt: DateTime
   travelers: TravelerRelateToManyForUpdateInput
   proposals: ProposalRelateToManyForUpdateInput
   components: TripComponentRelateToManyForUpdateInput
@@ -1587,6 +1595,8 @@ input TripCreateInput {
   inquiry: InquiryRelateToOneForCreateInput
   destinations: DestinationRelateToManyForCreateInput
   status: TripStatusType
+  cancelReason: String
+  cancelledAt: DateTime
   travelers: TravelerRelateToManyForCreateInput
   proposals: ProposalRelateToManyForCreateInput
   components: TripComponentRelateToManyForCreateInput
@@ -5316,6 +5326,7 @@ type Mutation {
   payAdvisorCommission(input: TravelJSON!): TravelJSON
   writeOffCommission(input: TravelJSON!): TravelJSON
   shareItinerary(input: TravelJSON!): TravelJSON
+  cancelTrip(input: TravelJSON!): TravelJSON
   transitionTrip(input: TravelJSON!): TravelJSON
   sweepTripDates(input: TravelJSON!): TravelJSON
   submitInquiry(input: TravelJSON!): TravelJSON

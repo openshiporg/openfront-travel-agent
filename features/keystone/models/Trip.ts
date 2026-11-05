@@ -27,6 +27,8 @@ export const Trip = list({
     inquiry: relationship({ ref: "Inquiry.trips", many: false }),
     destinations: relationship({ ref: "Destination.trips", many: true }),
     status: state(["planning", "proposal_sent", "accepted", "booked", "final_payment_due", "paid_in_full", "traveling", "completed", "cancelled"]),
+    cancelReason: text({ access: { create: () => false, update: () => false } }),
+    cancelledAt: timestamp({ access: { create: () => false, update: () => false } }),
     travelers: relationship({ ref: "Traveler.trips", many: true }),
     proposals: relationship({ ref: "Proposal.trip", many: true }),
     components: relationship({ ref: "TripComponent.trip", many: true }),

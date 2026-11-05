@@ -210,6 +210,8 @@ model Trip {
   inquiryId        String?            @map("inquiry")
   destinations     Destination[]      @relation("Destination_trips")
   status           TripStatusType?    @default(planning)
+  cancelReason     String             @default("")
+  cancelledAt      DateTime?
   travelers        Traveler[]         @relation("Traveler_trips")
   proposals        Proposal[]         @relation("Proposal_trip")
   components       TripComponent[]    @relation("TripComponent_trip")
