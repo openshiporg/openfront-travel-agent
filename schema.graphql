@@ -3650,6 +3650,7 @@ type AdvisorCommissionLedger {
 enum AdvisorCommissionLedgerEntryTypeType {
   allocation
   reversal
+  payout
 }
 
 input AdvisorCommissionLedgerWhereUniqueInput {
@@ -5299,6 +5300,7 @@ type Mutation {
   duplicateTrip(input: TravelJSON!): TravelJSON
   exportCommissionForecast(input: TravelJSON!): TravelJSON
   setSupplierDue(input: TravelJSON!): TravelJSON
+  addTripComponent(input: TravelJSON!): TravelJSON
   holdComponent(input: TravelJSON!): TravelJSON
   bookComponent(input: TravelJSON!): TravelJSON
   generatePaymentSchedule(input: TravelJSON!): TravelJSON
@@ -5311,6 +5313,7 @@ type Mutation {
   cancelComponent(input: TravelJSON!): TravelJSON
   refundClientPayment(input: TravelJSON!): TravelJSON
   claimCommission(input: TravelJSON!): TravelJSON
+  payAdvisorCommission(input: TravelJSON!): TravelJSON
   writeOffCommission(input: TravelJSON!): TravelJSON
   shareItinerary(input: TravelJSON!): TravelJSON
   transitionTrip(input: TravelJSON!): TravelJSON

@@ -1007,6 +1007,7 @@ enum ClientFundsEntryEntryTypeType {
 enum AdvisorCommissionLedgerEntryTypeType {
   allocation
   reversal
+  payout
 }
 
 enum DocumentKindType {

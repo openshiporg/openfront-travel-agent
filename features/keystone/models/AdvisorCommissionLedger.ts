@@ -9,7 +9,7 @@ export const AdvisorCommissionLedger = list({
     reason: text(),
     amountCents: cents(),
     occurredAt: timestamp(),
-    entryType: state(["allocation", "reversal"]),
+    entryType: state(["allocation", "reversal", "payout"]),
     advisor: relationship({ ref: "User.commissionLedger", many: false }),
     component: relationship({ ref: "TripComponent.advisorLedger", many: false }),
     reverses: relationship({ ref: "AdvisorCommissionLedger.reversedBy", many: false }),

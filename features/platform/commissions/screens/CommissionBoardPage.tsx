@@ -23,10 +23,10 @@ export async function CommissionBoardPage({ searchParams }: { searchParams: Prom
     managerApprovals(where: { status: { equals: approved }, actionType: { equals: commission_writeoff } }, take: 100) { id targetId amountCents requestedBy { id } }
     me: authenticatedItem { ... on User { id } }
     forecast: tripComponents(where: { bookingStatus: { in: [booked, ticketed] }, commissionCents: { gt: 0 } }, take: 5000) { id title bookingStatus commissionStatus commissionCents currencyCode startAt endAt supplier { id name commissionPaymentTermsDays } trip { title } allocations { amountCents } }
-    advisorCommissionLedgers(take: 500) { amountCents advisor { id name } }
+    advisorCommissionLedgers(where: { currencyCode: { equals: "USD" } }, take: 5000) { amountCents entryType advisor { id name } }
   }`)
-  const payouts = new Map<string, { name: string; total: number }>()
-  for (const e of d.advisorCommissionLedgers) { const p = payouts.get(e.advisor.id) || { name: e.advisor.name, total: 0 }; p.total += e.amountCents; payouts.set(e.advisor.id, p) }
+  const payouts = new Map<string, { id: string; name: string; total: number; paid: number }>()
+  for (const e of d.advisorCommissionLedgers) { const p = payouts.get(e.advisor.id) || { id: e.advisor.id, name: e.advisor.name, total: 0, paid: 0 }; p.total += e.amountCents; if (e.entryType === 'payout') p.paid -= e.amountCents; payouts.set(e.advisor.id, p) }
   const openComponents = d.open.map((c: any) => ({ id: c.id, title: c.title, tripTitle: c.trip?.title || '', supplierId: c.supplier.id, supplierName: c.supplier.name, currencyCode: c.currencyCode, remainingCents: c.commissionCents - c.allocations.reduce((n: number, a: any) => n + a.amountCents, 0) })).filter((c: any) => c.remainingCents > 0)
   const fc = commissionForecast(d.forecast)
   const cur = (r: { currencyCode: string }) => r.currencyCode
@@ -49,7 +49,7 @@ export async function CommissionBoardPage({ searchParams }: { searchParams: Prom
       })}</RowList> : <Empty>Nothing in this status</Empty>}</Panel>
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="Recent receipts">{d.commissionReceipts.length ? <RowList>{d.commissionReceipts.map((r: any) => <Row key={r.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{r.supplier?.name}</p><p className="truncate text-xs text-muted-foreground">{joinParts([r.reference, r.receivedAt ? day(r.receivedAt) : '', r.allocations.map((a: any) => a.component?.title).filter(Boolean).join(', ')])}</p></div><span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span></Row>)}</RowList> : <Empty>No receipts</Empty>}</Panel>
-        <Panel title="Advisor payouts">{payouts.size ? <RowList>{[...payouts.values()].map((p) => <Row key={p.name}><span className="text-sm font-medium">{p.name}</span><span className="text-sm">{money(p.total)}</span></Row>)}</RowList> : <Empty>No advisor ledger entries</Empty>}</Panel>
+        <Panel title="Advisor payouts">{payouts.size ? <RowList>{[...payouts.values()].map((p) => <Row key={p.id}><div className="min-w-0"><p className="truncate text-sm font-medium">{p.name}</p><p className="truncate text-xs text-muted-foreground">{money(p.paid)} paid out</p></div><div className="flex flex-wrap items-center gap-2"><span className="text-sm">{money(p.total)} owed</span>{p.total > 0 ? <EntryDialog title={`Pay ${p.name}`} trigger="Record payout" operator="payAdvisorCommission" base={{ advisorId: p.id, currencyCode: 'USD' }} fields={[{ name: 'amountCents', label: `Amount (up to ${money(p.total)})`, kind: 'money', initial: (p.total / 100).toFixed(2) }, { name: 'reference', label: 'Payout reference (check or transfer)' }]} /> : null}</div></Row>)}</RowList> : <Empty>No advisor ledger entries</Empty>}</Panel>
       </div>
     </PlatformPage>
   )

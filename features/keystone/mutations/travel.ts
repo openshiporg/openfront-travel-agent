@@ -405,7 +405,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const settings=await tx.agencySettings.findFirst();const receipt=await tx.commissionReceipt.create({data:{supplierId:input.supplierId,amountCents:input.amountCents,receivedAt:new Date(),reference:input.reference,currencyCode:input.currencyCode||'USD'}});
  for(const a of [...input.allocations].sort((a:any,b:any)=>a.componentId.localeCompare(b.componentId))){integerMoney(a.amountCents);const c=await tx.tripComponent.findUnique({where:{id:a.componentId}});if(!c||c.supplierId!==input.supplierId||c.currencyCode!==(input.currencyCode||'USD'))throw new Error('Allocation supplier/currency mismatch');if(c.commissionStatus==='written_off')throw new Error(`${c.title}: commission was written off`);const t=await trip(tx,c.tripId);const prior=await tx.commissionAllocation.aggregate({where:{componentId:c.id},_sum:{amountCents:true}});const collected=(prior._sum.amountCents||0)+a.amountCents;const over=overpaymentCents(c.commissionCents,prior._sum.amountCents||0,a.amountCents);if(over>0)await consumeManagerApproval(tx,{approvalId:a.approvalId,actorId:context.session.itemId,actionType:'commission_overpayment',targetId:c.id,amountCents:over,reason:String(a.reason||''),entityType:'TripComponent',entityId:c.id});
  await tx.commissionAllocation.create({data:{receiptId:receipt.id,componentId:c.id,amountCents:a.amountCents,overpaymentCents:over,approvalId:over>0?a.approvalId:null,currencyCode:c.currencyCode}});await tx.tripComponent.update({where:{id:c.id},data:{commissionStatus:collected>=c.commissionCents?'received':'short_paid'}});
- const split=advisorSplit(a.amountCents,settings?.hostAgencySplitBps||0);await tx.advisorCommissionLedger.create({data:{advisorId:t.advisorId,componentId:c.id,entryType:'allocation',amountCents:split.advisorCents,currencyCode:c.currencyCode,reference:receipt.id,occurredAt:new Date()}});
+ const split=advisorSplit(a.amountCents,settings?.hostAgencySplitBps||0);await lockTransactionKey(tx,`advisor-ledger:${t.advisorId}:${c.currencyCode}`);await tx.advisorCommissionLedger.create({data:{advisorId:t.advisorId,componentId:c.id,entryType:'allocation',amountCents:split.advisorCents,currencyCode:c.currencyCode,reference:receipt.id,occurredAt:new Date()}});
  if(over>0)await audit(tx,context,'overpayment','TripComponent',c.id,null,{overpaymentCents:over,approvalId:a.approvalId});
  if(collected<c.commissionCents)await tx.task.upsert({where:{taskKey:`short-paid:${c.id}`},update:{status:'open'},create:{taskKey:`short-paid:${c.id}`,tripId:t.id,assigneeId:t.advisorId,title:`Commission short-paid: ${c.title}`,type:'commission_overdue',status:'open',dueAt:new Date()}});
  }await audit(tx,context,'receive','CommissionReceipt',receipt.id,null,{amountCents:input.amountCents});return {id:receipt.id};
@@ -443,6 +443,16 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
   const moved=await tx.tripComponent.updateMany({where:{id,commissionStatus:'expected'},data:{commissionStatus:'invoiced',commissionClaimedAt:at,commissionClaimReference:reference}});if(moved.count!==1)throw new Error('Component changed concurrently');
   total+=c.commissionCents;await audit(tx,context,'claim_commission','TripComponent',id,{commissionStatus:'expected'},{commissionStatus:'invoiced',reference,commissionCents:c.commissionCents});}
  return {count:ids.length,totalCents:total,reference};
+ }),
+ /** Pay an advisor their commission share: a negative ledger entry, never more than they are owed in that currency. */
+ payAdvisorCommission:(context,input)=>command(context,'payAdvisorCommission',input,'canManagePayments',async tx=>{
+ const advisorId=String(input.advisorId||'');const currencyCode=String(input.currencyCode||'USD');if(!/^[A-Z]{3}$/.test(currencyCode))throw new Error('Valid currency required');
+ await lockTransactionKey(tx,`advisor-ledger:${advisorId}:${currencyCode}`);
+ const advisor=await tx.user.findUnique({where:{id:advisorId},select:{id:true,name:true}});if(!advisor)throw new Error('Advisor not found');
+ const reference=requiredText(input.reference,'Payout reference',1,80);
+ const entries=await tx.advisorCommissionLedger.findMany({where:{advisorId,currencyCode},select:{amountCents:true}});const owed=advisorOwed(entries);const amount=assertPayout(input.amountCents,owed);
+ const row=await tx.advisorCommissionLedger.create({data:{advisorId,entryType:'payout',amountCents:-amount,currencyCode,reference,reason:'Commission payout',occurredAt:new Date()}});
+ await audit(tx,context,'pay_advisor','AdvisorCommissionLedger',row.id,{owedCents:owed},{paidCents:amount,owedCents:owed-amount,reference,advisorId});return {id:row.id,paidCents:amount,owedCents:owed-amount};
  }),
  writeOffCommission:(context,input)=>command(context,'writeOffCommission',input,'canManageCommissions',async tx=>{
  if(!String(input.reason||'').trim())throw new Error('Reason required');
