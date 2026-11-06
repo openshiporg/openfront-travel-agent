@@ -3,6 +3,7 @@ import {permissions} from '../access';
 import {commissionCents,advisorSplit} from '../lib/travel-money';
 import {guardKeystonePrismaResults} from '../lib/prisma-result';
 import seed from '../../platform/onboarding/lib/seed.json';
+import { DEFAULT_STORE_LOGO_COLOR, DEFAULT_STORE_LOGO_ICON } from '../../platform/store-settings/lib/store-logo';
 
 type Template='full'|'minimal';
 const DAY=86400000;
@@ -31,7 +32,9 @@ export async function ensureTravelOnboardingPhase(context:any,{phase,template}:{
   if(phase==='agency'){
     const existing=await db.agencySettings.findFirst();const a=s.agency;
     const data={name:a.name,address:a.address,email:a.email,phone:a.phone,defaultPlanningFeeCents:a.defaultPlanningFeeCents,refundApprovalThresholdCents:a.refundApprovalThresholdCents,hostAgencySplitBps:a.hostAgencySplitBps,currencyCode:a.currencyCode};
-    if(existing)await db.agencySettings.update({where:{id:existing.id},data});else await db.agencySettings.create({data});count=1;
+    // As in E-commerce onboarding: the store always gets a registry logo and hue; seed values win when present.
+    const logo={logoIcon:a.logoIcon||DEFAULT_STORE_LOGO_ICON,logoColor:a.logoColor||DEFAULT_STORE_LOGO_COLOR};
+    if(existing)await db.agencySettings.update({where:{id:existing.id},data:existing.logoIcon?data:{...data,...logo}});else await db.agencySettings.create({data:{...data,...logo}});count=1;
   }
   if(phase==='advisors'){
     const roles:Record<string,string>={};

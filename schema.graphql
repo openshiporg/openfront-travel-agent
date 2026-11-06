@@ -3977,6 +3977,8 @@ type AgencySettings {
   refundApprovalThresholdCents: Int
   hostAgencySplitBps: Int
   currencyCode: String
+  logoIcon: String
+  logoColor: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -3998,6 +4000,8 @@ input AgencySettingsWhereInput {
   refundApprovalThresholdCents: IntNullableFilter
   hostAgencySplitBps: IntNullableFilter
   currencyCode: StringFilter
+  logoIcon: StringFilter
+  logoColor: StringFilter
   createdAt: DateTimeFilter
   updatedAt: DateTimeFilter
 }
@@ -4012,6 +4016,8 @@ input AgencySettingsOrderByInput {
   refundApprovalThresholdCents: OrderDirection
   hostAgencySplitBps: OrderDirection
   currencyCode: OrderDirection
+  logoIcon: OrderDirection
+  logoColor: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
 }
@@ -4025,6 +4031,8 @@ input AgencySettingsUpdateInput {
   refundApprovalThresholdCents: Int
   hostAgencySplitBps: Int
   currencyCode: String
+  logoIcon: String
+  logoColor: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -4043,6 +4051,8 @@ input AgencySettingsCreateInput {
   refundApprovalThresholdCents: Int
   hostAgencySplitBps: Int
   currencyCode: String
+  logoIcon: String
+  logoColor: String
   createdAt: DateTime
   updatedAt: DateTime
 }
@@ -5499,6 +5509,7 @@ type Query {
   publicDestination(slug: String!): TravelJSON
   viewInvoice(token: String!): TravelJSON
   lookupBooking(email: String!, code: String!): TravelJSON
+  storeLogo: StoreLogo!
 }
 
 union AuthenticatedItem = User
@@ -5640,3 +5651,8 @@ enum KeystoneAdminUISortDirection {
 }
 
 scalar TravelJSON
+
+type StoreLogo {
+  logoIcon: String!
+  logoColor: String!
+}

@@ -1,4 +1,4 @@
-import { ShieldCheck, LayoutDashboard, Inbox, Plane, Percent, Users, Building2, FileText, ListChecks, CreditCard, Settings, LucideIcon } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, Inbox, Plane, Percent, Users, Building2, FileText, ListChecks, CreditCard, Settings, LucideIcon, Store } from 'lucide-react'
 
 export interface PlatformNavItem {
   title: string
@@ -30,6 +30,7 @@ export const platformNavItems: PlatformNavItem[] = [
 
   { title: 'Payment Providers', href: '/platform/payment-providers', color: 'slate', description: 'Configure payment gateways.',                         icon: CreditCard, group: 'configuration' },
   { title: 'Settings',          href: '/platform/settings',          color: 'slate', description: 'Agency details, planning fee and host-agency split.', icon: Settings,   group: 'configuration' },
+  { title: 'Store',          href: '/platform/store',          color: 'slate', description: 'Configure store settings, logo, and branding.', icon: Store,   group: 'configuration' },
 ]
 
 export const platformStandaloneItems = platformNavItems.filter((item) => item.group === 'standalone')

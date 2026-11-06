@@ -1,6 +1,7 @@
 import { mergeSchemas } from "@graphql-tools/schema";
 import type { GraphQLSchema } from 'graphql';
 import redirectToInit from "./redirectToInit";
+import { storeLogoTypeDefs, storeLogo } from "./storeLogo";
 import {ensureTravelOnboardingPhase,setOnboardingStatus} from './onboarding';
 import {requestManagerApproval,decideManagerApproval} from '../utils/managerApproval';
 import {operators,submitInquiry,viewProposal,acceptProposal,viewItinerary,viewTripPortal,payInvoice,confirmInvoicePayment,publicDestinations,publicDestination,viewInvoice,lookupBooking} from './travel';
@@ -35,10 +36,10 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         payInvoice(token:String!,idempotencyKey:String!): TravelJSON
         confirmInvoicePayment(token:String!,paymentIntentId:String!): TravelJSON
       }
-    `,
+    ` + storeLogoTypeDefs,
     resolvers: {
       TravelJSON: GraphQLJSON,
-      Query: {redirectToInit,viewProposal,viewItinerary,viewTripPortal,publicDestinations,publicDestination,viewInvoice,lookupBooking},
+      Query: {storeLogo, redirectToInit,viewProposal,viewItinerary,viewTripPortal,publicDestinations,publicDestination,viewInvoice,lookupBooking},
       Mutation: {requestManagerApproval,decideManagerApproval,ensureTravelOnboardingPhase:(_r:any,a:any,c:any)=>ensureTravelOnboardingPhase(c,a),setOnboardingStatus,...Object.fromEntries(Object.entries(operators).map(([name,handler])=>[name,(_root:any,{input}:any,context:any)=>handler(context,input)])),submitInquiry,acceptProposal,payInvoice,confirmInvoicePayment},
     },
   });
