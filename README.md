@@ -2,7 +2,7 @@
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fopenshiporg%2Fopenfront-travel-agent&env=DATABASE_URL%2CSESSION_SECRET%2CS3_BUCKET_NAME%2CS3_REGION%2CS3_ENDPOINT%2CS3_ACCESS_KEY_ID%2CS3_SECRET_ACCESS_KEY)
 
-<!-- railway-button -->
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/openfront-travel-agent)
 
 Openfront Travel Agent is a self-hostable back office and client site for independent travel advisors and small host agencies. Advisors turn inquiries into proposals, book supplier components (hotels, cruises, tours, air, transfers, insurance), invoice and collect client payments, and track supplier commission through to receipt.
 
@@ -92,7 +92,7 @@ Destinations, an inquiry form, the tokenised proposal page (choose an option and
 The MCP transport at `/api/mcp-transport/mcp` runs as the signed-in user (cookie or MCP OAuth token). Besides the generic schema tools, `travelOperation` calls the operator mutations above, so the same rules, audit and idempotency apply.
 
 ### Not included
-Live air booking (GDS), supplier APIs, card authorisation forms, accounting sync, e-signature (acceptance records a name and timestamp), a Stripe webhook route (payments are confirmed by checking the payment intent with Stripe).
+Live air booking (GDS), supplier APIs, card authorisation forms, accounting sync, e-signature (acceptance records a name and timestamp). Stripe events arrive at `/api/integrations/payment/pp_stripe/webhook`; refund events are recorded for operator review.
 
 ## Getting started
 
