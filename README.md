@@ -1,14 +1,29 @@
-# Openfront Travel Agent
+![openfront-travel-agent](.github/logo.svg)
 
-Back office and client pages for an independent advisor or a small host agency that sells bespoke trips built from supplier components (hotels, cruises, tours, air, transfers, insurance) plus the agency's planning fee. It covers the inquiry-to-commission cycle: inquiry, proposal, accepted trip, supplier bookings, client payments, travel, and commission received.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fopenshiporg%2Fopenfront-travel-agent&env=DATABASE_URL%2CSESSION_SECRET%2CS3_BUCKET_NAME%2CS3_REGION%2CS3_ENDPOINT%2CS3_ACCESS_KEY_ID%2CS3_SECRET_ACCESS_KEY)
 
-Built on Next.js and KeystoneJS 6 (from next-keystone-starter) with a PostgreSQL database. Payments use Stripe in test mode by default.
+<!-- railway-button -->
+
+Openfront Travel Agent is a self-hostable back office and client site for independent travel advisors and small host agencies. Advisors turn inquiries into proposals, book supplier components (hotels, cruises, tours, air, transfers, insurance), invoice and collect client payments, and track supplier commission through to receipt.
+
+**Documentation:** [docs.openship.org/docs/openfront/travel-agent](https://docs.openship.org/docs/openfront/travel-agent)
+
+## Live app
+
+| | |
+|---|---|
+| **Storefront** | [travel-agent.openship.org](https://travel-agent.openship.org) |
+| **Dashboard** | [travel-agent.openship.org/dashboard](https://travel-agent.openship.org/dashboard) |
+
+[Learn more →](https://openship.org/products/openfront-travel-agent)
+
+[Documentation →](https://docs.openship.org/docs/openfront/travel-agent/)
 
 ## The Openfront Ecosystem
 
-Every Openfront is open source and self-hostable.
+Every Openfront is open source and self-hostable. Each one runs live at its own address.
 
-| Product | For | Repository | Demo | Docs |
+| Product | For | Repository | Live | Docs |
 |---|---|---|---|---|
 | Openfront E-commerce | Online store: catalog, checkout, orders, fulfillment | [openfront](https://github.com/openshiporg/openfront) | [e-commerce.openship.org](https://e-commerce.openship.org) | [Docs](https://docs.openship.org/docs/openfront/ecommerce) |
 | Openfront Restaurant | Online ordering, POS and kitchen display | [openfront-restaurant](https://github.com/openshiporg/openfront-restaurant) | [restaurant.openship.org](https://restaurant.openship.org) | [Docs](https://docs.openship.org/docs/openfront/restaurant) |
@@ -32,12 +47,12 @@ Every Openfront is open source and self-hostable.
 | Openfront Scheduling | Booking pages for appointment businesses | [openfront-scheduling](https://github.com/openshiporg/openfront-scheduling) | [scheduling.openship.org](https://scheduling.openship.org) | [Docs](https://docs.openship.org/docs/openfront/scheduling) |
 | Openfront Social | Creator community and posts | [openfront-social](https://github.com/openshiporg/openfront-social) | [social.openship.org](https://social.openship.org) | [Docs](https://docs.openship.org/docs/openfront/social) |
 | Openfront Rideshare | Rides, drivers and dispatch | [openfront-rideshare](https://github.com/openshiporg/openfront-rideshare) | [rideshare.openship.org](https://rideshare.openship.org) | [Docs](https://docs.openship.org/docs/openfront/rideshare) |
-| **Openfront Travel Agent** (this repository) | Trip proposals, supplier bookings, client payments and commission tracking | [openfront-travel-agent](https://github.com/openshiporg/openfront-travel-agent) | | |
 | Openfront Airline | Flights, booking and passenger operations | [openfront-airline](https://github.com/openshiporg/openfront-airline) | [airline.openship.org](https://airline.openship.org) | [Docs](https://docs.openship.org/docs/openfront/airline) |
 | Openfront Hospital | Appointments, patients and care teams | [openfront-hospital](https://github.com/openshiporg/openfront-hospital) | [hospital.openship.org](https://hospital.openship.org) | [Docs](https://docs.openship.org/docs/openfront/hospital) |
 | Openfront Sportsbook | Markets, bets and results | [openfront-sportsbook](https://github.com/openshiporg/openfront-sportsbook) | [sportsbook.openship.org](https://sportsbook.openship.org) | [Docs](https://docs.openship.org/docs/openfront/sportsbook) |
 | Openfront Financial | Accounts, portfolios and advisory | [openfront-financial](https://github.com/openshiporg/openfront-financial) | [financial.openship.org](https://financial.openship.org) | [Docs](https://docs.openship.org/docs/openfront/financial) |
 | Openfront Analytics | Privacy-friendly website analytics | [analytics](https://github.com/openshiporg/analytics) | [analytics.openship.org](https://analytics.openship.org) | [Docs](https://docs.openship.org/docs/openfront/analytics) |
+| **Openfront Travel Agent** (this repository) | Trip proposals, supplier bookings, client payments and commissions | [openfront-travel-agent](https://github.com/openshiporg/openfront-travel-agent) | [travel-agent.openship.org](https://travel-agent.openship.org) | [Docs](https://docs.openship.org/docs/openfront/travel-agent) |
 | Openship | Order routing from sales channels to fulfillment | [openship](https://github.com/openshiporg/openship) | [os.openship.org](https://os.openship.org) | [Docs](https://docs.openship.org/docs/openship/ecommerce) |
 | Marketplace | Shop across Openfront stores | [marketplace](https://github.com/openshiporg/marketplace) | [marketplace.openship.org](https://marketplace.openship.org) | [Docs](https://docs.openship.org/docs/openfront/marketplace) |
 
@@ -116,4 +131,3 @@ features/integrations/payment/ Stripe and manual adapters
 app/dashboard/(admin)/platform thin route wrappers
 app/(storefront)/              public routes
 ```
-
