@@ -30,12 +30,35 @@ export async function syncPaymentSchedule(tx: any, t: any) {
     const old = existing.find((s: any) => s.scheduleKey === row.scheduleKey)
     if (old && !['due', 'cancelled'].includes(old.status)) continue
     await tx.paymentSchedule.upsert({ where: { scheduleKey: row.scheduleKey }, update: { amountCents: row.amountCents, dueAt: row.dueAt, status: 'due' }, create: { ...row, currencyCode: t.currencyCode, status: 'due' } })
+    const reopen = old?.status === 'cancelled'
     const dueAt = new Date(new Date(row.dueAt).getTime() - 7 * 86400000)
-    await tx.task.upsert({ where: { taskKey: `reminder:${row.scheduleKey}` }, update: { dueAt }, create: { taskKey: `reminder:${row.scheduleKey}`, tripId: t.id, assigneeId: t.advisorId, title: row.kind, type: row.kind === 'component_final' ? 'final_due' : 'deposit_due', dueAt, status: 'open' } })
+    await tx.task.upsert({ where: { taskKey: `reminder:${row.scheduleKey}` }, update: reopen ? { dueAt, status: 'open', completedAt: null, completionNote: '' } : { dueAt }, create: { taskKey: `reminder:${row.scheduleKey}`, tripId: t.id, assigneeId: t.advisorId, title: row.kind, type: row.kind === 'component_final' ? 'final_due' : 'deposit_due', dueAt, status: 'open' } })
   }
   for (const old of existing.filter((s: any) => s.status === 'due' && !rows.some(r => r.scheduleKey === s.scheduleKey))) {
     await tx.paymentSchedule.update({ where: { id: old.id }, data: { status: 'cancelled' } })
-    await tx.task.updateMany({ where: { taskKey: `reminder:${old.scheduleKey}`, status: 'open' }, data: { status: 'completed' } })
+    await tx.task.updateMany({ where: { taskKey: `reminder:${old.scheduleKey}`, status: 'open' }, data: { status: 'cancelled' } })
   }
   return { count: rows.length }
+}
+
+/** An invoice line of a scheduled kind and amount claims the earliest matching due row (recorded on the line so payment or voiding can find it). */
+export async function matchScheduleRows(tx: any, tripId: string, invoiceId: string, lines: any[]) {
+  const lineRows = await tx.clientInvoiceLine.findMany({ where: { invoiceId } })
+  for (const l of lineRows) {
+    if (!['planning_fee', 'component_deposit', 'component_final'].includes(l.kind)) continue
+    const row = await tx.paymentSchedule.findFirst({ where: { tripId, kind: l.kind, amountCents: l.amountCents, status: 'due' }, orderBy: { dueAt: 'asc' } })
+    if (!row) continue
+    const claimed = await tx.paymentSchedule.updateMany({ where: { id: row.id, status: 'due' }, data: { status: 'invoiced' } })
+    if (claimed.count === 1) await tx.clientInvoiceLine.update({ where: { id: l.id }, data: { snapshot: { ...(l.snapshot || {}), scheduleKey: row.scheduleKey } } })
+  }
+}
+const keysOf = async (tx: any, invoiceId: string) => (await tx.clientInvoiceLine.findMany({ where: { invoiceId }, select: { snapshot: true } })).map((l: any) => l.snapshot?.scheduleKey).filter(Boolean)
+export async function settleScheduleRows(tx: any, invoiceId: string) {
+  const keys = await keysOf(tx, invoiceId); if (!keys.length) return
+  await tx.paymentSchedule.updateMany({ where: { scheduleKey: { in: keys }, status: 'invoiced' }, data: { status: 'paid' } })
+  await tx.task.updateMany({ where: { taskKey: { in: keys.map((k: string) => `reminder:${k}`) }, status: 'open' }, data: { status: 'completed', completedAt: new Date() } })
+}
+export async function releaseScheduleRows(tx: any, invoiceId: string) {
+  const keys = await keysOf(tx, invoiceId); if (!keys.length) return
+  await tx.paymentSchedule.updateMany({ where: { scheduleKey: { in: keys }, status: 'invoiced' }, data: { status: 'due' } })
 }

@@ -6,7 +6,8 @@ function fixture(overrides:any={}){
  const rows:any={payment:null,receipt:null,audit:null,invoice:{id:'invoice',tripId:'trip',currencyCode:'USD',totalCents:1000,collectedCents:0,status:'sent',number:'INV-1',...overrides}}
  const tx:any={
   $queryRaw:async()=>[],paymentSession:{findFirst:async()=>({id:'session',amount:1000,currencyCode:'USD',paymentCollectionId:'collection'}),update:async()=>({})},
-  clientInvoice:{findFirst:async()=>rows.invoice,findUnique:async()=>rows.invoice,update:async({data}:any)=>Object.assign(rows.invoice,data)},
+  clientInvoice:{findFirst:async()=>rows.invoice,findUnique:async()=>rows.invoice,update:async({data}:any)=>Object.assign(rows.invoice,data),updateMany:async({data}:any)=>{Object.assign(rows.invoice,data);return {count:1}}},
+  clientInvoiceLine:{findMany:async()=>[]},paymentSchedule:{updateMany:async()=>({count:0})},task:{updateMany:async()=>({count:0})},
   payment:{findUnique:async()=>rows.payment,create:async({data}:any)=>(rows.payment={id:'payment',...data})},
   clientFundsEntry:{create:async({data}:any)=>(rows.receipt=data)},auditEvent:{create:async({data}:any)=>(rows.audit=data)}
  }

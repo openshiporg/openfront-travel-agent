@@ -1,10 +1,10 @@
 /** Pure rules for the agency's daily workflows: lead pipeline, commission claims, advisor payouts, reservation entry and trip cancellation. */
 
 export const inquiryMoves: Record<string, string[]> = {
-  new: ['qualifying', 'lost'],
+  new: ['qualifying', 'proposal', 'lost'],
   qualifying: ['proposal', 'lost'],
   proposal: ['won', 'lost'],
-  won: [],
+  won: ['lost'],
   lost: ['qualifying'],
 }
 export function assertInquiryMove(current: string, next: string) {

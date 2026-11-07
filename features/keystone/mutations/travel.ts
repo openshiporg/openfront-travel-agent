@@ -14,6 +14,8 @@ import {parsePassportExpiry} from '../lib/passport-check';
 import {commissionForecast,FORECAST_BOOKING} from '../lib/commission-forecast';
 import {toCsv,centsDecimal} from '../lib/csv';
 import {planningAmount,planningDate,componentTerms,syncPaymentSchedule} from '../lib/trip-planning';
+import {assertMove} from '../lib/stateMachines';
+import {matchScheduleRows,settleScheduleRows,releaseScheduleRows} from '../lib/trip-planning';
 import {assertInquiryMove,requiredText,assertClaimable,OPEN_COMMISSION,advisorOwed,assertPayout,componentEntry,tripCancelPlan} from '../lib/agency-workflow';
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperCase()}`;
@@ -56,6 +58,7 @@ async function createInvoice(tx:any,context:any,t:any,lines:any[],dueAt?:any,fix
  const collection=await tx.paymentCollection.create({data:{amount:total,currencyCode:t.currencyCode}});
  const invoice=await tx.clientInvoice.create({data:{tripId:t.id,number:code('INV'),status:'sent',totalCents:total,collectedCents:0,dueAt:dueAt?new Date(dueAt):new Date(),publicToken:hash(token),currencyCode:t.currencyCode,paymentCollectionId:collection.id,...(partyId?{partyId}:{})}});
  for(const l of lines)await tx.clientInvoiceLine.create({data:{invoiceId:invoice.id,description:l.description,amountCents:l.amountCents,unitPriceCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind,currencyCode:t.currencyCode,snapshot:{description:l.description,amountCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind}}});
+ await matchScheduleRows(tx,t.id,invoice.id,lines);
  await audit(tx,context,'invoice','ClientInvoice',invoice.id,null,invoice);return {invoice,token};
 }
 /** Deposit link is derived from the proposal token the client already holds, so a repeated acceptance can return the same link without storing a raw secret. */
@@ -219,7 +222,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await lockTransactionKey(tx,`inquiry:${String(input.inquiryId||'')}`);const inquiry=await tx.inquiry.findUnique({where:{id:String(input.inquiryId||'')}});if(!inquiry)throw new Error('Inquiry not found');if(['won','lost'].includes(inquiry.status))throw new Error(`Inquiry is ${inquiry.status}; reopen it first`);
  let clientId=inquiry.clientId;if(!clientId)clientId=(await tx.client.create({data:{name:inquiry.name,email:inquiry.email,phone:inquiry.phone}})).id;
  const row=await tx.trip.create({data:{tripNumber:code('TR'),title:input.title||inquiry.destinations,clientId,inquiryId:inquiry.id,advisorId:inquiry.assignedAdvisorId||context.session.itemId,startDate:inquiry.travelWindowStart,endDate:inquiry.travelWindowEnd,status:'planning',currencyCode:'USD'}});
- await tx.inquiry.update({where:{id:inquiry.id},data:{clientId,status:'proposal'}});await audit(tx,context,'create','Trip',row.id,null,row);return row;
+ await tx.inquiry.update({where:{id:inquiry.id},data:{clientId,...(['new','qualifying'].includes(inquiry.status)?{status:'proposal'}:{})}});await audit(tx,context,'create','Trip',row.id,null,row);return row;
  }),
  /** Lead pipeline: qualify, lose (with a reason) or reopen an inquiry. Won is set by the accepted proposal on its trip. */
  moveInquiry:(context,input)=>command(context,'moveInquiry',input,'canManageTrips',async tx=>{
@@ -232,7 +235,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await audit(tx,context,'move','Inquiry',id,{status:q.status},{status:next,...(lostReason?{lostReason}:{})});return {id,status:next};
  }),
  buildProposal:(context,input)=>command(context,'buildProposal',input,'canManageTrips',async tx=>{
- await trip(tx,input.tripId);const prior=await tx.proposal.aggregate({where:{tripId:input.tripId},_max:{version:true}});
+ const bt=await trip(tx,input.tripId);if(!['planning','proposal_sent'].includes(bt.status))throw new Error('Proposals can only be built while the trip is being planned or awaiting the client');const prior=await tx.proposal.aggregate({where:{tripId:input.tripId},_max:{version:true}});
  if(!Array.isArray(input.options)||!input.options.length)throw new Error('Proposal options required');
  const p=await tx.proposal.create({data:{tripId:input.tripId,version:(prior._max.version||0)+1,status:'draft',introNote:input.introNote||'',depositBps:depositBpsOf(input.depositBps)}});
  await createProposalOptions(tx,p.id,input.options,input.currencyCode||'USD');
@@ -263,7 +266,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await audit(tx,context,'edit_draft','Proposal',p.id,before,{introNote:input.introNote||'',depositBps:depositBpsOf(input.depositBps),options:input.options});return {id:p.id,version:p.version};
  }),
  sendProposal:(context,input)=>command(context,'sendProposal',input,'canManageTrips',async tx=>{
- const p=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!p||p.status!=='draft')throw new Error('Only draft proposals may be sent');const t=await trip(tx,p.tripId);
+ const p=await tx.proposal.findUnique({where:{id:input.proposalId}});if(!p||p.status!=='draft')throw new Error('Only draft proposals may be sent');const t=await trip(tx,p.tripId);if(!['planning','proposal_sent'].includes(t.status))throw new Error('This trip already accepted a proposal; a new one would double-book it');
  const token=randomBytes(32).toString('base64url');await tx.proposal.updateMany({where:{tripId:p.tripId,status:{in:['sent','viewed']}},data:{status:'superseded'}});
  await tx.proposal.update({where:{id:p.id},data:{status:'sent',sentAt:new Date(),publicToken:hash(token)}});if(t.status==='planning')await transition(tx,context,t,'proposal_sent');
  await audit(tx,context,'send','Proposal',p.id,{status:p.status},{status:'sent'});return {id:p.id,token};
@@ -367,13 +370,14 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  /** Enter a reservation directly on the trip (booked elsewhere or quoted outside a proposal). It starts quoted; hold and book move it on. */
  addTripComponent:(context,input)=>command(context,'addTripComponent',input,'canManageTrips',async tx=>{
  const t=await itineraryTrip(tx,context,String(input.tripId||''));const e=componentEntry(input);
+ if(['paid_in_full','traveling'].includes(t.status)&&e.paymentModel==='agency_collects'&&e.sellCents>0)throw new Error('This trip is paid in full; an agency-collected reservation would reopen the balance. Move the trip back through its payment step first');
  let supplierId:string|null=null;if(input.supplierId){const s=await tx.supplier.findUnique({where:{id:String(input.supplierId)},select:{id:true}});if(!s)throw new Error('Supplier not found');supplierId=s.id;}
  const row=await tx.tripComponent.create({data:{tripId:t.id,supplierId,title:e.title,kind:e.kind,paymentModel:e.paymentModel,sellCents:e.sellCents,netCostCents:e.netCostCents,commissionBps:e.commissionBps,commissionCents:commissionCents(e.sellCents,e.commissionBps),commissionStatus:'expected',bookingStatus:'quoted',startAt:e.startAt,endAt:e.endAt,currencyCode:t.currencyCode,purchaseSnapshot:{title:e.title,sellCents:e.sellCents,netCostCents:e.netCostCents,quantity:1,feesCents:0,taxCents:0,currencyCode:t.currencyCode,source:'direct_entry'}}});
  await audit(tx,context,'add_component','TripComponent',row.id,null,{title:e.title,kind:e.kind,sellCents:e.sellCents,netCostCents:e.netCostCents,commissionBps:e.commissionBps,paymentModel:e.paymentModel,supplierId});return {id:row.id};
  }),
  holdComponent:(context,input)=>command(context,'holdComponent',input,'canManageTrips',async tx=>{
  const c=await tx.tripComponent.findUnique({where:{id:String(input.componentId||'')}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);
- if(!['quoted','held'].includes(c.bookingStatus))throw new Error('Only quoted or held components can be held');
+ if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');if(!['quoted','held'].includes(c.bookingStatus))throw new Error('Only quoted or held components can be held');
  if(!input.holdUntil)throw new Error('Hold expiry date required');const until=planningDate(input.holdUntil);if(!until)throw new Error('Hold expiry date required');if(until.getTime()<Date.now()-86400000)throw new Error('Hold expiry must not be in the past');
  const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'held',holdUntil:until}});
  const dueAt=new Date(until.getTime()-86400000);
@@ -381,7 +385,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await audit(tx,context,'hold','TripComponent',c.id,{bookingStatus:c.bookingStatus,holdUntil:c.holdUntil},{bookingStatus:'held',holdUntil:until.toISOString()});return {id:row.id,holdUntil:until.toISOString()};
  }),
  bookComponent:(context,input)=>command(context,'bookComponent',input,'canManageTrips',async tx=>{
- const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);if(!['quoted','held'].includes(c.bookingStatus))throw new Error('Component cannot be booked');
+ const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c)throw new Error('Component not found');const t=await trip(tx,c.tripId);if(['completed','cancelled'].includes(t.status))throw new Error('Trip is closed');if(!['quoted','held'].includes(c.bookingStatus))throw new Error('Component cannot be booked');
  const confirmation=String(input.confirmationNumber||'').trim();if(!confirmation)throw new Error('Supplier confirmation number required');if(confirmation.length>80)throw new Error('Confirmation number must be 80 characters or fewer');
  integerMoney(input.netCostCents);const commission=commissionCents(c.sellCents,input.commissionBps??c.commissionBps);
  const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'booked',confirmationNumber:confirmation,confirmedAt:new Date(),confirmedById:context.session.itemId,holdUntil:null,netCostCents:input.netCostCents,paymentModel:input.paymentModel||c.paymentModel,commissionBps:input.commissionBps??c.commissionBps,commissionCents:commission,purchaseSnapshot:{title:c.title,sellCents:c.sellCents,netCostCents:input.netCostCents,quantity:1,feesCents:0,taxCents:0,currencyCode:c.currencyCode,commissionCents:commission}}});
@@ -396,11 +400,19 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  if(input.partyId){const party=await tx.tripParty.findUnique({where:{id:String(input.partyId)}});if(!party||party.tripId!==t.id)throw new Error('Party not found in this trip');partyId=party.id;}
  const {invoice,token}=await createInvoice(tx,context,t,input.lines,input.dueAt,undefined,partyId);return {id:invoice.id,number:invoice.number,token,partyId};
  }),
+ /** Withdraw an invoice nobody has paid on (wrong amount, trip changed). Money already collected is refunded, never voided. */
+ voidClientInvoice:(context,input)=>command(context,'voidClientInvoice',input,'canManagePayments',async tx=>{
+ const found=await tx.clientInvoice.findUnique({where:{id:String(input.invoiceId||'')}});if(!found)throw new Error('Invoice not found');await trip(tx,found.tripId);const inv=await tx.clientInvoice.findUnique({where:{id:found.id}});
+ const reason=requiredText(input.reason,'Reason',3,300);if(inv.status==='void')return {id:inv.id,status:'void',alreadyVoid:true};assertMove('clientInvoice',inv.status,'void');if(inv.collectedCents>0)throw new Error('Money was collected on this invoice; refund it instead of voiding');
+ const moved=await tx.clientInvoice.updateMany({where:{id:inv.id,status:inv.status,collectedCents:0},data:{status:'void'}});if(moved.count!==1)throw new Error('Invoice changed concurrently');await releaseScheduleRows(tx,inv.id);
+ await audit(tx,context,'void','ClientInvoice',inv.id,{status:inv.status},{status:'void',reason});return {id:inv.id,status:'void'};
+ }),
  recordClientPayment:(context,input)=>command(context,'recordClientPayment',input,'canManagePayments',async tx=>{
  const invoice=await tx.clientInvoice.findUnique({where:{id:input.invoiceId}});if(!invoice)throw new Error('Invoice not found');await trip(tx,invoice.tripId);integerMoney(input.amountCents);if(input.amountCents<1||invoice.status==='void'||input.amountCents>invoice.totalCents-invoice.collectedCents)throw new Error('Invalid payment amount');
  if(!['check','wire','cash'].includes(input.method))throw new Error('Manual payments require check, wire, or cash evidence');if(!input.reference?.trim())throw new Error('Payment reference required');
  const p=await tx.payment.create({data:{orderId:invoice.id,paymentCollectionId:invoice.paymentCollectionId,amount:input.amountCents,currencyCode:invoice.currencyCode,status:'succeeded',paymentMethod:'cash',idempotencyKey:input.idempotencyKey,notes:`${input.method}: ${input.reference}`,processedAt:new Date(),processedById:context.session.itemId}});
- await tx.clientInvoice.update({where:{id:invoice.id},data:{collectedCents:invoice.collectedCents+input.amountCents,status:invoice.collectedCents+input.amountCents===invoice.totalCents?'paid':'partially_paid'}});
+ if(['draft'].includes(invoice.status))throw new Error('Send the invoice before recording payment');const nextStatus=invoice.collectedCents+input.amountCents===invoice.totalCents?'paid':'partially_paid';assertMove('clientInvoice',invoice.status,nextStatus);
+ const changedInv=await tx.clientInvoice.updateMany({where:{id:invoice.id,status:invoice.status,collectedCents:invoice.collectedCents},data:{collectedCents:invoice.collectedCents+input.amountCents,status:nextStatus}});if(changedInv.count!==1)throw new Error('Invoice changed concurrently');if(nextStatus==='paid')await settleScheduleRows(tx,invoice.id);
  await postFunds(tx,context,{tripId:invoice.tripId,entryType:'receipt',amountCents:input.amountCents,currencyCode:invoice.currencyCode,reference:p.id});await audit(tx,context,'receive','Payment',p.id,null,{amountCents:input.amountCents});return {id:p.id};
  }),
  recordSupplierPayment:(context,input)=>command(context,'recordSupplierPayment',input,'canManagePayments',async tx=>{
@@ -428,8 +440,8 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  }),
  cancelComponent:async(context,input)=>{
   const cancelled=await command(context,'cancelComponent',input,'canManageTrips',async tx=>{
- const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c||c.bookingStatus==='cancelled')throw new Error('Component not cancellable');await trip(tx,c.tripId);const penalty=penaltyCents(c.sellCents,c.startAt||new Date(),new Date(),Array.isArray(c.cancelPenaltySchedule)?c.cancelPenaltySchedule:[]);
- const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'cancelled',holdUntil:null}});await closeHoldTask(tx,c.id);await audit(tx,context,'cancel','TripComponent',c.id,{bookingStatus:c.bookingStatus},{bookingStatus:'cancelled',penaltyCents:penalty});return {id:row.id,penaltyCents:penalty,refundableCents:Math.max(0,c.sellCents-penalty)};
+ const c=await tx.tripComponent.findUnique({where:{id:input.componentId}});if(!c||c.bookingStatus==='cancelled')throw new Error('Component not cancellable');const ct=await trip(tx,c.tripId);if(['completed','cancelled'].includes(ct.status))throw new Error('Trip is closed');const penalty=penaltyCents(c.sellCents,c.startAt||new Date(),new Date(),Array.isArray(c.cancelPenaltySchedule)?c.cancelPenaltySchedule:[]);
+ const row=await tx.tripComponent.update({where:{id:c.id},data:{bookingStatus:'cancelled',holdUntil:null}});await closeHoldTask(tx,c.id);await syncPaymentSchedule(tx,ct);await audit(tx,context,'cancel','TripComponent',c.id,{bookingStatus:c.bookingStatus},{bookingStatus:'cancelled',penaltyCents:penalty});return {id:row.id,penaltyCents:penalty,refundableCents:Math.max(0,c.sellCents-penalty)};
   });
   if(!input.refundCents)return cancelled;
   if(!input.paymentId)throw new Error('A refund needs the payment to refund');
@@ -477,13 +489,17 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const comps=await tx.tripComponent.findMany({where:{tripId:t.id},select:{id:true,title:true,bookingStatus:true}});const plan=tripCancelPlan(comps);
  if(plan.blockers.length)throw new Error(`Cancel the booked components first: ${plan.blockers.join(', ')}`);
  for(const id of plan.release){const before=comps.find((c:any)=>c.id===id);await tx.tripComponent.update({where:{id},data:{bookingStatus:'cancelled',holdUntil:null}});await closeHoldTask(tx,id);await audit(tx,context,'release','TripComponent',id,{bookingStatus:before.bookingStatus},{bookingStatus:'cancelled',reason:'Trip cancelled'});}
+ const open=await tx.clientInvoice.findMany({where:{tripId:t.id,status:{in:['draft','sent']},collectedCents:0},select:{id:true}});
+ for(const i of open){await tx.clientInvoice.updateMany({where:{id:i.id,status:{in:['draft','sent']},collectedCents:0},data:{status:'void'}});await releaseScheduleRows(tx,i.id);}
+ const cancelledSchedule=await tx.paymentSchedule.updateMany({where:{tripId:t.id,status:'due'},data:{status:'cancelled'}});await tx.task.updateMany({where:{tripId:t.id,taskKey:{startsWith:'reminder:'},status:'open'},data:{status:'cancelled'}});
+ if(t.inquiryId){const q=await tx.inquiry.findUnique({where:{id:t.inquiryId}});if(q?.status==='won'&&!(await tx.trip.count({where:{inquiryId:q.id,id:{not:t.id},status:{notIn:['planning','proposal_sent','cancelled']}}}))){await tx.inquiry.update({where:{id:q.id},data:{status:'lost',lostReason:`Trip cancelled: ${reason}`.slice(0,300)}});await audit(tx,context,'move','Inquiry',q.id,{status:'won'},{status:'lost',reason:'Trip cancelled'});}}
  const withdrawn=await tx.proposal.updateMany({where:{tripId:t.id,status:{in:['draft','sent','viewed']}},data:{status:'superseded'}});
  const changed=await tx.trip.updateMany({where:{id:t.id,status:t.status},data:{status:'cancelled',cancelReason:reason,cancelledAt:new Date()}});if(changed.count!==1)throw new Error('Trip changed concurrently');
- await audit(tx,context,'cancel','Trip',t.id,{status:t.status},{status:'cancelled',reason,releasedComponents:plan.release.length,withdrawnProposals:withdrawn.count});
+ await audit(tx,context,'cancel','Trip',t.id,{status:t.status},{status:'cancelled',reason,releasedComponents:plan.release.length,withdrawnProposals:withdrawn.count,voidedInvoices:open.length,cancelledSchedule:cancelledSchedule.count});
  return {id:t.id,status:'cancelled',released:plan.release.length,withdrawnProposals:withdrawn.count};
  }),
  transitionTrip:(context,input)=>command(context,'transitionTrip',input,'canManageTrips',async tx=>{if(input.status==='cancelled')throw new Error('Use Cancel trip, which checks bookings and needs a reason');const t=await trip(tx,input.tripId);await transition(tx,context,t,input.status);return {id:t.id,status:input.status};}),
- sweepTripDates:(context,input)=>command(context,'sweepTripDates',input,'canManageTrips',async tx=>{const rows=await tx.trip.findMany({where:{status:{in:['paid_in_full','traveling']}}});let count=0;for(const row of rows){const t=await trip(tx,row.id);if(t.status==='paid_in_full'&&t.startDate&&t.startDate<=new Date()){await transition(tx,context,t,'traveling');count++;}else if(t.status==='traveling'&&t.endDate&&t.endDate<new Date()){await transition(tx,context,t,'completed');count++;}}return {count};}),
+ sweepTripDates:(context,input)=>command(context,'sweepTripDates',input,'canManageTrips',async tx=>{const rows=await tx.trip.findMany({where:{status:{in:['paid_in_full','traveling']}}});let count=0;for(const row of rows){const t=await trip(tx,row.id);if(t.status==='paid_in_full'&&t.startDate&&t.startDate<=new Date()){await transition(tx,context,t,'traveling');count++;}else if(t.status==='traveling'&&t.endDate&&t.endDate<new Date()){await transition(tx,context,t,'completed');count++;}}const lapsed=await tx.tripComponent.findMany({where:{bookingStatus:'held',holdUntil:{lt:new Date()}},select:{id:true,tripId:true,title:true}});for(const h of lapsed){await trip(tx,h.tripId);const m=await tx.tripComponent.updateMany({where:{id:h.id,bookingStatus:'held',holdUntil:{lt:new Date()}},data:{bookingStatus:'quoted',holdUntil:null}});if(m.count===1){await closeHoldTask(tx,h.id);await audit(tx,context,'hold_lapsed','TripComponent',h.id,{bookingStatus:'held'},{bookingStatus:'quoted'});count++;}}return {count};}),
 };
 export async function submitInquiry(_root:any,{input}:any,context:any){
  if(!input.name?.trim()||!/^\S+@\S+\.\S+$/.test(input.email||''))throw new Error('Name and valid email required');

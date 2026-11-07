@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import { assertInquiryMove, requiredText, assertClaimable, advisorOwed, assertPayout, componentEntry, tripCancelPlan } from './agency-workflow'
 
 test('inquiry pipeline moves forward, can be lost from any open stage, and lost can reopen', () => {
-  assertInquiryMove('new', 'qualifying'); assertInquiryMove('qualifying', 'proposal'); assertInquiryMove('proposal', 'won'); assertInquiryMove('new', 'lost'); assertInquiryMove('lost', 'qualifying')
-  for (const [a, b] of [['new', 'won'], ['won', 'lost'], ['won', 'qualifying'], ['lost', 'won'], ['qualifying', 'new'], ['x', 'new']]) assert.throws(() => assertInquiryMove(a, b), /cannot move/)
+  assertInquiryMove('new', 'qualifying'); assertInquiryMove('qualifying', 'proposal'); assertInquiryMove('proposal', 'won'); assertInquiryMove('new', 'lost'); assertInquiryMove('lost', 'qualifying'); assertInquiryMove('won', 'lost') // trip cancelled after acceptance
+  for (const [a, b] of [['new', 'won'], ['won', 'new'], ['won', 'qualifying'], ['lost', 'won'], ['qualifying', 'new'], ['x', 'new']]) assert.throws(() => assertInquiryMove(a, b), /cannot move/)
 })
 test('required text trims, collapses spaces and enforces bounds', () => {
   assert.equal(requiredText('  Booked   elsewhere ', 'Reason', 3, 300), 'Booked elsewhere')
