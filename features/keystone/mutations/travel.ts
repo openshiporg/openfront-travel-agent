@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql';
+import { constraintRefusal } from '../lib/constraint-errors';
 import {randomBytes,createHash} from 'node:crypto';
 import {parseDecision,parseWaiverNote} from '../lib/insurance-offer';
 import {guardKeystonePrismaResults} from '../lib/prisma-result';
@@ -23,7 +24,7 @@ export async function lockTransactionKey(tx:any,key:string){await tx.$queryRaw`S
 function authorize(context:any,permission:Permission){if(!permissions[permission]({session:context.session}))throw new Error('Not authorized');}
 async function audit(tx:any,context:any,action:string,list:string,id:string,before:any,after:any){await tx.auditEvent.create({data:{actorId:context.session?.itemId||null,action,targetList:list,targetId:id,before:before?JSON.parse(JSON.stringify(before)):undefined,after:after?JSON.parse(JSON.stringify(after)):undefined,requestId:randomBytes(12).toString('hex')}});}
 /** Operator rule violations are written for the advisor; tag them so the dashboard shows them (database/driver text is still filtered client-side). */
-async function userFacing(run:()=>Promise<any>):Promise<any>{try{return await run();}catch(e:any){if(e instanceof GraphQLError)throw e;throw new GraphQLError(String(e?.message||'Request failed'),{extensions:{code:'KS_USER_INPUT_ERROR'}});}}
+async function userFacing(run:()=>Promise<any>):Promise<any>{try{return await run();}catch(e:any){const refusal=constraintRefusal(e);if(refusal)throw new GraphQLError(refusal.message,{extensions:{code:refusal.code}});if(e instanceof GraphQLError)throw e;throw new GraphQLError(String(e?.message||'Request failed'),{extensions:{code:'KS_USER_INPUT_ERROR'}});}}
 async function command(context:any,operation:string,input:any,permission:Permission,run:(tx:any)=>Promise<any>){
  authorize(context,permission);if(!input.idempotencyKey?.trim())throw new Error('Idempotency key required');
  return userFacing(()=>guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{
