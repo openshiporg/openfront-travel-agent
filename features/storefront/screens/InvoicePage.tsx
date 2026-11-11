@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation'
 import { publicRequest } from '../lib/graphql'
 import { dollars, date } from '../lib/format'
 import { PayInvoice } from '../components/PayInvoice'
@@ -6,9 +7,9 @@ import { stripePublishableKey } from '../actions'
 
 export async function InvoicePage({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ payment_intent?: string }> }) {
   const [{ token }, { payment_intent }] = await Promise.all([params, searchParams])
-  let i: any = null, error: string | null = null
-  try { i = (await publicRequest(`query($token: String!) { viewInvoice(token: $token) }`, { token })).viewInvoice } catch (e: any) { error = e.message }
-  if (!i) return <p role="alert" className="text-sm">{error || 'Invoice not found'}</p>
+  let i: any = null
+  try { i = (await publicRequest(`query($token: String!) { viewInvoice(token: $token) }`, { token })).viewInvoice } catch {}
+  if (!i) notFound()
   const due = i.totalCents - i.collectedCents
   return (
     <div className="space-y-4">

@@ -1,11 +1,12 @@
+import { notFound } from 'next/navigation'
 import { publicRequest } from '../lib/graphql'
 import { date } from '../lib/format'
 
 export async function ItineraryPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  let t: any = null, error: string | null = null
-  try { t = (await publicRequest(`query($token: String!) { viewItinerary(token: $token) }`, { token })).viewItinerary } catch (e: any) { error = e.message }
-  if (!t) return <p role="alert" className="text-sm">{error || 'Itinerary not found'}</p>
+  let t: any = null
+  try { t = (await publicRequest(`query($token: String!) { viewItinerary(token: $token) }`, { token })).viewItinerary } catch {}
+  if (!t) notFound()
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">{t.title}</h1>

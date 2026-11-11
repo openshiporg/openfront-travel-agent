@@ -110,8 +110,8 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     suppliers(orderBy: { name: asc }, take: 500) { id name defaultCommissionBps }
   }`, { id })
   const t = d.trip
-  const overdueCount = t.tasks.filter((x: any) => isOverdue(x)).length
   if (!t) notFound()
+  const overdueCount = t.tasks.filter((x: any) => isOverdue(x)).length
   const href = (k: string) => `/dashboard/platform/trips/${id}?tab=${k}`
   const cur = t.currencyCode
   const balance = t.funds.reduce((n: number, f: any) => n + (f.entryType === 'receipt' ? f.amountCents : f.entryType === 'reversal' ? f.amountCents : -f.amountCents), 0)

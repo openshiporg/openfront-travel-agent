@@ -1,12 +1,13 @@
+import { notFound } from 'next/navigation'
 import { publicRequest } from '../lib/graphql'
 import { dollars, date } from '../lib/format'
 
 /** Client portal: read-only itinerary, what is owed and when, and pay links. No traveler details. */
 export async function TripPortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  let t: any = null, error: string | null = null
-  try { t = (await publicRequest(`query($token: String!) { viewTripPortal(token: $token) }`, { token })).viewTripPortal } catch (e: any) { error = e.message }
-  if (!t) return <p role="alert" className="text-sm">{error || 'Trip not found'}</p>
+  let t: any = null
+  try { t = (await publicRequest(`query($token: String!) { viewTripPortal(token: $token) }`, { token })).viewTripPortal } catch {}
+  if (!t) notFound()
   const when = [t.startDate ? date(t.startDate) : '', t.endDate ? date(t.endDate) : ''].filter(Boolean).join(' to ')
   return (
     <div className="space-y-6">
