@@ -7,7 +7,7 @@ export function StatusTabs({ tabs, active, hrefFor }: { tabs: { key: string; lab
       <div className="inline-flex gap-1 rounded-lg bg-muted p-1">
         {tabs.map((tab) => (
           <Link key={tab.key} href={hrefFor(tab.key)} scroll={false}
-            className={`whitespace-nowrap rounded-md px-3 py-1.5 text-sm ${active === tab.key ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`whitespace-nowrap inline-flex min-h-11 min-w-11 items-center justify-center rounded-md px-3 text-sm ${active === tab.key ? 'bg-background font-medium shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
             {tab.label}{typeof tab.count === 'number' ? <span className="ml-1.5 font-mono text-xs text-muted-foreground">{tab.count}</span> : null}
           </Link>
         ))}

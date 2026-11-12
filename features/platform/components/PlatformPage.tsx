@@ -18,7 +18,7 @@ export function PlatformPage({ title, subtitle, crumbs = [], actions, children }
 
 export function Panel({ title, children, action }: { title?: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section className="rounded-lg border bg-background">
+    <section className="min-w-0 rounded-lg border bg-background">
       {title ? <div className="flex items-center justify-between gap-2 border-b px-4 py-3"><h2 className="text-sm font-medium">{title}</h2>{action}</div> : null}
       <div className="p-4">{children}</div>
     </section>

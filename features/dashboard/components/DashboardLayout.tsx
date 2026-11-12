@@ -73,7 +73,7 @@ function FloatingChatButton() {
       data-assistant-floating=""
       className={cn(
         // Phones: hidden when the page header carries the assistant button, so it never covers row ends.
-        "fixed bottom-3 z-40 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 max-md:[body:has([data-assistant-header])_&]:hidden",
+        "fixed bottom-3 z-40 h-12 w-12 rounded-md shadow-lg hover:shadow-xl transition-all duration-300 max-md:[body:has([data-assistant-header])_&]:hidden",
         showChevron
           ? "right-[calc(18rem+1rem)] md:right-[calc(30rem+1rem)] bg-background hover:bg-accent"
           : "right-3"

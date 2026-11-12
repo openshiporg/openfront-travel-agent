@@ -152,7 +152,7 @@ function OnboardingCard({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="absolute -top-1 -right-1.5 z-10">
-          <div className="h-3 w-3 rounded-full bg-blue-700 dark:bg-blue-400 border-blue-200 dark:border-blue-800/50 border-3 animate-pulse" />
+          <div className="h-3 w-3 rounded-full bg-sky-700 dark:bg-sky-400 border-sky-200 dark:border-sky-800/50 border-3 animate-pulse" />
         </div>
         <div className="flex items-start">
           <InfoCardContent className="pt-2 px-2">
@@ -186,7 +186,7 @@ function OnboardingCard({
         )}
       >
         <div className="absolute -top-1 -right-1.5 z-10">
-          <div className="h-3 w-3 rounded-full bg-blue-700 dark:bg-blue-400 border-blue-200 dark:border-blue-800/50 border-3 animate-pulse" />
+          <div className="h-3 w-3 rounded-full bg-sky-700 dark:bg-sky-400 border-sky-200 dark:border-sky-800/50 border-3 animate-pulse" />
         </div>
         <Button
           variant="outline"

@@ -29,7 +29,7 @@ export async function SignInPage({ searchParams }: SignInPageProps) {
             Don&apos;t have an account?
             <Link
               href="/dashboard/signup"
-              className="ml-1 font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
+              className="ml-1 inline-flex min-h-11 items-center font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
             >
               Sign up
             </Link>
@@ -40,7 +40,7 @@ export async function SignInPage({ searchParams }: SignInPageProps) {
           Forgot your password?
           <Link
             href="/dashboard/reset"
-            className="ml-1 font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
+            className="ml-1 inline-flex min-h-11 items-center font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
           >
             Reset password
           </Link>

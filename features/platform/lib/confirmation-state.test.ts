@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { needsConfirmation, daysUntilStart, startsPhrase } from './confirmation-state'
+import { needsConfirmation, daysUntilStart, startsPhrase, holdLapsed } from './confirmation-state'
 
 const now = Date.parse('2026-06-01T12:00:00Z')
 const at = (d: number) => new Date(now + d * 86_400_000).toISOString()
@@ -20,4 +20,11 @@ test('days until start and wording', () => {
   assert.equal(startsPhrase({ startAt: new Date(now + 3600_000).toISOString() }, now), 'starts today')
   assert.equal(startsPhrase({ startAt: at(-2) }, now), 'already started')
   assert.equal(startsPhrase({}, now), '')
+})
+
+test('a hold is lapsed only once its expiry has passed', () => {
+  assert.equal(holdLapsed(at(-1), now), true)
+  assert.equal(holdLapsed(at(1), now), false)
+  assert.equal(holdLapsed(null, now), false)
+  assert.equal(holdLapsed('not a date', now), false)
 })

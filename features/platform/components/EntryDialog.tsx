@@ -33,7 +33,7 @@ export function EntryDialog({ title, trigger, operator, fields, base, lineFields
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-[min(28rem,calc(100vw-2rem))]"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription className="sr-only">{title}</DialogDescription></DialogHeader>
       <div className="space-y-4">{fields.map((f) => <div key={f.name} className="space-y-1"><Label htmlFor={`entry-${operator}-${f.name}`}>{f.label}</Label>
         {f.kind === 'select'
-          ? <select id={`entry-${operator}-${f.name}`} className="h-9 w-full rounded-md border bg-background px-3 text-sm" value={values[f.name]} onChange={(e) => setValues({ ...values, [f.name]: e.target.value })}><option value="">Choose</option>{f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
+          ? <select id={`entry-${operator}-${f.name}`} className="h-11 w-full rounded-md border bg-background px-3 text-sm" value={values[f.name]} onChange={(e) => setValues({ ...values, [f.name]: e.target.value })}><option value="">Choose</option>{f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>
           : <Input id={`entry-${operator}-${f.name}`} type={f.kind === 'date' ? 'date' : 'text'} inputMode={f.kind === 'money' ? 'decimal' : undefined} value={values[f.name]} onChange={(e) => setValues({ ...values, [f.name]: e.target.value })} />}
       </div>)}
         {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}

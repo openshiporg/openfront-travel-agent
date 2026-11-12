@@ -13,6 +13,12 @@ export function daysUntilStart(c: ComponentLike, now = Date.now()): number | nul
   return Number.isFinite(start) ? Math.floor((start - now) / 86_400_000) : null
 }
 
+/** True once a supplier hold's expiry has passed; computed on read. */
+export function holdLapsed(holdUntil: string | null | undefined, now = Date.now()): boolean {
+  const t = holdUntil ? Date.parse(holdUntil) : NaN
+  return Number.isFinite(t) && t < now
+}
+
 /** Plain wording for the alert: "starts in 5 days", "starts tomorrow", "already started". */
 export function startsPhrase(c: ComponentLike, now = Date.now()): string {
   const d = daysUntilStart(c, now)
