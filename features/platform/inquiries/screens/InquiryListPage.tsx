@@ -28,7 +28,7 @@ export async function InquiryListPage({ searchParams }: { searchParams: Promise<
               {i.status === 'lost' && i.lostReason ? <p className="truncate text-xs text-muted-foreground">Lost: {i.lostReason}</p> : null}
             </div>
             <div className="flex flex-wrap items-start gap-2">
-              {i.trips.length ? <a className="text-sm underline" href={`/dashboard/platform/trips/${i.trips[0].id}`}>Open trip</a> : ['new', 'qualifying', 'proposal'].includes(i.status) ? <ActionButton operator="createTripFromInquiry" input={{ inquiryId: i.id }}>Create trip</ActionButton> : null}
+              {i.trips.length ? <a className="inline-flex min-h-11 items-center text-sm underline" href={`/dashboard/platform/trips/${i.trips[0].id}`}>Open trip</a> : ['new', 'qualifying', 'proposal'].includes(i.status) ? <ActionButton operator="createTripFromInquiry" input={{ inquiryId: i.id }}>Create trip</ActionButton> : null}
               {i.status === 'new' ? <ActionButton operator="moveInquiry" input={{ inquiryId: i.id, status: 'qualifying' }}>Qualify</ActionButton> : null}
               {['new', 'qualifying', 'proposal'].includes(i.status) && !i.trips.some((t: any) => !['planning', 'proposal_sent', 'cancelled'].includes(t.status)) ? <EntryDialog title={`Mark lost · ${i.name}`} trigger="Mark lost" operator="moveInquiry" base={{ inquiryId: i.id, status: 'lost' }} fields={[{ name: 'reason', label: 'Why was it lost' }]} /> : null}
               {i.status === 'lost' ? <ActionButton operator="moveInquiry" input={{ inquiryId: i.id, status: 'qualifying' }}>Reopen</ActionButton> : null}
