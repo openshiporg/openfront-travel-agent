@@ -17,7 +17,7 @@ export async function settleInvoicePayment(context:any, observation:{paymentInte
   const key=`stripe:${observation.paymentIntentId}`
   const existing=await tx.payment.findUnique({where:{idempotencyKey:key}})
   if(existing)return {status:'succeeded',invoiceStatus:current.status,paymentId:existing.id,number:current.number}
-  if(current.status==='void'||observation.amount>current.totalCents-current.collectedCents)throw new Error('Payment exceeds remaining invoice balance; reconcile')
+  if(['void','refunded'].includes(current.status)||observation.amount>current.totalCents-current.collectedCents)throw new Error('Payment exceeds remaining invoice balance; reconcile')
   const payment=await tx.payment.create({data:{orderId:current.id,paymentCollectionId:session.paymentCollectionId,amount:session.amount,currencyCode:current.currencyCode,status:'succeeded',idempotencyKey:key,providerPaymentId:observation.paymentIntentId,processedAt:new Date()}})
   const collected=current.collectedCents+session.amount, invoiceStatus=collected===current.totalCents?'paid':'partially_paid'
   assertMove('clientInvoice',current.status,invoiceStatus)

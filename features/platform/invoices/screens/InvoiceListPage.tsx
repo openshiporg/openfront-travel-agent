@@ -4,7 +4,7 @@ import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/Platf
 import { StatusLabel } from '../../components/StatusLabel'
 import { StatusTabs } from '../../components/StatusTabs'
 
-const TABS = ['all', 'sent', 'partially_paid', 'paid', 'void']
+const TABS = ['all', 'sent', 'partially_paid', 'paid', 'refunded', 'void']
 
 export async function InvoiceListPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status = 'all' } = await searchParams

@@ -14,6 +14,8 @@ test('every machine covers exactly the statuses declared on its model',()=>{
 test('the shared maps agree',()=>{assert.deepEqual(MACHINES.trip,tripTransitions);assert.deepEqual(MACHINES.inquiry,inquiryMoves);});
 test('illegal moves found in the audit are refused',()=>{
  assert.equal(canTransition('clientInvoice','paid','void'),false);
+ assert.equal(canTransition('clientInvoice','paid','refunded'),true);
+ assert.equal(canTransition('clientInvoice','refunded','paid'),false);
  assert.equal(canTransition('clientInvoice','partially_paid','void'),false);
  assert.equal(canTransition('componentBooking','cancelled','booked'),false);
  assert.equal(canTransition('proposal','accepted','superseded'),false);

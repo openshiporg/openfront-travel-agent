@@ -2721,6 +2721,7 @@ enum ClientInvoiceStatusType {
   sent
   partially_paid
   paid
+  refunded
   void
 }
 
@@ -5325,6 +5326,7 @@ type Mutation {
   bookComponent(input: TravelJSON!): TravelJSON
   generatePaymentSchedule(input: TravelJSON!): TravelJSON
   issueClientInvoice(input: TravelJSON!): TravelJSON
+  voidClientInvoice(input: TravelJSON!): TravelJSON
   recordClientPayment(input: TravelJSON!): TravelJSON
   recordSupplierPayment(input: TravelJSON!): TravelJSON
   recordCommissionReceipt(input: TravelJSON!): TravelJSON

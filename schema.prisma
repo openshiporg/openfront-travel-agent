@@ -971,6 +971,7 @@ enum ClientInvoiceStatusType {
   sent
   partially_paid
   paid
+  refunded
   void
 }
 

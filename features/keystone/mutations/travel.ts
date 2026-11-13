@@ -83,7 +83,7 @@ async function itineraryTrip(tx:any,context:any,tripId:string){
 }
 async function trip(tx:any,id:string){await lockTransactionKey(tx,`travel-trip:${id}`);const row=await tx.trip.findUnique({where:{id}});if(!row)throw new Error('Trip not found');return row;}
 export async function clientBalanceCents(tx:any,tripId:string){
- const t=await tx.trip.findUnique({where:{id:tripId},include:{components:true,invoices:{where:{status:{not:'void'}}}}});
+ const t=await tx.trip.findUnique({where:{id:tripId},include:{components:true,invoices:{where:{status:{notIn:['void','refunded']}}}}});
  const collectible=t.components.filter((c:any)=>c.bookingStatus!=='cancelled'&&c.paymentModel==='agency_collects').reduce((n:number,c:any)=>n+c.sellCents,t.planningFeeCents);
  return collectible-t.invoices.reduce((n:number,i:any)=>n+i.collectedCents,0);
 }
@@ -136,6 +136,10 @@ export async function refundClientPayment(context:any,input:any){
   if(moved.count!==1||final!=='succeeded')return {refundId:refund.id,status:final,amountCents:refund.amount};
   const p=await tx.payment.update({where:{id:pay.id},data:{refundedAmount:{increment:refund.amount}}});
   await tx.payment.update({where:{id:pay.id},data:{status:p.refundedAmount>=p.amount?'refunded':'partially_refunded'}});
+  // A fully refunded invoice is refunded, not paid: no payment on it keeps money the client has not been given back.
+  const inv=await tx.clientInvoice.findUnique({where:{id:pay.orderId}});
+  if(inv&&['paid','partially_paid'].includes(inv.status)){const all=await tx.payment.findMany({where:{orderId:inv.id,status:{in:['succeeded','partially_refunded','refunded']}},select:{amount:true,refundedAmount:true}});
+   if(all.length&&all.every((x:any)=>x.refundedAmount>=x.amount)){assertMove('clientInvoice',inv.status,'refunded');await tx.clientInvoice.updateMany({where:{id:inv.id,status:inv.status},data:{status:'refunded'}});}}
   const entry=await postFunds(tx,context,{tripId:pay.order.tripId,componentId:input.componentId||null,entryType:'refund_to_client',amountCents:refund.amount,currencyCode:pay.currencyCode,reference:refund.id,reason,entryKey:`refund:${refund.id}`});
   await audit(tx,context,'refund','Payment',pay.id,{refundedAmount:pay.refundedAmount},{refundedAmount:p.refundedAmount,refundId:refund.id,fundsEntryId:entry.id,reason});
   return {refundId:refund.id,status:'succeeded',amountCents:refund.amount};
@@ -398,6 +402,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  }),
  issueClientInvoice:(context,input)=>command(context,'issueClientInvoice',input,'canManagePayments',async tx=>{
  const t=await trip(tx,input.tripId);let partyId:string|null=null;
+ if(t.status==='cancelled')throw new Error('Trip is cancelled; invoices cannot be issued');
  if(input.partyId){const party=await tx.tripParty.findUnique({where:{id:String(input.partyId)}});if(!party||party.tripId!==t.id)throw new Error('Party not found in this trip');partyId=party.id;}
  const {invoice,token}=await createInvoice(tx,context,t,input.lines,input.dueAt,undefined,partyId);return {id:invoice.id,number:invoice.number,token,partyId};
  }),
@@ -409,7 +414,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  await audit(tx,context,'void','ClientInvoice',inv.id,{status:inv.status},{status:'void',reason});return {id:inv.id,status:'void'};
  }),
  recordClientPayment:(context,input)=>command(context,'recordClientPayment',input,'canManagePayments',async tx=>{
- const invoice=await tx.clientInvoice.findUnique({where:{id:input.invoiceId}});if(!invoice)throw new Error('Invoice not found');await trip(tx,invoice.tripId);integerMoney(input.amountCents);if(input.amountCents<1||invoice.status==='void'||input.amountCents>invoice.totalCents-invoice.collectedCents)throw new Error('Invalid payment amount');
+ const invoice=await tx.clientInvoice.findUnique({where:{id:input.invoiceId}});if(!invoice)throw new Error('Invoice not found');await trip(tx,invoice.tripId);integerMoney(input.amountCents);if(input.amountCents<1||['void','refunded'].includes(invoice.status)||input.amountCents>invoice.totalCents-invoice.collectedCents)throw new Error('Invalid payment amount');
  if(!['check','wire','cash'].includes(input.method))throw new Error('Manual payments require check, wire, or cash evidence');if(!input.reference?.trim())throw new Error('Payment reference required');
  const p=await tx.payment.create({data:{orderId:invoice.id,paymentCollectionId:invoice.paymentCollectionId,amount:input.amountCents,currencyCode:invoice.currencyCode,status:'succeeded',paymentMethod:'cash',idempotencyKey:input.idempotencyKey,notes:`${input.method}: ${input.reference}`,processedAt:new Date(),processedById:context.session.itemId}});
  if(['draft'].includes(invoice.status))throw new Error('Send the invoice before recording payment');const nextStatus=invoice.collectedCents+input.amountCents===invoice.totalCents?'paid':'partially_paid';assertMove('clientInvoice',invoice.status,nextStatus);
@@ -543,10 +548,15 @@ async function findInvoiceByToken(db:any,token:string,extra:any={}){
  if(m){const t=await tripByPortalToken(db,m[2]);if(!t)return null;return db.clientInvoice.findFirst({where:{id:m[1],tripId:t.id,partyId:(t as any).partyId??null},...extra});}
  return db.clientInvoice.findFirst({where:{publicToken:hash(token)},...extra});
 }
-async function invoiceForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Invoice not found');const i=await findInvoiceByToken(context.prisma,token);if(!i||['void','paid'].includes(i.status))throw new Error('Invoice not payable');return i;}
+async function invoiceForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Invoice not found');const i=await findInvoiceByToken(context.prisma,token);if(!i||['void','paid','refunded'].includes(i.status))throw new Error('Invoice not payable');
+ const tr=await context.prisma.trip.findUnique({where:{id:i.tripId},select:{status:true}});if(tr?.status==='cancelled')throw new Error('Trip is cancelled; this invoice cannot be paid');return i;}
 export async function payInvoice(_root:any,{token,idempotencyKey}:any,context:any){
  const {createPayment}=await import('../utils/paymentProviderAdapter');const inv=await invoiceForToken(context,token);if(!idempotencyKey)throw new Error('Idempotency key required');
- const amount=inv.totalCents-inv.collectedCents;const existing=await context.prisma.paymentSession.findUnique({where:{idempotencyKey:`inv:${inv.id}:${idempotencyKey}`}});
+ const amount=inv.totalCents-inv.collectedCents;
+ // Reuse the open payment attempt for this invoice and amount instead of creating a new intent on every page load.
+ const open=await context.prisma.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,isSelected:true,amount},orderBy:{createdAt:'desc'}});
+ if(open&&(open.data as any)?.clientSecret)return {clientSecret:(open.data as any).clientSecret,paymentIntentId:(open.data as any).paymentIntentId,amountCents:open.amount};
+ const existing=await context.prisma.paymentSession.findUnique({where:{idempotencyKey:`inv:${inv.id}:${idempotencyKey}`}});
  if(existing)return {clientSecret:(existing.data as any).clientSecret,paymentIntentId:(existing.data as any).paymentIntentId,amountCents:existing.amount};
  const intent=await createPayment({provider:stripeProvider,order:{id:inv.id,orderNumber:inv.number},amount,currency:inv.currencyCode,idempotencyKey:`inv:${inv.id}:${idempotencyKey}`});
  await context.prisma.paymentSession.create({data:{amount,currencyCode:inv.currencyCode,idempotencyKey:`inv:${inv.id}:${idempotencyKey}`,paymentCollectionId:inv.paymentCollectionId,isSelected:true,isInitiated:true,data:{clientSecret:intent.clientSecret,paymentIntentId:intent.paymentIntentId}}});
@@ -568,7 +578,7 @@ export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:an
 const DESTINATION_SELECT={name:true,slug:true,country:true,specialty:true};
 export async function publicDestinations(_root:any,_args:any,context:any){return guardKeystonePrismaResults(context.prisma as any).destination.findMany({orderBy:{name:'asc'},select:DESTINATION_SELECT,take:100});}
 export async function publicDestination(_root:any,{slug}:any,context:any){if(!/^[a-z0-9-]{1,80}$/.test(slug||''))return null;return guardKeystonePrismaResults(context.prisma as any).destination.findFirst({where:{slug},select:DESTINATION_SELECT});}
-const INVOICE_VIEW={number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,dueAt:true,trip:{select:{title:true,tripNumber:true}},lines:{select:{description:true,amountCents:true,kind:true}}};
+const INVOICE_VIEW={number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,dueAt:true,trip:{select:{title:true,tripNumber:true,status:true}},lines:{select:{description:true,amountCents:true,kind:true}}};
 export async function viewInvoice(_root:any,{token}:any,context:any){
  if(!token||token.length<32)throw new Error('Invoice not found');
  const i=await findInvoiceByToken(guardKeystonePrismaResults(context.prisma as any),token,{select:INVOICE_VIEW});if(!i||i.status==='draft')throw new Error('Invoice not found');return i;
@@ -582,12 +592,12 @@ export async function viewTripPortal(_root:any,{token}:any,context:any){
   schedule:{where:{status:'due'},orderBy:{dueAt:'asc'},select:{dueAt:true}},
   rooms:{where:(ref as any).partyId?{partyId:(ref as any).partyId}:{id:'none'},orderBy:{label:'asc'},select:{label:true,roomType:true,guests:{select:{id:true}}}}}});
  if(!t)throw new Error('Trip not found');
- const open=t.invoices.filter((i:any)=>i.status!=='paid'&&i.totalCents>i.collectedCents);
+ const open=t.invoices.filter((i:any)=>!['paid','refunded'].includes(i.status)&&i.totalCents>i.collectedCents);
  const balanceCents=open.reduce((n:number,i:any)=>n+(i.totalCents-i.collectedCents),0);
  // The payment schedule is trip-wide, so only the whole-trip view may use it; a party's next due date comes from its own invoices.
  const dates=[...open.map((i:any)=>i.dueAt),...((ref as any).partyId?[]:t.schedule.map((s:any)=>s.dueAt))].filter(Boolean).map((d:any)=>new Date(d).getTime());
  return {...((ref as any).partyId?{partyName:(ref as any).partyName,rooms:t.rooms.map((r:any)=>({label:r.label,roomType:r.roomType,guests:r.guests.length}))}:{}),tripNumber:t.tripNumber,title:t.title,status:t.status,startDate:t.startDate,endDate:t.endDate,currencyCode:t.currencyCode,days:t.days,balanceCents,nextDueAt:dates.length?new Date(Math.min(...dates)).toISOString():null,
-  invoices:t.invoices.map((i:any)=>({number:i.number,status:i.status,totalCents:i.totalCents,collectedCents:i.collectedCents,dueAt:i.dueAt,currencyCode:i.currencyCode,payToken:i.status==='paid'?null:`p.${i.id}.${token}`}))};
+  invoices:t.invoices.map((i:any)=>({number:i.number,status:i.status,totalCents:i.totalCents,collectedCents:i.collectedCents,dueAt:i.dueAt,currencyCode:i.currencyCode,payToken:['paid','refunded'].includes(i.status)||t.status==='cancelled'?null:`p.${i.id}.${token}`}))};
 }
 // Customer lookup: both the booking code and the email on file must match; only status data is returned.
 export async function lookupBooking(_root:any,{email,code}:any,context:any){

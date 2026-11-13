@@ -8,7 +8,7 @@ export const MACHINES = {
  // superseded: a newer proposal was sent or the trip was cancelled. declined has no writer yet (clients cannot decline in the portal).
  proposal: {draft:['sent','superseded'],sent:['viewed','accepted','superseded','declined'],viewed:['accepted','superseded','declined'],accepted:[],superseded:[],declined:[]},
  // void only before any money is collected; paid can't be voided (refund instead).
- clientInvoice: {draft:['sent','void'],sent:['partially_paid','paid','void'],partially_paid:['partially_paid','paid'],paid:[],void:[]},
+ clientInvoice: {draft:['sent','void'],sent:['partially_paid','paid','void'],partially_paid:['partially_paid','paid','refunded'],paid:['refunded'],refunded:[],void:[]},
  // invoiced/paid are tracked for the planning fee only; a voided invoice puts the row back to due. cancelled -> due is a re-sync.
  paymentSchedule: {due:['invoiced','paid','cancelled'],invoiced:['paid','due','cancelled'],paid:[],cancelled:['due']},
  componentBooking: {quoted:['held','booked','cancelled'],held:['held','quoted','booked','cancelled'],booked:['ticketed','cancelled'],ticketed:['cancelled'],cancelled:[]},

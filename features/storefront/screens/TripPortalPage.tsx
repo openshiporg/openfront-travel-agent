@@ -26,8 +26,8 @@ export async function TripPortalPage({ params }: { params: Promise<{ token: stri
           <ul className="divide-y text-sm">
             {t.invoices.map((i: any) => (
               <li key={i.number} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className="min-w-0"><span className="block font-mono text-xs uppercase tracking-wide">{i.number}</span><span className="block text-muted-foreground">{i.status === 'paid' ? `${dollars(i.totalCents, i.currencyCode)} received` : `${dollars(i.totalCents - i.collectedCents, i.currencyCode)} due ${date(i.dueAt)}`}</span></span>
-                {i.payToken ? <a className="font-medium underline" href={`/invoice/${i.payToken}`}>Pay {i.number}</a> : <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">Paid</span>}
+                <span className="min-w-0"><span className="block font-mono text-xs uppercase tracking-wide">{i.number}</span><span className="block text-muted-foreground">{i.status === 'paid' ? `${dollars(i.totalCents, i.currencyCode)} received` : i.status === 'refunded' ? `${dollars(i.totalCents, i.currencyCode)} refunded` : `${dollars(i.totalCents - i.collectedCents, i.currencyCode)} due ${date(i.dueAt)}`}</span></span>
+                {i.payToken ? <a className="font-medium underline" href={`/invoice/${i.payToken}`}>Pay {i.number}</a> : <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{i.status === 'refunded' ? 'Refunded' : 'Paid'}</span>}
               </li>
             ))}
           </ul>

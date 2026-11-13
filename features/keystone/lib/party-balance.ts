@@ -1,7 +1,7 @@
 export type PartyInvoice = { id: string; number: string; status: string; totalCents: number; collectedCents: number; dueAt?: string | Date | null; currencyCode: string; partyId?: string | null }
 export type PartyBalance = { partyId: string | null; billedCents: number; paidCents: number; balanceCents: number; nextDueAt: string | null; overdue: boolean; currencyCode: string }
 
-const counts = (i: PartyInvoice) => !['draft', 'void'].includes(i.status)
+const counts = (i: PartyInvoice) => !['draft', 'void', 'refunded'].includes(i.status)
 /** Per-party billed / paid / owed from that party's own invoices only. A party never sees any other party's numbers. */
 export function partyBalance(invoices: PartyInvoice[], partyId: string | null, now = Date.now()): PartyBalance {
   const mine = invoices.filter((i) => counts(i) && (i.partyId ?? null) === partyId)

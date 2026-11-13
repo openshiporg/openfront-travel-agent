@@ -23,7 +23,8 @@ export async function getListByPath(path: string) {
     // Find the list by path
     const rawList = adminMeta.lists.find((l: any) => l.path === path)
     
-    if (!rawList) {
+    // A list hidden from this session is 404, the same as a list that does not exist.
+    if (!rawList || rawList.isHidden) {
       return undefined
     }
 

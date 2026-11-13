@@ -13,7 +13,7 @@ export const ClientInvoice = list({
     trip: relationship({ ref: "Trip.invoices", many: false }),
     party: relationship({ ref: "TripParty.invoices", many: false }),
     lines: relationship({ ref: "ClientInvoiceLine.invoice", many: true }),
-    status: state(["draft", "sent", "partially_paid", "paid", "void"]),
+    status: state(["draft", "sent", "partially_paid", "paid", "refunded", "void"]),
     paymentCollection: relationship({ ref: "PaymentCollection.invoice", many: false }),
     payments: relationship({ ref: "Payment.order", many: true }),
     refunds: relationship({ ref: "Refund.order", many: true }),

@@ -14,6 +14,6 @@ const live=(trip?.components||[]).filter((x:any)=>x.bookingStatus!=="cancelled")
 const sell=live.reduce((n:number,x:any)=>n+x.sellCents,trip?.planningFeeCents||0);
 // The agency only collects the planning fee and agency_collects components; the rest is paid to suppliers directly.
 const collectible=live.filter((x:any)=>x.paymentModel==="agency_collects").reduce((n:number,x:any)=>n+x.sellCents,trip?.planningFeeCents||0);
-const collected=(trip?.invoices||[]).reduce((n:number,x:any)=>n+x.collectedCents,0);
+const collected=(trip?.invoices||[]).filter((x:any)=>x.status!=="refunded").reduce((n:number,x:any)=>n+x.collectedCents,0);
 return kind==="sell"?sell:kind==="collected"?collected:kind==="balance"?Math.max(collectible-collected,0):live.reduce((n:number,x:any)=>n+x.commissionCents,0);
 }})});

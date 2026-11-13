@@ -20,7 +20,7 @@ export async function InvoicePage({ params, searchParams }: { params: Promise<{ 
         <li className="flex justify-between gap-3 p-3 font-medium"><span>Balance</span><span>{dollars(due, i.currencyCode)}</span></li>
       </ul>
       {payment_intent ? <ConfirmPayment token={token} paymentIntentId={payment_intent} /> : null}
-      {i.status === 'paid' ? <div className="space-y-1 rounded-md border p-3 text-sm"><p role="status">Paid in full.</p><p>Confirmation code: <span className="font-mono">{i.number}</span></p><p>Trip code: <span className="font-mono">{i.trip.tripNumber}</span></p></div> : !payment_intent && due > 0 ? <PayInvoice token={token} publishableKey={await stripePublishableKey()} /> : null}
+      {i.status === 'paid' ? <div className="space-y-1 rounded-md border p-3 text-sm"><p role="status">Paid in full.</p><p>Confirmation code: <span className="font-mono">{i.number}</span></p><p>Trip code: <span className="font-mono">{i.trip.tripNumber}</span></p></div> : i.status === 'refunded' ? <div className="rounded-md border p-3 text-sm"><p role="status">This payment was refunded.</p></div> : i.trip.status === 'cancelled' ? <div className="rounded-md border p-3 text-sm"><p role="status">This trip was cancelled, so this invoice can no longer be paid.</p></div> : !payment_intent && due > 0 ? <PayInvoice token={token} publishableKey={await stripePublishableKey()} /> : null}
     </div>
   )
 }
