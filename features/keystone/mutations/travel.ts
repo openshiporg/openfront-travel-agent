@@ -55,7 +55,7 @@ async function partyTravelerIds(tx:any,t:any,raw:any,exceptPartyId?:string){
  return ids;}
 async function createInvoice(tx:any,context:any,t:any,lines:any[],dueAt?:any,fixedToken?:string,partyId?:string|null){
  if(!lines?.length)throw new Error('Invoice lines required');let total=0;
- for(const l of lines){integerMoney(l.amountCents);total+=l.amountCents;}integerMoney(total);const token=fixedToken||randomBytes(32).toString('base64url');
+ for(const l of lines){if(!['planning_fee','component_deposit','component_final','insurance'].includes(l.kind))throw new Error('Choose a line kind: planning fee, component deposit, component final or insurance');integerMoney(l.amountCents);total+=l.amountCents;}integerMoney(total);const token=fixedToken||randomBytes(32).toString('base64url');
  const collection=await tx.paymentCollection.create({data:{amount:total,currencyCode:t.currencyCode}});
  const invoice=await tx.clientInvoice.create({data:{tripId:t.id,number:code('INV'),status:'sent',totalCents:total,collectedCents:0,dueAt:dueAt?new Date(dueAt):new Date(),publicToken:hash(token),currencyCode:t.currencyCode,paymentCollectionId:collection.id,...(partyId?{partyId}:{})}});
  for(const l of lines)await tx.clientInvoiceLine.create({data:{invoiceId:invoice.id,description:l.description,amountCents:l.amountCents,unitPriceCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind,currencyCode:t.currencyCode,snapshot:{description:l.description,amountCents:l.amountCents,quantity:1,feesCents:0,taxCents:0,kind:l.kind}}});
@@ -607,6 +607,6 @@ export async function lookupBooking(_root:any,{email,code}:any,context:any){
  const mail=String(email||'').trim().toLowerCase(),ref=String(code||'').trim().toUpperCase();
  if(!/^\S+@\S+\.\S+$/.test(mail)||!/^(TR|INV)-[A-Z0-9]{16}$/.test(ref))throw new Error('Booking not found');
  const db=guardKeystonePrismaResults(context.prisma as any);
- const trip=await db.trip.findFirst({where:{client:{email:{equals:mail,mode:'insensitive'}},OR:[{tripNumber:ref},{invoices:{some:{number:ref}}}]},select:{tripNumber:true,title:true,status:true,startDate:true,endDate:true,invoices:{select:{number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true}}}});
- if(!trip)throw new Error('Booking not found');return trip;
+ const trip=await db.trip.findFirst({where:{client:{email:{equals:mail,mode:'insensitive'}},OR:[{tripNumber:ref},{invoices:{some:{number:ref}}}]},select:{tripNumber:true,title:true,status:true,startDate:true,endDate:true,invoices:{select:{number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,payments:{select:{refundedAmount:true}}}}}});
+ if(!trip)throw new Error('Booking not found');return {...trip,invoices:trip.invoices.map(({payments,...i}:any)=>({...i,refundedCents:(payments||[]).reduce((n:number,x:any)=>n+(x.refundedAmount||0),0)}))};
 }

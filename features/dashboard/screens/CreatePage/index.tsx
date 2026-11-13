@@ -19,7 +19,8 @@ export async function CreatePage({ params }: CreatePageParams) {
 
   const list = await getListByPath(listKey)
 
-  if (!list) {
+  // Create refused for this session (hideCreate) is 404, like a hidden list.
+  if (!list || list.hideCreate) {
     notFound()
   }
 

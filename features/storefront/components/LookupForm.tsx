@@ -26,7 +26,7 @@ export function LookupForm() {
         <div className="space-y-2 rounded-md border p-3 text-sm">
           <p className="font-medium">{trip.title}</p>
           <p className="font-mono text-xs uppercase tracking-wide">{trip.tripNumber} · {String(trip.status).replace(/_/g, ' ')}</p>
-          <ul>{trip.invoices.map((i: any) => <li key={i.number} className="flex justify-between gap-3"><span className="font-mono">{i.number} · {String(i.status).replace(/_/g, ' ')}</span><span>{dollars(i.collectedCents, i.currencyCode)} of {dollars(i.totalCents, i.currencyCode)}</span></li>)}</ul>
+          <ul>{trip.invoices.map((i: any) => <li key={i.number} className="flex justify-between gap-3"><span className="font-mono">{i.number} · {String(i.status).replace(/_/g, ' ')}</span><span>{dollars(i.collectedCents, i.currencyCode)} of {dollars(i.totalCents, i.currencyCode)}{i.refundedCents > 0 ? ` · ${dollars(i.refundedCents, i.currencyCode)} refunded` : ''}</span></li>)}</ul>
         </div>
       ) : null}
     </div>
