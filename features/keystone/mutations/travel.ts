@@ -1,5 +1,4 @@
 import { GraphQLError } from 'graphql';
-import { GraphQLError } from 'graphql';
 import { constraintRefusal } from '../lib/constraint-errors';
 import {randomBytes,createHash} from 'node:crypto';
 import {parseDecision,parseWaiverNote} from '../lib/insurance-offer';
