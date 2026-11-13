@@ -6,6 +6,7 @@ import { isSignedIn, permissions, rules } from '../access'
 import type { Session } from '../access'
 import { trackingFields } from './trackingFields'
 
+const canSeePay=(a:Parameters<typeof permissions.canReadPayments>[0])=>permissions.canReadPayments(a)||permissions.canManagePayments(a)
 export const User = list({
   access: {
     operation: {
@@ -83,13 +84,13 @@ export const User = list({
     trips: relationship({ref:'Trip.advisor',many:true}),
     insuranceOffers: relationship({ref:'InsuranceOffer.recordedBy',many:true}),
     inquiries: relationship({ref:'Inquiry.assignedAdvisor',many:true}),
-    commissionLedger: relationship({ref:'AdvisorCommissionLedger.advisor',many:true,access:{create:()=>false,update:()=>false}}),
-    auditEvents: relationship({ref:'AuditEvent.actor',many:true,access:{create:()=>false,update:()=>false}}),
-    requestedApprovals: relationship({ref:'ManagerApproval.requestedBy',many:true,access:{create:()=>false,update:()=>false}}),
-    approvedApprovals: relationship({ref:'ManagerApproval.approvedBy',many:true,access:{create:()=>false,update:()=>false}}),
-    processedPayments: relationship({ref:'Payment.processedBy',many:true,access:{create:()=>false,update:()=>false}}),
-    requestedRefunds: relationship({ref:'Refund.requestedBy',many:true,access:{create:()=>false,update:()=>false}}),
-    approvedRefunds: relationship({ref:'Refund.approvedBy',many:true,access:{create:()=>false,update:()=>false}}),
+    commissionLedger: relationship({ref:'AdvisorCommissionLedger.advisor',many:true,isFilterable:permissions.canManageCommissions,access:{create:()=>false,update:()=>false}}),
+    auditEvents: relationship({ref:'AuditEvent.actor',many:true,isFilterable:permissions.canReadAudit,access:{create:()=>false,update:()=>false}}),
+    requestedApprovals: relationship({ref:'ManagerApproval.requestedBy',many:true,isFilterable:(a:Parameters<typeof permissions.canIssueRefunds>[0])=>permissions.canIssueRefunds(a)||permissions.canManageCommissions(a)||permissions.canManageSettings(a),access:{create:()=>false,update:()=>false}}),
+    approvedApprovals: relationship({ref:'ManagerApproval.approvedBy',many:true,isFilterable:(a:Parameters<typeof permissions.canIssueRefunds>[0])=>permissions.canIssueRefunds(a)||permissions.canManageCommissions(a)||permissions.canManageSettings(a),access:{create:()=>false,update:()=>false}}),
+    processedPayments: relationship({ref:'Payment.processedBy',many:true,isFilterable:canSeePay,access:{create:()=>false,update:()=>false}}),
+    requestedRefunds: relationship({ref:'Refund.requestedBy',many:true,isFilterable:canSeePay,access:{create:()=>false,update:()=>false}}),
+    approvedRefunds: relationship({ref:'Refund.approvedBy',many:true,isFilterable:canSeePay,access:{create:()=>false,update:()=>false}}),
     ...trackingFields,
   },
 });

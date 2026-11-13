@@ -1,5 +1,6 @@
 import { list, graphql } from "@keystone-6/core";
 import { text, integer, json, timestamp, checkbox, relationship, virtual } from "@keystone-6/core/fields";
+import { permissions } from "../access";
 import { trackingFields } from "./trackingFields";
 import { cents, bps, currency, state, code, domainAccess, tripSum } from "./domainFields";
 export const AuditEvent = list({
@@ -12,7 +13,7 @@ export const AuditEvent = list({
     requestId: text(),
     before: json(),
     after: json(),
-    actor: relationship({ ref: "User.auditEvents", many: false }),
+    actor: relationship({ ref: "User.auditEvents", many: false, isFilterable: permissions.canReadAudit }),
     ...trackingFields,
   },
 });

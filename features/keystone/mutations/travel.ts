@@ -104,7 +104,9 @@ async function postFunds(tx:any,context:any,input:any){
 }
 /** Reserve locally (lock, cap, approval, Refund row), call the provider outside any transaction, then finalize under the trip lock. */
 export async function refundClientPayment(context:any,input:any){
- authorize(context,'canIssueRefunds');
+ return userFacing(async()=>{authorize(context,'canIssueRefunds');return refundClientPaymentRun(context,input);});
+}
+async function refundClientPaymentRun(context:any,input:any){
  const actorId=context.session.itemId;const key=String(input.idempotencyKey||'').trim();
  if(!key)throw new Error('Idempotency key required');const reason=String(input.reason||'').trim();if(!reason)throw new Error('Reason required');
  const amount=integerMoney(input.amountCents);
