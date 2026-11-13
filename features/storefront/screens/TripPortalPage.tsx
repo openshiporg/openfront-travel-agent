@@ -21,13 +21,13 @@ export async function TripPortalPage({ params }: { params: Promise<{ token: stri
         <h2 id="balance" className="font-medium">Balance</h2>
         {t.balanceCents > 0
           ? <p className="text-sm"><span className="text-lg font-semibold">{dollars(t.balanceCents, t.currencyCode)}</span> due{t.nextDueAt ? <> · next due {date(t.nextDueAt)}</> : null}</p>
-          : <p className="text-sm">Nothing is due right now.</p>}
+          : <p className="text-sm">{t.status === 'cancelled' ? 'This trip was cancelled.' : 'Nothing is due right now.'}</p>}
         {t.invoices.length ? (
           <ul className="divide-y text-sm">
             {t.invoices.map((i: any) => (
               <li key={i.number} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <span className="min-w-0"><span className="block font-mono text-xs uppercase tracking-wide">{i.number}</span><span className="block text-muted-foreground">{i.status === 'paid' ? `${dollars(i.totalCents, i.currencyCode)} received` : i.status === 'refunded' ? `${dollars(i.totalCents, i.currencyCode)} refunded` : `${dollars(i.totalCents - i.collectedCents, i.currencyCode)} due ${date(i.dueAt)}`}</span></span>
-                {i.payToken ? <a className="font-medium underline" href={`/invoice/${i.payToken}`}>Pay {i.number}</a> : <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{i.status === 'refunded' ? 'Refunded' : 'Paid'}</span>}
+                <span className="min-w-0"><span className="block font-mono text-xs uppercase tracking-wide">{i.number}</span><span className="block text-muted-foreground">{i.status === 'paid' ? `${dollars(i.totalCents, i.currencyCode)} received${i.refundedCents > 0 ? `, ${dollars(i.refundedCents, i.currencyCode)} refunded` : ''}` : i.status === 'refunded' ? `${dollars(i.totalCents, i.currencyCode)} refunded` : `${dollars(i.totalCents - i.collectedCents, i.currencyCode)} due ${date(i.dueAt)}`}</span></span>
+                {i.payToken ? <a className="inline-flex min-h-11 items-center font-medium underline" href={`/invoice/${i.payToken}`}>Pay {i.number}</a> : <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{i.status === 'refunded' ? 'Refunded' : i.refundedCents > 0 ? 'Partly refunded' : 'Paid'}</span>}
               </li>
             ))}
           </ul>

@@ -8,7 +8,7 @@ export async function StorefrontHome() {
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold">Wayfarer &amp; Co.</h1>
         <p className="text-sm text-muted-foreground">Bespoke trips planned by an advisor.</p>
-        <Link href="/inquiry" className="inline-block rounded-md border px-4 py-2 text-sm">Plan a trip</Link>
+        <Link href="/inquiry" className="inline-flex min-h-11 items-center rounded-md border px-4 text-sm">Plan a trip</Link>
       </section>
       <section className="space-y-2">
         <h2 className="font-medium">Destinations</h2>

@@ -498,7 +498,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const open=await tx.clientInvoice.findMany({where:{tripId:t.id,status:{in:['draft','sent']},collectedCents:0},select:{id:true}});
  for(const i of open){await tx.clientInvoice.updateMany({where:{id:i.id,status:{in:['draft','sent']},collectedCents:0},data:{status:'void'}});await releaseScheduleRows(tx,i.id);}
  const cancelledSchedule=await tx.paymentSchedule.updateMany({where:{tripId:t.id,status:'due'},data:{status:'cancelled'}});await tx.task.updateMany({where:{tripId:t.id,taskKey:{startsWith:'reminder:'},status:'open'},data:{status:'cancelled'}});
- if(t.inquiryId){const q=await tx.inquiry.findUnique({where:{id:t.inquiryId}});if(q?.status==='won'&&!(await tx.trip.count({where:{inquiryId:q.id,id:{not:t.id},status:{notIn:['planning','proposal_sent','cancelled']}}}))){await tx.inquiry.update({where:{id:q.id},data:{status:'lost',lostReason:`Trip cancelled: ${reason}`.slice(0,300)}});await audit(tx,context,'move','Inquiry',q.id,{status:'won'},{status:'lost',reason:'Trip cancelled'});}}
+ if(t.inquiryId){const q=await tx.inquiry.findUnique({where:{id:t.inquiryId}});if(q?.status==='won'&&!(await tx.trip.count({where:{inquiryId:q.id,id:{not:t.id},status:{notIn:['planning','proposal_sent','cancelled']}}}))){await tx.inquiry.update({where:{id:q.id},data:{status:'lost',lostReason:`Trip cancelled: ${reason}`.slice(0,300)}});await audit(tx,context,'move','Inquiry',q.id,{status:'won'},{status:'lost',reason:'Trip cancelled'});}else if(q&&['new','qualifying','proposal'].includes(q.status)&&!(await tx.trip.count({where:{inquiryId:q.id,id:{not:t.id},status:{not:'cancelled'}}}))){await tx.inquiry.update({where:{id:q.id},data:{status:'lost',lostReason:`Trip cancelled: ${reason}`.slice(0,300)}});await audit(tx,context,'move','Inquiry',q.id,{status:q.status},{status:'lost',reason:'Trip cancelled'});}}
  const withdrawn=await tx.proposal.updateMany({where:{tripId:t.id,status:{in:['draft','sent','viewed']}},data:{status:'superseded'}});
  const changed=await tx.trip.updateMany({where:{id:t.id,status:t.status},data:{status:'cancelled',cancelReason:reason,cancelledAt:new Date()}});if(changed.count!==1)throw new Error('Trip changed concurrently');
  await audit(tx,context,'cancel','Trip',t.id,{status:t.status},{status:'cancelled',reason,releasedComponents:plan.release.length,withdrawnProposals:withdrawn.count,voidedInvoices:open.length,cancelledSchedule:cancelledSchedule.count});
@@ -509,7 +509,8 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
 };
 export async function submitInquiry(_root:any,{input}:any,context:any){
  if(!input.name?.trim()||!/^\S+@\S+\.\S+$/.test(input.email||''))throw new Error('Name and valid email required');
- const row=await guardKeystonePrismaResults(context.prisma as any).inquiry.create({data:{name:input.name.slice(0,200),email:input.email.slice(0,254),phone:input.phone?.slice(0,80)||'',destinations:input.destinations?.slice(0,2000)||'',tripType:input.tripType||'family',partySize:input.partySize||1,budgetCents:integerMoney(input.budgetCents||0),status:'new',source:'website',currencyCode:'USD'}});return {id:row.id};
+ const tripType=input.tripType||'family';if(!['honeymoon','family','group','corporate','cruise','adventure'].includes(tripType))throw new Error('Choose a trip type from the list');
+ const row=await guardKeystonePrismaResults(context.prisma as any).inquiry.create({data:{name:input.name.slice(0,200),email:input.email.slice(0,254),phone:input.phone?.slice(0,80)||'',destinations:input.destinations?.slice(0,2000)||'',tripType,partySize:input.partySize||1,budgetCents:integerMoney(input.budgetCents||0),status:'new',source:'website',currencyCode:'USD'}});return {id:row.id};
 }
 async function proposalForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Proposal not found');const p=await context.prisma.proposal.findFirst({where:{publicToken:hash(token)},include:{options:{include:{items:{orderBy:{sort:'asc'}}}},trip:{select:{id:true,title:true,status:true,currencyCode:true}}}});if(!p||!['sent','viewed','accepted'].includes(p.status))throw new Error('Proposal not found');return p;}
 export async function viewProposal(_root:any,{token}:any,context:any){const p=await proposalForToken(context,token);if(p.status==='sent')await guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{const r=await tx.proposal.updateMany({where:{id:p.id,status:'sent'},data:{status:'viewed'}});if(r.count)await audit(tx,context,'view','Proposal',p.id,{status:'sent'},{status:'viewed'});});return {id:p.id,version:p.version,status:p.status,introNote:p.introNote,depositBps:p.depositBps||0,trip:p.trip,options:p.options.map((o:any)=>({id:o.id,title:o.title,items:o.items.map((i:any)=>({id:i.id,title:i.title,details:i.details,kind:i.kind,sellCents:i.sellCents,currencyCode:i.currencyCode}))}))};}
@@ -578,17 +579,17 @@ export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:an
 const DESTINATION_SELECT={name:true,slug:true,country:true,specialty:true};
 export async function publicDestinations(_root:any,_args:any,context:any){return guardKeystonePrismaResults(context.prisma as any).destination.findMany({orderBy:{name:'asc'},select:DESTINATION_SELECT,take:100});}
 export async function publicDestination(_root:any,{slug}:any,context:any){if(!/^[a-z0-9-]{1,80}$/.test(slug||''))return null;return guardKeystonePrismaResults(context.prisma as any).destination.findFirst({where:{slug},select:DESTINATION_SELECT});}
-const INVOICE_VIEW={number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,dueAt:true,trip:{select:{title:true,tripNumber:true,status:true}},lines:{select:{description:true,amountCents:true,kind:true}}};
+const INVOICE_VIEW={number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,dueAt:true,trip:{select:{title:true,tripNumber:true,status:true}},lines:{select:{description:true,amountCents:true,kind:true}},payments:{select:{refundedAmount:true}}};
 export async function viewInvoice(_root:any,{token}:any,context:any){
  if(!token||token.length<32)throw new Error('Invoice not found');
- const i=await findInvoiceByToken(guardKeystonePrismaResults(context.prisma as any),token,{select:INVOICE_VIEW});if(!i||i.status==='draft')throw new Error('Invoice not found');return i;
+ const i=await findInvoiceByToken(guardKeystonePrismaResults(context.prisma as any),token,{select:INVOICE_VIEW});if(!i||i.status==='draft')throw new Error('Invoice not found');const {payments,...rest}=i as any;return {...rest,refundedCents:(payments||[]).reduce((n:number,x:any)=>n+(x.refundedAmount||0),0)};
 }
 /** Read-only client portal. No traveler, document, supplier or commission data; only what the client already sees on their proposal, itinerary and invoices. */
 export async function viewTripPortal(_root:any,{token}:any,context:any){
  const db=guardKeystonePrismaResults(context.prisma as any);const ref=await tripByPortalToken(db,token);if(!ref)throw new Error('Trip not found');
  const t=await db.trip.findUnique({where:{id:ref.id},select:{id:true,tripNumber:true,title:true,status:true,startDate:true,endDate:true,currencyCode:true,
   days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}},
-  invoices:{where:{status:{notIn:['draft','void']},partyId:(ref as any).partyId??null},orderBy:{dueAt:'asc'},select:{id:true,number:true,status:true,totalCents:true,collectedCents:true,dueAt:true,currencyCode:true}},
+  invoices:{where:{status:{notIn:['draft','void']},partyId:(ref as any).partyId??null},orderBy:{dueAt:'asc'},select:{id:true,number:true,status:true,totalCents:true,collectedCents:true,dueAt:true,currencyCode:true,payments:{select:{refundedAmount:true}}}},
   schedule:{where:{status:'due'},orderBy:{dueAt:'asc'},select:{dueAt:true}},
   rooms:{where:(ref as any).partyId?{partyId:(ref as any).partyId}:{id:'none'},orderBy:{label:'asc'},select:{label:true,roomType:true,guests:{select:{id:true}}}}}});
  if(!t)throw new Error('Trip not found');
@@ -597,7 +598,7 @@ export async function viewTripPortal(_root:any,{token}:any,context:any){
  // The payment schedule is trip-wide, so only the whole-trip view may use it; a party's next due date comes from its own invoices.
  const dates=[...open.map((i:any)=>i.dueAt),...((ref as any).partyId?[]:t.schedule.map((s:any)=>s.dueAt))].filter(Boolean).map((d:any)=>new Date(d).getTime());
  return {...((ref as any).partyId?{partyName:(ref as any).partyName,rooms:t.rooms.map((r:any)=>({label:r.label,roomType:r.roomType,guests:r.guests.length}))}:{}),tripNumber:t.tripNumber,title:t.title,status:t.status,startDate:t.startDate,endDate:t.endDate,currencyCode:t.currencyCode,days:t.days,balanceCents,nextDueAt:dates.length?new Date(Math.min(...dates)).toISOString():null,
-  invoices:t.invoices.map((i:any)=>({number:i.number,status:i.status,totalCents:i.totalCents,collectedCents:i.collectedCents,dueAt:i.dueAt,currencyCode:i.currencyCode,payToken:['paid','refunded'].includes(i.status)||t.status==='cancelled'?null:`p.${i.id}.${token}`}))};
+  invoices:t.invoices.map((i:any)=>({number:i.number,status:i.status,totalCents:i.totalCents,collectedCents:i.collectedCents,refundedCents:(i.payments||[]).reduce((n:number,x:any)=>n+(x.refundedAmount||0),0),dueAt:i.dueAt,currencyCode:i.currencyCode,payToken:['paid','refunded'].includes(i.status)||t.status==='cancelled'?null:`p.${i.id}.${token}`}))};
 }
 // Customer lookup: both the booking code and the email on file must match; only status data is returned.
 export async function lookupBooking(_root:any,{email,code}:any,context:any){

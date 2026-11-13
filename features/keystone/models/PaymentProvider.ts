@@ -18,6 +18,7 @@ export const PaymentProvider = list({
     },
   },
   ui: {
+    hideCreate: (args: any) => !canConfigureProvider(args),
     listView: {
       initialColumns: ["name", "code", "isInstalled"],
     },

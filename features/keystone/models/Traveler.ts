@@ -3,7 +3,7 @@ import { text, integer, json, timestamp, checkbox, relationship, virtual } from 
 import { trackingFields } from "./trackingFields";
 import { cents, bps, currency, state, code, domainAccess, tripSum } from "./domainFields";
 export const Traveler = list({
-  access: {...domainAccess("canManageClients", true),filter:{query:({session}:any)=>session?.data.role?.canManageRoles?true:{trips:{some:{advisor:{id:{equals:session?.itemId}}}}}},},
+  access: {...domainAccess("canManageClients", true),filter:{query:({session}:any)=>session?.data.role?.canManageRoles||session?.data.role?.canManageTrips?true:{trips:{some:{advisor:{id:{equals:session?.itemId}}}}}},},
   fields: {
     firstName: text(),
     lastName: text(),
