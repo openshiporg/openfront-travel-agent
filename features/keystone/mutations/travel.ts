@@ -1,4 +1,5 @@
 import { GraphQLError } from 'graphql';
+import { GraphQLError } from 'graphql';
 import { constraintRefusal } from '../lib/constraint-errors';
 import {randomBytes,createHash} from 'node:crypto';
 import {parseDecision,parseWaiverNote} from '../lib/insurance-offer';
@@ -508,8 +509,8 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  sweepTripDates:(context,input)=>command(context,'sweepTripDates',input,'canManageTrips',async tx=>{const rows=await tx.trip.findMany({where:{status:{in:['paid_in_full','traveling']}}});let count=0;for(const row of rows){const t=await trip(tx,row.id);if(t.status==='paid_in_full'&&t.startDate&&t.startDate<=new Date()){await transition(tx,context,t,'traveling');count++;}else if(t.status==='traveling'&&t.endDate&&t.endDate<new Date()){await transition(tx,context,t,'completed');count++;}}const lapsed=await tx.tripComponent.findMany({where:{bookingStatus:'held',holdUntil:{lt:new Date()}},select:{id:true,tripId:true,title:true}});for(const h of lapsed){await trip(tx,h.tripId);const m=await tx.tripComponent.updateMany({where:{id:h.id,bookingStatus:'held',holdUntil:{lt:new Date()}},data:{bookingStatus:'quoted',holdUntil:null}});if(m.count===1){await closeHoldTask(tx,h.id);await audit(tx,context,'hold_lapsed','TripComponent',h.id,{bookingStatus:'held'},{bookingStatus:'quoted'});count++;}}return {count};}),
 };
 export async function submitInquiry(_root:any,{input}:any,context:any){
- if(!input.name?.trim()||!/^\S+@\S+\.\S+$/.test(input.email||''))throw new Error('Name and valid email required');
- const tripType=input.tripType||'family';if(!['honeymoon','family','group','corporate','cruise','adventure'].includes(tripType))throw new Error('Choose a trip type from the list');
+ if(!input.name?.trim()||!/^\S+@\S+\.\S+$/.test(input.email||''))throw new GraphQLError('Name and valid email required');
+ const tripType=input.tripType||'family';if(!['honeymoon','family','group','corporate','cruise','adventure'].includes(tripType))throw new GraphQLError('Choose a trip type from the list');
  const row=await guardKeystonePrismaResults(context.prisma as any).inquiry.create({data:{name:input.name.slice(0,200),email:input.email.slice(0,254),phone:input.phone?.slice(0,80)||'',destinations:input.destinations?.slice(0,2000)||'',tripType,partySize:input.partySize||1,budgetCents:integerMoney(input.budgetCents||0),status:'new',source:'website',currencyCode:'USD'}});return {id:row.id};
 }
 async function proposalForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Proposal not found');const p=await context.prisma.proposal.findFirst({where:{publicToken:hash(token)},include:{options:{include:{items:{orderBy:{sort:'asc'}}}},trip:{select:{id:true,title:true,status:true,currencyCode:true}}}});if(!p||!['sent','viewed','accepted'].includes(p.status))throw new Error('Proposal not found');return p;}
