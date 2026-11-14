@@ -608,5 +608,5 @@ export async function lookupBooking(_root:any,{email,code}:any,context:any){
  if(!/^\S+@\S+\.\S+$/.test(mail)||!/^(TR|INV)-[A-Z0-9]{16}$/.test(ref))throw new Error('Booking not found');
  const db=guardKeystonePrismaResults(context.prisma as any);
  const trip=await db.trip.findFirst({where:{client:{email:{equals:mail,mode:'insensitive'}},OR:[{tripNumber:ref},{invoices:{some:{number:ref}}}]},select:{tripNumber:true,title:true,status:true,startDate:true,endDate:true,invoices:{select:{number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,payments:{select:{refundedAmount:true}}}}}});
- if(!trip)throw new Error('Booking not found');return {...trip,invoices:trip.invoices.map(({payments,...i}:any)=>({...i,refundedCents:(payments||[]).reduce((n:number,x:any)=>n+(x.refundedAmount||0),0)}))};
+ if(!trip)throw new Error('Booking not found');return {...trip,invoices:trip.invoices.map(({payments,...i}:{payments?:{refundedAmount?:number|null}[]}&Record<string,unknown>)=>({...i,refundedCents:(payments||[]).reduce((n:number,x:{refundedAmount?:number|null})=>n+(x.refundedAmount||0),0)}))};
 }
