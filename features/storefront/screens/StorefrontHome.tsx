@@ -9,9 +9,11 @@ export async function StorefrontHome() {
   const { publicDestinations: destinations } = await publicRequest<{ publicDestinations: any[] }>(`{ publicDestinations }`)
   return (
     <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-100 via-sky-300 to-blue-600 p-8 md:p-12">
-        <div className="absolute -right-10 -top-10 size-72 rounded-full bg-white/30 blur-2xl" />
-        <div className="relative max-w-md space-y-4 py-6 md:py-10">
+      <section className="relative overflow-hidden rounded-3xl bg-sky-200 p-8 md:p-12">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/travel-hero.jpg" alt="" className="absolute inset-0 size-full object-cover object-right" />
+        <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/75 to-white/20 md:from-white/80 md:via-white/40 md:to-transparent" />
+        <div className="relative max-w-sm space-y-4 py-6 md:py-10">
           <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">Explore the world</p>
           <h1 className="text-4xl font-bold leading-tight tracking-tight text-slate-900 md:text-5xl">Your Next Great Journey Awaits</h1>
           <p className="text-sm text-slate-700">Bespoke trips planned by an advisor, from first idea to final payment.</p>
@@ -35,7 +37,7 @@ export async function StorefrontHome() {
         <div className="mb-4 flex items-baseline justify-between"><h2 className="text-xl font-bold">Popular Destinations</h2><Link href="/destinations" className={viewAll}>View All →</Link></div>
         {destinations.length ? (
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {destinations.slice(0, 6).map((d) => <li key={d.slug}><DestinationCard d={d} /></li>)}
+            {destinations.slice(0, 3).map((d) => <li key={d.slug}><DestinationCard d={d} /></li>)}
           </ul>
         ) : <p className="text-sm text-slate-600">Destinations are coming soon.</p>}
       </section>
