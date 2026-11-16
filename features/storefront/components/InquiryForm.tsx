@@ -10,7 +10,7 @@ import { submitInquiryAction } from '../actions'
 
 const TYPES = ['honeymoon', 'family', 'group', 'corporate', 'cruise', 'adventure']
 
-export function InquiryForm({ destination = '' }: { destination?: string }) {
+export function InquiryForm({ destination = '', travelers = 2 }: { destination?: string; travelers?: number }) {
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
@@ -34,7 +34,7 @@ export function InquiryForm({ destination = '' }: { destination?: string }) {
       </div>
       <div className="space-y-1"><Label htmlFor="destinations">Destinations</Label><Textarea id="destinations" name="destinations" defaultValue={destination} maxLength={2000} /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1"><Label htmlFor="partySize">Travelers</Label><Input id="partySize" name="partySize" type="number" min={1} defaultValue={2} /></div>
+        <div className="space-y-1"><Label htmlFor="partySize">Travelers</Label><Input id="partySize" name="partySize" type="number" min={1} defaultValue={travelers} /></div>
         <div className="space-y-1"><Label htmlFor="budget">Budget (USD)</Label><Input id="budget" name="budget" type="number" min={0} /></div>
       </div>
       {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}

@@ -1,15 +1,13 @@
-import Link from 'next/link'
 import { publicRequest } from '../lib/graphql'
+import { DestinationCard } from '../components/DestinationCard'
 
 export async function DestinationList() {
   const { publicDestinations: destinations } = await publicRequest<{ publicDestinations: any[] }>(`{ publicDestinations }`)
   return (
-    <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Destinations</h1>
-      <ul className="grid gap-2 sm:grid-cols-2">
-        {destinations.map((d) => (
-          <li key={d.slug}><Link href={`/destinations/${d.slug}`} className="block rounded-md border p-3"><span className="block font-medium">{d.name}</span><span className="block text-sm text-muted-foreground">{d.country} · {d.specialty}</span></Link></li>
-        ))}
+    <div className="space-y-4 rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6">
+      <h1 className="text-2xl font-bold">Destinations</h1>
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {destinations.map((d) => <li key={d.slug}><DestinationCard d={d} /></li>)}
       </ul>
     </div>
   )

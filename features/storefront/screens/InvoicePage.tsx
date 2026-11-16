@@ -12,8 +12,8 @@ export async function InvoicePage({ params, searchParams }: { params: Promise<{ 
   if (!i) notFound()
   const due = i.totalCents - i.collectedCents
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Invoice {i.number}</h1>
+    <div className="rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6 space-y-4">
+      <h1 className="text-2xl font-bold">Invoice {i.number}</h1>
       <p className="text-sm text-muted-foreground">{i.trip.title} · Trip code {i.trip.tripNumber} · due {date(i.dueAt)}</p>
       <ul className="divide-y rounded-md border">
         {i.lines.map((l: any, n: number) => <li key={n} className="flex justify-between gap-3 p-3 text-sm"><span>{l.description}</span><span>{dollars(l.amountCents, i.currencyCode)}</span></li>)}

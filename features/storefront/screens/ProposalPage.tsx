@@ -8,8 +8,8 @@ export async function ProposalPage({ params }: { params: Promise<{ token: string
   try { p = (await publicRequest(`query($token: String!) { viewProposal(token: $token) }`, { token })).viewProposal } catch {}
   if (!p) notFound()
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">{p.trip.title}</h1>
+    <div className="rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6 space-y-4">
+      <h1 className="text-2xl font-bold">{p.trip.title}</h1>
       {p.introNote ? <p className="text-sm text-muted-foreground">{p.introNote}</p> : null}
       <ProposalChoice token={token} options={p.options} currency={p.trip.currencyCode} status={p.status} depositBps={p.depositBps || 0} />
     </div>

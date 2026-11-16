@@ -10,9 +10,9 @@ export async function TripPortalPage({ params }: { params: Promise<{ token: stri
   if (!t) notFound()
   const when = [t.startDate ? date(t.startDate) : '', t.endDate ? date(t.endDate) : ''].filter(Boolean).join(' to ')
   return (
-    <div className="space-y-6">
+    <div className="rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6 space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">{t.title}</h1>
+        <h1 className="text-2xl font-bold">{t.title}</h1>
         <p className="text-sm text-muted-foreground">{[t.tripNumber, when].filter(Boolean).join(' · ')}</p>
         {t.partyName ? <p className="text-sm">Payments for <span className="font-medium">{t.partyName}</span></p> : null}
       </header>
