@@ -45,7 +45,7 @@ export function MoneyAction({ kind, targetId, maxCents, thresholdCents, approved
     const r = await runOperator(kind === 'refund' ? 'refundClientPayment' : 'writeOffCommission', input)
     if (!r.success) return setError(r.error)
     if (kind === 'refund' && r.data?.status !== 'succeeded') {
-      setNote(r.data?.status === 'failed' ? 'Refund failed. No refund was posted.' : 'Refund pending reconciliation. Do not submit another refund.')
+      setNote(r.data?.status === 'failed' ? 'Refund failed. No refund was posted.' : 'Refund pending. Use Check refund on the payment to see the result.')
       router.refresh()
       return
     }

@@ -136,6 +136,10 @@ async function refundClientPaymentRun(context:any,input:any){
  const {refundPayment}=await import('../utils/paymentProviderAdapter');
  let result:any=null,final='unknown';
  try{result=await refundPayment({provider:stripeProvider,paymentId:pay.providerPaymentId,amount:refund.amount,currency:pay.currencyCode,idempotencyKey:refundKey});final=result.status==='succeeded'?'succeeded':['failed','canceled'].includes(result.status)?'failed':'unknown';}catch{final='unknown';}
+ return finishRefund(context,db,refund,pay,result,final,reason,input.componentId||null);
+}
+/** Record the provider's answer for a reserved refund; a succeeded refund moves the payment, invoice and client funds. */
+async function finishRefund(context:any,db:any,refund:any,pay:any,result:any,final:string,reason:string,componentId:string|null){
  return db.$transaction(async(tx:any)=>{
   await trip(tx,pay.order.tripId);
   const moved=await tx.refund.updateMany({where:{id:refund.id,status:{in:['processing','unknown']}},data:{status:final,providerRefundId:result?.refundId||null,providerData:result?.data?JSON.parse(JSON.stringify({id:result.refundId,status:result.status,amount:result.amount})):undefined,processedAt:final==='succeeded'?new Date():null}});
@@ -146,10 +150,27 @@ async function refundClientPaymentRun(context:any,input:any){
   const inv=await tx.clientInvoice.findUnique({where:{id:pay.orderId}});
   if(inv&&['paid','partially_paid'].includes(inv.status)){const all=await tx.payment.findMany({where:{orderId:inv.id,status:{in:['succeeded','partially_refunded','refunded']}},select:{amount:true,refundedAmount:true}});
    if(all.length&&all.every((x:any)=>x.refundedAmount>=x.amount)){assertMove('clientInvoice',inv.status,'refunded');await tx.clientInvoice.updateMany({where:{id:inv.id,status:inv.status},data:{status:'refunded'}});}}
-  const entry=await postFunds(tx,context,{tripId:pay.order.tripId,componentId:input.componentId||null,entryType:'refund_to_client',amountCents:refund.amount,currencyCode:pay.currencyCode,reference:refund.id,reason,entryKey:`refund:${refund.id}`});
+  const entry=await postFunds(tx,context,{tripId:pay.order.tripId,componentId:componentId,entryType:'refund_to_client',amountCents:refund.amount,currencyCode:pay.currencyCode,reference:refund.id,reason,entryKey:`refund:${refund.id}`});
   await audit(tx,context,'refund','Payment',pay.id,{refundedAmount:pay.refundedAmount},{refundedAmount:p.refundedAmount,refundId:refund.id,fundsEntryId:entry.id,reason});
   return {refundId:refund.id,status:'succeeded',amountCents:refund.amount};
  },{timeout:20000});
+}
+/** A refund left processing or unknown (Stripe errored or said pending): look it up at Stripe by its key and record the answer. Never sends a new refund. */
+export async function checkClientRefund(context:any,input:any){
+ return userFacing(async()=>{authorize(context,'canIssueRefunds');
+  const db=guardKeystonePrismaResults(context.prisma as any);
+  const refund=await db.refund.findUnique({where:{id:String(input.refundId||'')}});if(!refund)throw new Error('Refund not found');
+  if(!['processing','unknown'].includes(refund.status))return {refundId:refund.id,status:refund.status,amountCents:refund.amount};
+  const pay=await db.payment.findUnique({where:{id:refund.paymentId},include:{order:true}});if(!pay?.providerPaymentId||!pay.order)throw new Error('Payment not found');
+  const {getPaymentStatus}=await import('../utils/paymentProviderAdapter');
+  const status:any=await getPaymentStatus({provider:stripeProvider,paymentId:pay.providerPaymentId});
+  const found=(status.refunds||[]).find((r:any)=>r.id===refund.providerRefundId||r.metadata?.restaurantRefundKey===refund.idempotencyKey);
+  if(found){const final=found.status==='succeeded'?'succeeded':['failed','canceled'].includes(found.status)?'failed':'unknown';
+   return finishRefund(context,db,refund,pay,{refundId:found.id,status:found.status,amount:found.amount,data:found},final,refund.reason,null);}
+  // Stripe has no refund with this key: none went out. Wait two minutes so a request still in flight is not marked failed.
+  if(status.refundsComplete&&Date.now()-new Date(refund.createdAt).getTime()>120000)return finishRefund(context,db,refund,pay,null,'failed',refund.reason,null);
+  return {refundId:refund.id,status:refund.status,amountCents:refund.amount};
+ });
 }
 const objectOf=(d:any):ObjectMetadata=>({key:d.storageKey,contentType:d.mimeType,byteSize:d.byteSize,checksumSha256:d.checksumSha256});
 /** Documents are private: only the assigned advisor or a role manager may add or read them. */
@@ -462,6 +483,7 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
   return {...cancelled,refund};
  },
  refundClientPayment:(context,input)=>refundClientPayment(context,input),
+ checkClientRefund:(context,input)=>checkClientRefund(context,input),
  /** Claim commission from the supplier: records the claim reference and moves expected → invoiced. Receipts later move it to received or short-paid. */
  claimCommission:(context,input)=>command(context,'claimCommission',input,'canManageCommissions',async tx=>{
  const reference=requiredText(input.reference,'Claim reference',1,80);const ids:string[]=[...new Set<string>((Array.isArray(input.componentIds)?input.componentIds:[input.componentId]).filter(Boolean).map(String))].sort();

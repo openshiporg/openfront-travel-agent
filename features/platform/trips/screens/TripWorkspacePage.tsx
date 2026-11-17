@@ -98,7 +98,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
     proposals(orderBy: { version: desc }) { id version status introNote depositBps sentAt acceptedAt acceptedByName options(orderBy: { sort: asc }) { id title items(orderBy: { sort: asc }) { id kind title details sellCents estimatedCommissionBps supplier { id name } } } }
     components(orderBy: { startAt: asc }) { id kind title startAt endAt confirmationNumber confirmedAt confirmedBy { name } holdUntil supplierDueAt cancelPenaltySchedule bookingStatus paymentModel sellCents netCostCents commissionBps commissionCents commissionStatus depositCents depositDueAt finalDueAt supplier { name } allocations { amountCents } supplierPayments { amountCents } }
     days(orderBy: { date: asc }) { id date title items(orderBy: { sort: asc }) { id time title location } }
-    invoices(orderBy: { createdAt: asc }) { id number party { id name } status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } payments(orderBy: { createdAt: asc }) { id amount refundedAmount status providerPaymentId paymentMethod processedAt } }
+    invoices(orderBy: { createdAt: asc }) { id number party { id name } status totalCents collectedCents currencyCode dueAt lines { id kind description amountCents } payments(orderBy: { createdAt: asc }) { id amount refundedAmount status providerPaymentId paymentMethod processedAt refunds(where: { status: { in: ["processing", "unknown"] } }) { id amount } } }
     schedule(orderBy: { dueAt: asc }) { id kind amountCents dueAt status }
     funds(orderBy: { occurredAt: asc }) { id entryType amountCents reference occurredAt }
     tasks(orderBy: { dueAt: asc }) { id title type status dueAt completedAt completionNote completedBy { name } }
@@ -190,6 +190,7 @@ export async function TripWorkspacePage({ params, searchParams }: { params: Prom
               {i.payments.map((p: any) => { const left = p.amount - p.refundedAmount; return (
                 <div key={p.id} className="flex flex-col gap-1 pl-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                   <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{p.providerPaymentId ? 'card' : 'manual'} · {label(p.status)} · {money(p.amount, cur)}{p.refundedAmount ? ` · ${money(p.refundedAmount, cur)} refunded` : ''}</p>
+                  {d.me?.role?.canIssueRefunds ? p.refunds.map((r: any) => <ActionButton key={r.id} operator="checkClientRefund" input={{ refundId: r.id }}>{`Check ${money(r.amount, cur)} refund`}</ActionButton>) : null}
                   {p.providerPaymentId && left > 0 && d.me?.role?.canIssueRefunds ? <MoneyAction kind="refund" label="Refund" targetId={p.id} maxCents={left} thresholdCents={threshold} approvals={d.managerApprovals} actorId={d.me?.id || ''} /> : null}
                 </div>) })}
             </li>))}</ul> : <Empty>No invoices</Empty>}</Panel>
