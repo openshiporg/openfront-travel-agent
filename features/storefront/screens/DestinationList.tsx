@@ -1,8 +1,8 @@
 import { publicRequest } from '../lib/graphql'
-import { DestinationCard } from '../components/DestinationCard'
+import { DestinationCard, type Destination } from '../components/DestinationCard'
 
 export async function DestinationList() {
-  const { publicDestinations: destinations } = await publicRequest<{ publicDestinations: any[] }>(`{ publicDestinations }`)
+  const { publicDestinations: destinations } = await publicRequest<{ publicDestinations: Destination[] }>(`{ publicDestinations }`)
   return (
     <div className="space-y-4 rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6">
       <h1 className="text-2xl font-bold">Destinations</h1>
