@@ -120,6 +120,10 @@ async function refundClientPaymentRun(context:any,input:any){
   if(!pay.providerPaymentId)throw new Error('Manual payments are refunded outside the system');
   const pending=await tx.refund.aggregate({where:{paymentId:pay.id,status:{in:['processing','unknown']}},_sum:{amount:true}});
   assertRefundAmount(amount,refundableRemaining(pay.amount,pay.refundedAmount,pending._sum.amount||0));
+  // The refund is posted against the trip's client funds afterwards; check them now, before money leaves at Stripe.
+  const funds=(await tx.clientFundsEntry.findMany({where:{tripId:pay.order.tripId}})).reduce((n:number,e:any)=>n+fundsDelta(e.entryType,e.amountCents),0);
+  const inFlight=await tx.refund.aggregate({where:{order:{tripId:pay.order.tripId},status:{in:['processing','unknown']}},_sum:{amount:true}});
+  if(funds-(inFlight._sum.amount||0)-amount<0)throw new Error('The trip holds less client money than this refund (the rest was paid to suppliers). Nothing was sent to the card.');
   const settings=await tx.agencySettings.findFirst();const threshold=settings?.refundApprovalThresholdCents??50000;
   if(requiresApproval(amount,threshold))await consumeManagerApproval(tx,{approvalId:input.approvalId,actorId,actionType:'refund_payment',targetId:pay.id,amountCents:amount,reason,entityType:'Payment',entityId:pay.id});
   const refund=await tx.refund.create({data:{idempotencyKey:refundKey,amount,currencyCode:pay.currencyCode,status:'processing',reason,paymentId:pay.id,orderId:pay.orderId,requestedById:actorId,approvedById:input.approvalId?(await tx.managerApproval.findUnique({where:{id:input.approvalId}}))?.approvedById||null:null}});
