@@ -1,6 +1,6 @@
 import { GraphQLError } from 'graphql';
 import { constraintRefusal } from '../lib/constraint-errors';
-import {randomBytes,createHash} from 'node:crypto';
+import {randomBytes,createHash,createHmac} from 'node:crypto';
 import {parseDecision,parseWaiverNote} from '../lib/insurance-offer';
 import {guardKeystonePrismaResults} from '../lib/prisma-result';
 import {permissions, type Permission} from '../access';
@@ -516,7 +516,10 @@ export const operators:Record<string,(context:any,input:any)=>Promise<any>>={
  const moved=await tx.tripComponent.updateMany({where:{id:c.id,commissionStatus:c.commissionStatus},data:{commissionStatus:'written_off'}});if(moved.count!==1)throw new Error('Component changed concurrently');
  await audit(tx,context,'write_off','TripComponent',c.id,{commissionStatus:c.commissionStatus},{commissionStatus:'written_off',writtenOffCents:given,reason:input.reason,approvalId:input.approvalId});return {id:c.id,writtenOffCents:given};
  }),
- shareItinerary:(context,input)=>command(context,'shareItinerary',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);const token=randomBytes(32).toString('base64url');await tx.trip.update({where:{id:t.id},data:{itineraryToken:hash(token)}});await audit(tx,context,'share','Trip',t.id,null,{itinerary:'shared'});return {id:t.id,token};}),
+ shareItinerary:(context,input)=>command(context,'shareItinerary',input,'canManageTrips',async tx=>{const t=await trip(tx,input.tripId);
+  // Same link every time for a trip, so sharing again never breaks the link the client already has.
+  const secret=process.env.SESSION_SECRET;if(!secret)throw new Error('Sharing is not configured');const token=createHmac('sha256',secret).update(`itinerary:${t.id}`).digest('base64url');
+  if(t.itineraryToken!==hash(token))await tx.trip.update({where:{id:t.id},data:{itineraryToken:hash(token)}});await audit(tx,context,'share','Trip',t.id,null,{itinerary:'shared'});return {id:t.id,token};}),
  /** Cancel a trip: refused while any component is booked or ticketed (cancel those first, with their penalties and refunds). Releases quotes and holds, closes hold tasks and withdraws open proposals. */
  cancelTrip:(context,input)=>command(context,'cancelTrip',input,'canManageTrips',async tx=>{
  const t=await itineraryTrip(tx,context,String(input.tripId||''));const reason=requiredText(input.reason,'Cancellation reason',3,300);assertTransition(t.status,'cancelled');
