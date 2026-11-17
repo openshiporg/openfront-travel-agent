@@ -3,6 +3,7 @@ import { joinParts, dateRange } from '../../lib/text'
 import { PlatformPage, Panel, Empty, RowList, Row } from '../../components/PlatformPage'
 import { StatusLabel } from '../../components/StatusLabel'
 import { StatusTabs } from '../../components/StatusTabs'
+import { ActionButton } from '../../components/ActionButton'
 
 const TABS = ['all', 'planning', 'proposal_sent', 'accepted', 'booked', 'final_payment_due', 'paid_in_full', 'traveling', 'completed', 'cancelled']
 
@@ -12,7 +13,7 @@ export async function TripListPage({ searchParams }: { searchParams: Promise<{ s
   const where = active === 'all' ? '{}' : `{ status: { equals: ${active} } }`
   const d = await query(`{ trips(where: ${where}, orderBy: { startDate: asc }, take: 100) { id tripNumber title status startDate endDate client { name } advisor { name } totalSellCents balanceDueCents currencyCode } all: tripsCount }`)
   return (
-    <PlatformPage title="Trips" subtitle={`${d.all} trips`}>
+    <PlatformPage title="Trips" subtitle={`${d.all} trips`} actions={<ActionButton operator="sweepTripDates" input={{}}>Update trip statuses by date</ActionButton>}>
       <StatusTabs active={active} hrefFor={(k) => `/dashboard/platform/trips?status=${k}`} tabs={TABS.map((k) => ({ key: k, label: label(k) }))} />
       <Panel>
         {d.trips.length ? <RowList>{d.trips.map((t: any) => (
