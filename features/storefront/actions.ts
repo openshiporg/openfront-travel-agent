@@ -28,5 +28,5 @@ export async function lookupBookingAction(email: string, code: string) {
 }
 export async function stripePublishableKey() {
   const key = process.env.NEXT_PUBLIC_STRIPE_KEY || process.env.STRIPE_PUBLISHABLE_KEY || ''
-  return key.startsWith('pk_test_') ? key : ''
+  return /^pk_(test|live)_/.test(key) ? key : ''
 }

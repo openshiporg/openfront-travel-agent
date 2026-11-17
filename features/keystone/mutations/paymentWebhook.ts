@@ -4,10 +4,12 @@ import {guardKeystonePrismaResults} from '../lib/prisma-result'
 
 /** Restaurant raw-byte verification + durable inbox pattern, adapted to travel invoices. */
 export async function handleTravelPaymentWebhook(context:any, rawBody:string, headers:Record<string,string>) {
- if(!process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_'))throw new Error('Stripe TEST configuration required')
+ const live=/^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY||'')
+ if(!live&&!/^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY||''))throw new Error('Stripe configuration required')
  const verified=await handleWebhookFunction({event:null,headers,rawBody})
  const event=verified.event as any
- if(event.livemode)throw new Error('Live payments are not enabled')
+ // An event from the other Stripe mode (test vs live) than the configured key is never applied.
+ if(Boolean(event.livemode)!==live)throw new Error('Stripe event mode does not match the configured key')
  const db=guardKeystonePrismaResults(context.prisma as any)
  const eventKey=`pp_stripe:${event.id}`
  const inbox=await db.paymentWebhookEvent.upsert({where:{eventKey},update:{},create:{eventKey,providerCode:'pp_stripe',providerEventId:event.id,eventType:event.type,status:'received',payload:{id:event.id,type:event.type,resourceId:(verified.resource as any)?.id},attempts:0}})
