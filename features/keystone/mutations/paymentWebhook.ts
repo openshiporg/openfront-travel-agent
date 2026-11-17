@@ -24,6 +24,8 @@ export async function handleTravelPaymentWebhook(context:any, rawBody:string, he
  try{
   const intent=verified.resource as any
   if(intent.status!=='succeeded'||!intent.metadata?.orderId)throw new Error('Invoice correlation missing')
+  const {refundLatePayment}=await import('./travel')
+  if(await refundLatePayment(context,null,intent.id,intent.metadata.orderId)){await db.paymentWebhookEvent.update({where:{id:inbox.id},data:{status:'processed',processedAt:new Date(),error:'Invoice withdrawn; payment refunded'}});return {success:true,status:'processed'}}
   const result=await settleInvoicePayment(context,{paymentIntentId:intent.id,amount:intent.amount_received,currencyCode:String(intent.currency).toUpperCase(),invoiceId:intent.metadata.orderId})
   await db.paymentWebhookEvent.update({where:{id:inbox.id},data:{status:'processed',paymentId:result.paymentId,processedAt:new Date(),error:''}})
   return {success:true,status:'processed'}

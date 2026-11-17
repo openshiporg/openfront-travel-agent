@@ -12,6 +12,7 @@ export function ConfirmPayment({ token, paymentIntentId }: { token: string; paym
     const attempt = async () => {
       const r = await confirmInvoicePaymentAction(token, paymentIntentId)
       if (!r.ok) return setState({ status: 'error', error: r.error })
+      if (r.data.status === 'refunded') return setState({ status: 'refunded', error: r.data.message })
       if (r.data.status === 'succeeded') { setState({ status: 'succeeded', number: r.data.number }); router.refresh(); return }
       if (++tries < 8) setTimeout(attempt, 1500); else setState({ status: r.data.status })
     }

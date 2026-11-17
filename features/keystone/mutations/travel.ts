@@ -591,13 +591,29 @@ export async function payInvoice(_root:any,{token,idempotencyKey}:any,context:an
  await context.prisma.paymentSession.create({data:{amount,currencyCode:inv.currencyCode,idempotencyKey:`inv:${inv.id}:${idempotencyKey}`,paymentCollectionId:inv.paymentCollectionId,isSelected:true,isInitiated:true,data:{clientSecret:intent.clientSecret,paymentIntentId:intent.paymentIntentId}}});
  return {clientSecret:intent.clientSecret,paymentIntentId:intent.paymentIntentId,amountCents:amount};
 }
+/** A payment that succeeded at Stripe after its invoice was voided (or its trip cancelled) is refunded in full; nothing else is recorded against the invoice. */
+export async function refundLatePayment(context:any,token:string|null,paymentIntentId:string,invoiceId?:string){
+ const db=context.prisma;
+ const inv=invoiceId?await db.clientInvoice.findUnique({where:{id:invoiceId}}):await findInvoiceByToken(db,String(token||''));if(!inv)return false;
+ const tr=await db.trip.findUnique({where:{id:inv.tripId},select:{status:true}});
+ if(!['void','refunded'].includes(inv.status)&&tr?.status!=='cancelled')return false;
+ const session=await db.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,data:{path:['paymentIntentId'],equals:paymentIntentId}}});if(!session)return false;
+ if(await db.payment.findUnique({where:{idempotencyKey:`stripe:${paymentIntentId}`},select:{id:true}}))return false;
+ const {getPaymentStatus,refundPayment}=await import('../utils/paymentProviderAdapter');
+ const status:any=await getPaymentStatus({provider:stripeProvider,paymentId:paymentIntentId});if(status.status!=='succeeded')return false;
+ const key=`late-payment:${paymentIntentId}`;
+ if(!(status.refunds||[]).some((r:any)=>r.metadata?.restaurantRefundKey===key&&r.status!=='failed'&&r.status!=='canceled'))await refundPayment({provider:stripeProvider,paymentId:paymentIntentId,amount:status.amount,currency:inv.currencyCode,idempotencyKey:key});
+ await db.auditEvent.create({data:{actorId:null,action:'refund_late_payment',targetList:'ClientInvoice',targetId:inv.id,after:{providerPaymentId:paymentIntentId,amountCents:status.amount}}});
+ return true;
+}
 export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:any,context:any){
  const {getPaymentStatus}=await import('../utils/paymentProviderAdapter');
  // A reload of the return page after the invoice is paid must still say so, not report an error.
  if(token&&token.length>=32&&paymentIntentId){const settled=await findInvoiceByToken(context.prisma,token,{select:{id:true,number:true,status:true}});
   if(settled){const done=await context.prisma.payment.findUnique({where:{idempotencyKey:`stripe:${paymentIntentId}`},select:{id:true,orderId:true,status:true}});
    if(done&&done.orderId===settled.id&&done.status==='succeeded')return {status:'succeeded',invoiceStatus:settled.status,paymentId:done.id,number:settled.number};}}
- const inv=await invoiceForToken(context,token);
+ const inv=await invoiceForToken(context,token).catch(async(e:any)=>{if(paymentIntentId&&await refundLatePayment(context,token,paymentIntentId))return null;throw e;});
+ if(!inv)return {status:'refunded',message:'This invoice was withdrawn before your payment went through, so the payment was refunded in full.'};
  const session=await context.prisma.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,data:{path:['paymentIntentId'],equals:paymentIntentId}}});if(!session)throw new Error('Payment not found');
  const status=await getPaymentStatus({provider:stripeProvider,paymentId:paymentIntentId});if(status.status!=='succeeded'||status.amount!==session.amount||status.currencyCode!==inv.currencyCode)return {status:status.status};
  const {settleInvoicePayment}=await import('../lib/invoice-settlement');
