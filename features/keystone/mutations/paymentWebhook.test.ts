@@ -8,7 +8,7 @@ const stripe=new Stripe(process.env.STRIPE_SECRET_KEY)
 const payload=(patch:any={})=>JSON.stringify({id:'evt_depth',type:'payment_intent.succeeded',livemode:false,data:{object:{id:'pi_depth',status:'succeeded',amount_received:1000,currency:'usd',metadata:{orderId:'invoice'}}},...patch})
 const headers=(raw:string)=>({'stripe-signature':stripe.webhooks.generateTestHeaderString({payload:raw,secret:process.env.STRIPE_WEBHOOK_SECRET!})})
 test('invalid signature is refused before touching database',async()=>{await assert.rejects(()=>handleTravelPaymentWebhook({prisma:{}},payload(),{'stripe-signature':'invalid'}),/signature/);const raw=payload();await assert.rejects(()=>handleTravelPaymentWebhook({prisma:{}},raw+' ',headers(raw)),/signature/)})
-test('live events fail closed',async()=>{const raw=payload({livemode:true});await assert.rejects(()=>handleTravelPaymentWebhook({prisma:{}},raw,headers(raw)),/Live/)})
+test('live events with a test key fail closed',async()=>{const raw=payload({livemode:true});await assert.rejects(()=>handleTravelPaymentWebhook({prisma:{}},raw,headers(raw)),/mode does not match/)})
 test('valid unsupported event is durably ignored; refund event stays failed for review',async()=>{
  for(const type of ['payment_intent.created','refund.updated']){
   const updates:any[]=[];const context={prisma:{paymentWebhookEvent:{upsert:async()=>({id:'inbox',status:'received'}),update:async({data}:any)=>{updates.push(data);return data}}}};
