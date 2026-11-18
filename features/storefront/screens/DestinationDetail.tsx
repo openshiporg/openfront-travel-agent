@@ -23,7 +23,7 @@ export async function DestinationDetail({ params }: { params: Promise<{ slug: st
         </div>
       </section>
       {others.length ? (
-        <section className="rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6">
+        <section className="p-5 md:p-6">
           <div className="mb-4 flex items-baseline justify-between"><h2 className="text-xl font-bold">More destinations</h2><Link href="/destinations" className="inline-flex min-h-11 items-center text-sm font-semibold text-blue-700">View All →</Link></div>
           <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{others.map((o) => <li key={o.slug}><DestinationCard d={o} /></li>)}</ul>
         </section>

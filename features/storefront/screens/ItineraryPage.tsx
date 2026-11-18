@@ -8,7 +8,7 @@ export async function ItineraryPage({ params }: { params: Promise<{ token: strin
   try { t = (await publicRequest(`query($token: String!) { viewItinerary(token: $token) }`, { token })).viewItinerary } catch {}
   if (!t) notFound()
   return (
-    <div className="rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6 space-y-4">
+    <div className="p-5 md:p-6 space-y-4">
       <h1 className="text-2xl font-bold">{t.title}</h1>
       <p className="text-sm text-muted-foreground">{t.tripNumber} · {date(t.startDate)} to {date(t.endDate)}</p>
       {t.days.map((d: any, i: number) => (

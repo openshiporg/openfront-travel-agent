@@ -11,9 +11,9 @@ const theme = {
 
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={theme} className="min-h-screen bg-white text-slate-900">
+    <div style={theme} className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-5 p-3 md:p-6">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-slate-50 px-5 py-3 shadow-sm ring-1 ring-slate-200/60">
+        <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
           <Link href="/" className="flex min-h-11 items-center gap-2 text-lg font-semibold tracking-tight"><StoreLogoMark />Wayfarer<span className="font-normal text-slate-600">&nbsp;&amp; Co.</span></Link>
           <nav className="flex flex-wrap items-center gap-1 text-sm font-medium text-slate-700">
             <Link href="/" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-blue-50 hover:text-blue-700">Home</Link>
@@ -23,7 +23,7 @@ export default function StorefrontLayout({ children }: { children: React.ReactNo
           </nav>
         </header>
         <main className="flex-1">{children}</main>
-        <footer className="rounded-3xl bg-slate-50 px-5 py-4 text-sm text-slate-600 ring-1 ring-slate-200/60">Wayfarer &amp; Co. · Bespoke trips planned by an advisor.</footer>
+        <footer className="px-5 py-4 text-sm text-slate-600">Wayfarer &amp; Co. · Bespoke trips planned by an advisor.</footer>
       </div>
     </div>
   )

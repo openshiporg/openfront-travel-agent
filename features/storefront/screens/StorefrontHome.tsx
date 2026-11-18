@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Compass, ShieldCheck, Map } from 'lucide-react'
 import { DestinationCard, type Destination } from '../components/DestinationCard'
 
-const panel = 'rounded-3xl bg-slate-50 p-5 shadow-sm ring-1 ring-slate-200/60 md:p-6'
+const panel = 'p-5 md:p-6'
 const viewAll = 'text-sm font-semibold text-blue-700'
 
 export async function StorefrontHome() {
