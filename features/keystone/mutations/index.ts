@@ -4,7 +4,7 @@ import redirectToInit from "./redirectToInit";
 import { storeLogoTypeDefs, storeLogo } from "./storeLogo";
 import {ensureTravelOnboardingPhase,setOnboardingStatus} from './onboarding';
 import {requestManagerApproval,decideManagerApproval} from '../utils/managerApproval';
-import {operators,submitInquiry,viewProposal,acceptProposal,viewItinerary,viewTripPortal,payInvoice,confirmInvoicePayment,publicDestinations,publicDestination,viewInvoice,lookupBooking} from './travel';
+import {operators,submitInquiry,viewProposal,acceptProposal,viewItinerary,viewTripPortal,payInvoice,confirmInvoicePayment,publicDestinations,publicDestination,publicAgency,viewInvoice,lookupBooking} from './travel';
 import {GraphQLScalarType,Kind} from 'graphql';
 const GraphQLJSON=new GraphQLScalarType({name:'TravelJSON',serialize:(v:any)=>v,parseValue:(v:any)=>v,parseLiteral:function lit(a:any):any{switch(a.kind){case Kind.OBJECT:return Object.fromEntries(a.fields.map((f:any)=>[f.name.value,lit(f.value)]));case Kind.LIST:return a.values.map(lit);case Kind.INT:return Number(a.value);case Kind.FLOAT:return Number(a.value);case Kind.NULL:return null;default:return (a as any).value;}}});
 
@@ -22,6 +22,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
         viewTripPortal(token:String!): TravelJSON
         publicDestinations: TravelJSON
         publicDestination(slug:String!): TravelJSON
+        publicAgency: TravelJSON
         viewInvoice(token:String!): TravelJSON
         lookupBooking(email:String!,code:String!): TravelJSON
       }
@@ -39,7 +40,7 @@ export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
     ` + storeLogoTypeDefs,
     resolvers: {
       TravelJSON: GraphQLJSON,
-      Query: {storeLogo, redirectToInit,viewProposal,viewItinerary,viewTripPortal,publicDestinations,publicDestination,viewInvoice,lookupBooking},
+      Query: {storeLogo, redirectToInit,viewProposal,viewItinerary,viewTripPortal,publicDestinations,publicDestination,publicAgency,viewInvoice,lookupBooking},
       Mutation: {requestManagerApproval,decideManagerApproval,ensureTravelOnboardingPhase:(_r:any,a:any,c:any)=>ensureTravelOnboardingPhase(c,a),setOnboardingStatus,...Object.fromEntries(Object.entries(operators).map(([name,handler])=>[name,(_root:any,{input}:any,context:any)=>handler(context,input)])),submitInquiry,acceptProposal,payInvoice,confirmInvoicePayment},
     },
   });

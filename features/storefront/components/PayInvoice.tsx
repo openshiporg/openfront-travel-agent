@@ -17,7 +17,7 @@ function loadStripe(): Promise<any> {
   })
 }
 
-export function PayInvoice({ token, publishableKey }: { token: string; publishableKey: string }) {
+export function PayInvoice({ token, publishableKey, amount }: { token: string; publishableKey: string; amount: string }) {
   const mount = useRef<HTMLDivElement>(null)
   const state = useRef<{ stripe: any; elements: any } | null>(null)
   const [ready, setReady] = useState(false)
@@ -45,8 +45,10 @@ export function PayInvoice({ token, publishableKey }: { token: string; publishab
 
   return (
     <div className="space-y-3">
+      <h2 className="text-lg font-semibold">Pay by card</h2>
+      {!ready && !error ? <p role="status" className="text-sm text-slate-600">Loading the card form…</p> : null}
       <div ref={mount} />
-      {error ? <p role="alert" className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
       {ready ? (
         <Button disabled={busy} onClick={async () => {
           if (!state.current) return
@@ -54,7 +56,7 @@ export function PayInvoice({ token, publishableKey }: { token: string; publishab
           const { stripe, elements } = state.current
           const res = await stripe.confirmPayment({ elements, confirmParams: { return_url: `${window.location.origin}/invoice/${token}` } })
           if (res?.error) { setError(res.error.message || 'Payment failed'); setBusy(false) }
-        }}>{busy ? 'Paying' : 'Pay now'}</Button>
+        }}>{busy ? 'Paying…' : `Pay ${amount}`}</Button>
       ) : null}
     </div>
   )

@@ -18,7 +18,7 @@ export function ConfirmPayment({ token, paymentIntentId }: { token: string; paym
     }
     attempt()
   }, [token, paymentIntentId, router])
-  if (!state) return <p role="status" className="text-sm">Confirming payment</p>
-  if (state.status === 'succeeded') return <p role="status" className="rounded-md border p-3 text-sm">Payment received.</p>
-  return <p role="alert" className="text-sm text-red-600">{state.error || `Payment is ${state.status}. Refresh in a moment or contact your advisor.`}</p>
+  if (!state) return <p role="status" className="text-sm">Confirming your payment…</p>
+  if (state.status === 'succeeded') return <p role="status" className="text-sm font-medium">Payment received.</p>
+  return <p role="alert" className="text-sm text-red-700">{state.error || `Payment is ${state.status}. Refresh in a moment or contact your advisor.`}</p>
 }

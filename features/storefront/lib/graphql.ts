@@ -10,7 +10,7 @@ export async function publicRequest<T = any>(document: string, variables: Record
     return await client.request<T>(document, variables)
   } catch (error) {
     const messages = (error as any)?.response?.errors?.map((e: any) => e?.message).filter(Boolean)
-    const known = /not found|not payable|no longer available|required|valid email/i
+    const known = /not found|not payable|no longer available|required|valid email|must be|trip type/i
     throw new Error(messages?.find((m: string) => known.test(m)) || publicGraphQLErrorMessage(error))
   }
 }

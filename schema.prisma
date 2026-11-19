@@ -185,14 +185,19 @@ model Inquiry {
 }
 
 model Destination {
-  id        String   @id @default(cuid())
-  name      String   @default("")
-  slug      String   @default("")
-  country   String   @default("")
-  specialty String   @default("")
-  trips     Trip[]   @relation("Destination_trips")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id              String   @id @default(cuid())
+  name            String   @default("")
+  slug            String   @default("")
+  country         String   @default("")
+  specialty       String   @default("")
+  photo_id        String?
+  photo_filesize  Int?
+  photo_width     Int?
+  photo_height    Int?
+  photo_extension String?
+  trips           Trip[]   @relation("Destination_trips")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
 }
 
 model Trip {

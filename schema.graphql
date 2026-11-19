@@ -954,11 +954,8 @@ input TravelerWhereInput {
   id: IDFilter
   firstName: StringFilter
   lastName: StringFilter
-  knownTravelerNumber: StringFilter
   nationality: StringFilter
   notes: StringFilter
-  dateOfBirth: DateTimeNullableFilter
-  passportExpiresAt: DateTimeNullableFilter
   passportOnFile: BooleanFilter
   client: ClientWhereInput
   trips: TripManyRelationFilter
@@ -999,11 +996,8 @@ input TravelerOrderByInput {
   id: OrderDirection
   firstName: OrderDirection
   lastName: OrderDirection
-  knownTravelerNumber: OrderDirection
   nationality: OrderDirection
   notes: OrderDirection
-  dateOfBirth: OrderDirection
-  passportExpiresAt: OrderDirection
   passportOnFile: OrderDirection
   createdAt: OrderDirection
   updatedAt: OrderDirection
@@ -1279,10 +1273,27 @@ type Destination {
   slug: String
   country: String
   specialty: String
+  photo: ImageFieldOutput
   trips(where: TripWhereInput! = {}, orderBy: [TripOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TripWhereUniqueInput): [Trip!]
   tripsCount(where: TripWhereInput! = {}): Int
   createdAt: DateTime
   updatedAt: DateTime
+}
+
+type ImageFieldOutput {
+  id: ID!
+  filesize: Int!
+  width: Int!
+  height: Int!
+  extension: ImageExtension!
+  url: String!
+}
+
+enum ImageExtension {
+  jpg
+  png
+  webp
+  gif
 }
 
 input DestinationWhereUniqueInput {
@@ -1318,10 +1329,18 @@ input DestinationUpdateInput {
   slug: String
   country: String
   specialty: String
+  photo: ImageFieldInput
   trips: TripRelateToManyForUpdateInput
   createdAt: DateTime
   updatedAt: DateTime
 }
+
+input ImageFieldInput {
+  upload: Upload!
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
 
 input DestinationUpdateArgs {
   where: DestinationWhereUniqueInput!
@@ -1333,6 +1352,7 @@ input DestinationCreateInput {
   slug: String
   country: String
   specialty: String
+  photo: ImageFieldInput
   trips: TripRelateToManyForCreateInput
   createdAt: DateTime
   updatedAt: DateTime
@@ -5334,6 +5354,7 @@ type Mutation {
   reverseEntry(input: TravelJSON!): TravelJSON
   cancelComponent(input: TravelJSON!): TravelJSON
   refundClientPayment(input: TravelJSON!): TravelJSON
+  checkClientRefund(input: TravelJSON!): TravelJSON
   claimCommission(input: TravelJSON!): TravelJSON
   payAdvisorCommission(input: TravelJSON!): TravelJSON
   writeOffCommission(input: TravelJSON!): TravelJSON
@@ -5509,6 +5530,7 @@ type Query {
   viewTripPortal(token: String!): TravelJSON
   publicDestinations: TravelJSON
   publicDestination(slug: String!): TravelJSON
+  publicAgency: TravelJSON
   viewInvoice(token: String!): TravelJSON
   lookupBooking(email: String!, code: String!): TravelJSON
   storeLogo: StoreLogo!

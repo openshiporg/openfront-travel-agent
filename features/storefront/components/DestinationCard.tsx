@@ -1,16 +1,21 @@
 import Link from 'next/link'
-import Image from 'next/image'
-import { photoFor } from '../lib/look'
+import { placeLine } from '../lib/format'
 
-export type Destination = { slug: string; name: string; country?: string | null; specialty?: string | null }
+export type Destination = { slug: string; name: string; country?: string | null; specialty?: string | null; photo?: { url: string; width?: number; height?: number } | null }
+
+// The photo the agency uploaded for the destination. One without a photo says so on a plain panel.
+export function DestinationPhoto({ d, className = '', eager = false }: { d: Destination; className?: string; eager?: boolean }) {
+  if (!d.photo?.url) return <div className={`grid place-items-center bg-slate-200 p-4 text-center text-sm text-slate-600 ${className}`}>No photo yet</div>
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={d.photo.url} alt={d.name} width={d.photo.width || undefined} height={d.photo.height || undefined} loading={eager ? 'eager' : 'lazy'} className={`bg-slate-200 object-cover ${className}`} />
+}
 
 export function DestinationCard({ d }: { d: Destination }) {
   return (
-    <Link href={`/destinations/${d.slug}`} className="group relative flex aspect-[16/9] flex-col justify-end overflow-hidden rounded-2xl bg-slate-300 p-4 text-white shadow-sm sm:aspect-[4/3]">
-      <Image src={photoFor(d.slug)} alt="" fill sizes="(min-width: 1024px) 340px, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
-      <span className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
-      <span className="relative text-xl font-semibold drop-shadow">{d.name}</span>
-      <span className="relative text-xs opacity-95 drop-shadow">{[d.country, d.specialty].filter(Boolean).join(' · ')}</span>
+    <Link href={`/destinations/${d.slug}`} className="group block">
+      <DestinationPhoto d={d} className="aspect-[4/3] w-full rounded-xl" />
+      <span className="mt-3 block text-base font-semibold text-slate-900 group-hover:underline">{d.name}</span>
+      <span className="block text-sm text-slate-600">{placeLine(d)}</span>
     </Link>
   )
 }

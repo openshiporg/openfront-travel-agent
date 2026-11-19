@@ -1,29 +1,36 @@
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { StoreLogoMark } from '@/features/storefront/components/StoreLogoMark'
+import { getAgency } from '@/features/storefront/lib/agency'
+import '@/features/storefront/storefront.css'
 
-export const metadata = { title: 'Wayfarer & Co.' }
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getAgency()).name || 'Trips' }
+}
 
-const theme = {
-  '--primary': 'oklch(0.52 0.22 264)',
-  '--primary-foreground': 'oklch(0.99 0 0)',
-  '--ring': 'oklch(0.6 0.16 264)',
-} as React.CSSProperties
+const nav = 'inline-flex min-h-11 items-center hover:underline underline-offset-4'
 
-export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
+export default async function StorefrontLayout({ children }: { children: React.ReactNode }) {
+  const agency = await getAgency()
   return (
-    <div style={theme} className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-5 p-3 md:p-6">
-        <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-          <Link href="/" className="flex min-h-11 items-center gap-2 text-lg font-semibold tracking-tight"><StoreLogoMark />Wayfarer<span className="font-normal text-slate-600">&nbsp;&amp; Co.</span></Link>
-          <nav className="flex flex-wrap items-center gap-1 text-sm font-medium text-slate-700">
-            <Link href="/" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-blue-50 hover:text-blue-700">Home</Link>
-            <Link href="/destinations" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-blue-50 hover:text-blue-700">Destinations</Link>
-            <Link href="/inquiry" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-blue-50 hover:text-blue-700">Plan a trip</Link>
-            <Link href="/lookup" className="inline-flex min-h-11 items-center rounded-full px-4 hover:bg-blue-50 hover:text-blue-700">Find my booking</Link>
+    <div className="shop min-h-screen bg-slate-50 text-slate-900">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-5 md:px-8">
+        <header className="flex flex-wrap items-center justify-between gap-x-6 py-4">
+          <Link href="/" className="flex min-h-11 items-center gap-2 text-lg font-semibold tracking-tight"><StoreLogoMark />{agency.name}</Link>
+          <nav aria-label="Main" className="flex flex-wrap items-center gap-x-6 text-sm font-medium text-slate-700">
+            <Link href="/destinations" className={nav}>Destinations</Link>
+            <Link href="/inquiry" className={nav}>Plan a trip</Link>
+            <Link href="/lookup" className={nav}>Find my booking</Link>
           </nav>
         </header>
-        <main className="flex-1">{children}</main>
-        <footer className="px-5 py-4 text-sm text-slate-600">Wayfarer &amp; Co. · Bespoke trips planned by an advisor.</footer>
+        <main className="flex-1 pb-16 pt-6 md:pt-10">{children}</main>
+        <footer className="flex flex-wrap justify-between gap-x-8 gap-y-2 border-t border-slate-200 py-6 text-sm text-slate-600">
+          <p><span className="font-medium text-slate-900">{agency.name}</span>{agency.address ? <> · {agency.address}</> : null}</p>
+          <p className="flex flex-wrap gap-x-5">
+            {agency.phone ? <a className="link" href={`tel:${agency.phone.replace(/[^+\d]/g, '')}`}>{agency.phone}</a> : null}
+            {agency.email ? <a className="link" href={`mailto:${agency.email}`}>{agency.email}</a> : null}
+          </p>
+        </footer>
       </div>
     </div>
   )
