@@ -23,17 +23,18 @@ const code=(prefix:string)=>`${prefix}-${randomBytes(8).toString('hex').toUpperC
 export async function lockTransactionKey(tx:any,key:string){await tx.$queryRaw`SELECT true AS locked FROM (SELECT pg_advisory_xact_lock(hashtextextended(${key},0))) AS acquired`;}
 function authorize(context:any,permission:Permission){if(!permissions[permission]({session:context.session}))throw new Error('Not authorized');}
 async function audit(tx:any,context:any,action:string,list:string,id:string,before:any,after:any){await tx.auditEvent.create({data:{actorId:context.session?.itemId||null,action,targetList:list,targetId:id,before:before?JSON.parse(JSON.stringify(before)):undefined,after:after?JSON.parse(JSON.stringify(after)):undefined,requestId:randomBytes(12).toString('hex')}});}
+/** A refusal written for the client on the public pages (Yoga masks plain Errors as "Unexpected error."). */
+const refuse=(message:string)=>new GraphQLError(message,{extensions:{code:'KS_USER_INPUT_ERROR'}});
 /** Operator rule violations are written for the advisor; tag them so the dashboard shows them (database/driver text is still filtered client-side). */
 async function userFacing(run:()=>Promise<any>):Promise<any>{try{return await run();}catch(e:any){const refusal=constraintRefusal(e);if(refusal)throw new GraphQLError(refusal.message,{extensions:{code:refusal.code}});if(e instanceof GraphQLError)throw e;throw new GraphQLError(String(e?.message||'Request failed'),{extensions:{code:'KS_USER_INPUT_ERROR'}});}}
 async function command(context:any,operation:string,input:any,permission:Permission,run:(tx:any)=>Promise<any>){
- authorize(context,permission);if(!input.idempotencyKey?.trim())throw new Error('Idempotency key required');
- return userFacing(()=>guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{
+ return userFacing(async()=>{authorize(context,permission);if(!input?.idempotencyKey?.trim())throw new Error('Idempotency key required');return guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{
   await lockTransactionKey(tx,`travel-idempotency:${input.idempotencyKey}`);
   const {attempt,replay}=await getOrCreateIdempotencyAttempt(tx,{key:input.idempotencyKey,requestPath:operation,requestParams:{...input,actorId:context.session.itemId}});
   if(replay&&attempt.recoveryPoint==='completed')return attempt.responseBody;
   const result=await run(tx);const json=JSON.parse(JSON.stringify(result));
   await updateIdempotencyAttempt(tx,attempt.id,'completed',json,200);return json;
- },{timeout:20000}));
+ },{timeout:20000});});
 }
 async function createProposalOptions(tx:any,proposalId:string,options:any[],currencyCode:string){
  for(const [sort,option] of options.entries()){
@@ -550,7 +551,7 @@ export async function submitInquiry(_root:any,{input}:any,context:any){
  const tripType=input.tripType||'family';if(!['honeymoon','family','group','corporate','cruise','adventure'].includes(tripType))throw new GraphQLError('Choose a trip type from the list');
  const row=await guardKeystonePrismaResults(context.prisma as any).inquiry.create({data:{name:input.name.slice(0,200),email:input.email.slice(0,254),phone:input.phone?.slice(0,80)||'',destinations:input.destinations?.slice(0,2000)||'',tripType,partySize:input.partySize||1,budgetCents:integerMoney(input.budgetCents||0),...travelWindow(input),status:'new',source:'website',currencyCode:'USD'}});return {id:row.id};
 }
-async function proposalForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Proposal not found');const p=await context.prisma.proposal.findFirst({where:{publicToken:hash(token)},include:{options:{include:{items:{orderBy:{sort:'asc'}}}},trip:{select:{id:true,title:true,status:true,currencyCode:true}}}});if(!p||!['sent','viewed','accepted'].includes(p.status))throw new Error('Proposal not found');return p;}
+async function proposalForToken(context:any,token:string){if(!token||token.length<32)throw refuse('Proposal not found');const p=await context.prisma.proposal.findFirst({where:{publicToken:hash(token)},include:{options:{include:{items:{orderBy:{sort:'asc'}}}},trip:{select:{id:true,title:true,status:true,currencyCode:true}}}});if(!p||!['sent','viewed','accepted'].includes(p.status))throw refuse('Proposal not found');return p;}
 export async function viewProposal(_root:any,{token}:any,context:any){const p=await proposalForToken(context,token);if(p.status==='sent')await guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{const r=await tx.proposal.updateMany({where:{id:p.id,status:'sent'},data:{status:'viewed'}});if(r.count)await audit(tx,context,'view','Proposal',p.id,{status:'sent'},{status:'viewed'});});let deposit=null;if(p.status==='accepted'&&p.depositBps>0){const inv=await context.prisma.clientInvoice.findFirst({where:{publicToken:hash(depositToken(token))},select:{number:true,status:true}});if(inv&&inv.status!=='void')deposit={invoiceToken:depositToken(token),number:inv.number,paid:['paid','refunded'].includes(inv.status),refunded:inv.status==='refunded'};}
  return {id:p.id,version:p.version,status:p.status,introNote:p.introNote,depositBps:p.depositBps||0,deposit,trip:p.trip,options:p.options.map((o:any)=>({id:o.id,title:o.title,items:o.items.map((i:any)=>({id:i.id,title:i.title,details:i.details,kind:i.kind,sellCents:i.sellCents,currencyCode:i.currencyCode}))}))};}
 async function acceptedResult(tx:any,p:any,token:string){
@@ -559,8 +560,8 @@ async function acceptedResult(tx:any,p:any,token:string){
  return inv?{id:p.id,status:'accepted',deposit:{invoiceToken:depositToken(token),number:inv.number,paid:inv.status==='paid'}}:{id:p.id,status:'accepted'};
 }
 export async function acceptProposal(_root:any,{token,optionId,name,idempotencyKey}:any,context:any){
- const proof=await proposalForToken(context,token);if(!name?.trim()||!idempotencyKey)throw new Error('Name and idempotency key required');
- return guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{await trip(tx,proof.tripId);const p=await tx.proposal.findUnique({where:{id:proof.id},include:{options:{include:{items:true}}}});if(p.status==='accepted')return acceptedResult(tx,p,token);if(!['sent','viewed'].includes(p.status))throw new Error('Proposal no longer available');const option=p.options.find((o:any)=>o.id===optionId);if(!option)throw new Error('Option not found');
+ const proof=await proposalForToken(context,token);if(!name?.trim()||!idempotencyKey)throw refuse('Name and idempotency key required');
+ return guardKeystonePrismaResults(context.prisma as any).$transaction(async(tx:any)=>{await trip(tx,proof.tripId);const p=await tx.proposal.findUnique({where:{id:proof.id},include:{options:{include:{items:true}}}});if(p.status==='accepted')return acceptedResult(tx,p,token);if(!['sent','viewed'].includes(p.status))throw refuse('Proposal no longer available');const option=p.options.find((o:any)=>o.id===optionId);if(!option)throw refuse('Option not found');
  const snapshot={proposalId:p.id,version:p.version,optionId,name:name.trim(),acceptedAt:new Date().toISOString(),items:option.items.map((i:any)=>({title:i.title,details:i.details,kind:i.kind,sellCents:i.sellCents,quantity:1,feesCents:0,taxCents:0,currencyCode:i.currencyCode,supplierId:i.supplierId,estimatedCommissionBps:i.estimatedCommissionBps}))};
  await tx.proposal.update({where:{id:p.id},data:{status:'accepted',acceptedByName:name.trim(),acceptedAt:new Date(),acceptedSnapshot:snapshot,acceptedSnapshotHash:hash(JSON.stringify(snapshot))}});
  for(const i of option.items)await tx.tripComponent.create({data:{tripId:p.tripId,supplierId:i.supplierId,title:i.title,kind:i.kind,sellCents:i.sellCents,currencyCode:i.currencyCode,commissionBps:i.estimatedCommissionBps,commissionCents:commissionCents(i.sellCents,i.estimatedCommissionBps),bookingStatus:'quoted',paymentModel:'client_pays_supplier',commissionStatus:'expected',purchaseSnapshot:snapshot.items.find((x:any)=>x.title===i.title)}});
@@ -570,7 +571,7 @@ export async function acceptProposal(_root:any,{token,optionId,name,idempotencyK
  return acceptedResult(tx,p,token);
  },{timeout:20000});
 }
-export async function viewItinerary(_root:any,{token}:any,context:any){if(!token||token.length<32)throw new Error('Itinerary not found');const t=await context.prisma.trip.findFirst({where:{itineraryToken:hash(token)},select:{tripNumber:true,title:true,startDate:true,endDate:true,days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}}}});if(!t)throw new Error('Itinerary not found');return t;}
+export async function viewItinerary(_root:any,{token}:any,context:any){if(!token||token.length<32)throw refuse('Itinerary not found');const t=await context.prisma.trip.findFirst({where:{itineraryToken:hash(token)},select:{tripNumber:true,title:true,startDate:true,endDate:true,days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}}}});if(!t)throw refuse('Itinerary not found');return t;}
 const stripeProvider={id:'stripe-test',code:'pp_stripe',createPaymentFunction:'stripe',getPaymentStatusFunction:'stripe',capturePaymentFunction:'stripe',refundPaymentFunction:'stripe',generatePaymentLinkFunction:'stripe',handleWebhookFunction:'stripe',credentials:{}};
 /** Trip share token (itinerary link) or a sent/viewed/accepted proposal token; the same secret opens the client portal. */
 async function tripByPortalToken(db:any,token:string){
@@ -588,10 +589,10 @@ async function findInvoiceByToken(db:any,token:string,extra:any={}){
  if(m){const t=await tripByPortalToken(db,m[2]);if(!t)return null;return db.clientInvoice.findFirst({where:{id:m[1],tripId:t.id,partyId:(t as any).partyId??null},...extra});}
  return db.clientInvoice.findFirst({where:{publicToken:hash(token)},...extra});
 }
-async function invoiceForToken(context:any,token:string){if(!token||token.length<32)throw new Error('Invoice not found');const i=await findInvoiceByToken(context.prisma,token);if(!i||['void','paid','refunded'].includes(i.status))throw new Error('Invoice not payable');
- const tr=await context.prisma.trip.findUnique({where:{id:i.tripId},select:{status:true}});if(tr?.status==='cancelled')throw new Error('Trip is cancelled; this invoice cannot be paid');return i;}
+async function invoiceForToken(context:any,token:string){if(!token||token.length<32)throw refuse('Invoice not found');const i=await findInvoiceByToken(context.prisma,token);if(!i||['void','paid','refunded'].includes(i.status))throw refuse('Invoice not payable');
+ const tr=await context.prisma.trip.findUnique({where:{id:i.tripId},select:{status:true}});if(tr?.status==='cancelled')throw refuse('Trip is cancelled; this invoice cannot be paid');return i;}
 export async function payInvoice(_root:any,{token,idempotencyKey}:any,context:any){
- const {createPayment}=await import('../utils/paymentProviderAdapter');const inv=await invoiceForToken(context,token);if(!idempotencyKey)throw new Error('Idempotency key required');
+ const {createPayment}=await import('../utils/paymentProviderAdapter');const inv=await invoiceForToken(context,token);if(!idempotencyKey)throw refuse('Idempotency key required');
  const amount=inv.totalCents-inv.collectedCents;
  // Reuse the open payment attempt for this invoice and amount instead of creating a new intent on every page load.
  const open=await context.prisma.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,isSelected:true,amount},orderBy:{createdAt:'desc'}});
@@ -625,7 +626,7 @@ export async function confirmInvoicePayment(_root:any,{token,paymentIntentId}:an
    if(done&&done.orderId===settled.id&&done.status==='succeeded')return {status:'succeeded',invoiceStatus:settled.status,paymentId:done.id,number:settled.number};}}
  const inv=await invoiceForToken(context,token).catch(async(e:any)=>{if(paymentIntentId&&await refundLatePayment(context,token,paymentIntentId))return null;throw e;});
  if(!inv)return {status:'refunded',message:'This invoice was withdrawn before your payment went through, so the payment was refunded in full.'};
- const session=await context.prisma.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,data:{path:['paymentIntentId'],equals:paymentIntentId}}});if(!session)throw new Error('Payment not found');
+ const session=await context.prisma.paymentSession.findFirst({where:{paymentCollectionId:inv.paymentCollectionId,data:{path:['paymentIntentId'],equals:paymentIntentId}}});if(!session)throw refuse('Payment not found');
  const status=await getPaymentStatus({provider:stripeProvider,paymentId:paymentIntentId});if(status.status!=='succeeded'||status.amount!==session.amount||status.currencyCode!==inv.currencyCode)return {status:status.status};
  const {settleInvoicePayment}=await import('../lib/invoice-settlement');
  return settleInvoicePayment(context,{paymentIntentId,amount:status.amount,currencyCode:status.currencyCode,invoiceId:inv.id});
@@ -645,18 +646,18 @@ export async function publicDestination(_root:any,{slug}:any,context:any){if(!/^
 export async function publicAgency(_root:any,_args:any,context:any){const a=await context.prisma.agencySettings.findFirst({select:{name:true,address:true,email:true,phone:true}});return {name:a?.name||'',address:a?.address||'',email:a?.email||'',phone:a?.phone||''};}
 const INVOICE_VIEW={number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,dueAt:true,trip:{select:{title:true,tripNumber:true,status:true}},lines:{select:{description:true,amountCents:true,kind:true}},payments:{select:{refundedAmount:true}}};
 export async function viewInvoice(_root:any,{token}:any,context:any){
- if(!token||token.length<32)throw new Error('Invoice not found');
- const i=await findInvoiceByToken(guardKeystonePrismaResults(context.prisma as any),token,{select:INVOICE_VIEW});if(!i||i.status==='draft')throw new Error('Invoice not found');const {payments,...rest}=i as any;return {...rest,refundedCents:(payments||[]).reduce((n:number,x:any)=>n+(x.refundedAmount||0),0)};
+ if(!token||token.length<32)throw refuse('Invoice not found');
+ const i=await findInvoiceByToken(guardKeystonePrismaResults(context.prisma as any),token,{select:INVOICE_VIEW});if(!i||i.status==='draft')throw refuse('Invoice not found');const {payments,...rest}=i as any;return {...rest,refundedCents:(payments||[]).reduce((n:number,x:any)=>n+(x.refundedAmount||0),0)};
 }
 /** Read-only client portal. No traveler, document, supplier or commission data; only what the client already sees on their proposal, itinerary and invoices. */
 export async function viewTripPortal(_root:any,{token}:any,context:any){
- const db=guardKeystonePrismaResults(context.prisma as any);const ref=await tripByPortalToken(db,token);if(!ref)throw new Error('Trip not found');
+ const db=guardKeystonePrismaResults(context.prisma as any);const ref=await tripByPortalToken(db,token);if(!ref)throw refuse('Trip not found');
  const t=await db.trip.findUnique({where:{id:ref.id},select:{id:true,tripNumber:true,title:true,status:true,startDate:true,endDate:true,currencyCode:true,
   days:{orderBy:{date:'asc'},select:{date:true,title:true,items:{orderBy:{sort:'asc'},select:{title:true,time:true,location:true,notes:true}}}},
   invoices:{where:{status:{notIn:['draft','void']},partyId:(ref as any).partyId??null},orderBy:{dueAt:'asc'},select:{id:true,number:true,status:true,totalCents:true,collectedCents:true,dueAt:true,currencyCode:true,payments:{select:{refundedAmount:true}}}},
   schedule:{where:{status:'due'},orderBy:{dueAt:'asc'},select:{dueAt:true}},
   rooms:{where:(ref as any).partyId?{partyId:(ref as any).partyId}:{id:'none'},orderBy:{label:'asc'},select:{label:true,roomType:true,guests:{select:{id:true}}}}}});
- if(!t)throw new Error('Trip not found');
+ if(!t)throw refuse('Trip not found');
  const open=t.invoices.filter((i:any)=>!['paid','refunded'].includes(i.status)&&i.totalCents>i.collectedCents);
  const balanceCents=open.reduce((n:number,i:any)=>n+(i.totalCents-i.collectedCents),0);
  // The payment schedule is trip-wide, so only the whole-trip view may use it; a party's next due date comes from its own invoices.
@@ -667,8 +668,8 @@ export async function viewTripPortal(_root:any,{token}:any,context:any){
 // Customer lookup: both the booking code and the email on file must match; only status data is returned.
 export async function lookupBooking(_root:any,{email,code}:any,context:any){
  const mail=String(email||'').trim().toLowerCase(),ref=String(code||'').trim().toUpperCase();
- if(!/^\S+@\S+\.\S+$/.test(mail)||!/^(TR|INV)-[A-Z0-9]{16}$/.test(ref))throw new Error('Booking not found');
+ if(!/^\S+@\S+\.\S+$/.test(mail)||!/^(TR|INV)-[A-Z0-9]{16}$/.test(ref))throw refuse('Booking not found');
  const db=guardKeystonePrismaResults(context.prisma as any);
  const trip=await db.trip.findFirst({where:{client:{email:{equals:mail,mode:'insensitive'}},OR:[{tripNumber:ref},{invoices:{some:{number:ref}}}]},select:{tripNumber:true,title:true,status:true,startDate:true,endDate:true,invoices:{select:{number:true,status:true,totalCents:true,collectedCents:true,currencyCode:true,payments:{select:{refundedAmount:true}}}}}});
- if(!trip)throw new Error('Booking not found');return {...trip,invoices:trip.invoices.map(({payments,...i}:{payments?:{refundedAmount?:number|null}[]}&Record<string,unknown>)=>({...i,refundedCents:(payments||[]).reduce((n:number,x:{refundedAmount?:number|null})=>n+(x.refundedAmount||0),0)}))};
+ if(!trip)throw refuse('Booking not found');return {...trip,invoices:trip.invoices.map(({payments,...i}:{payments?:{refundedAmount?:number|null}[]}&Record<string,unknown>)=>({...i,refundedCents:(payments||[]).reduce((n:number,x:{refundedAmount?:number|null})=>n+(x.refundedAmount||0),0)}))};
 }
