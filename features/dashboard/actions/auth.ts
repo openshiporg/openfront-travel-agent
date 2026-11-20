@@ -164,6 +164,7 @@ export async function getAuthenticatedUser() {
         }
       }
       tripsCount
+      publicAgency
     }
   `;
 

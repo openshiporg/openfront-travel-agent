@@ -51,6 +51,7 @@ interface User {
   name?: string;
   onboardingStatus?: string;
   tripsCount?: number | null;
+  agencyName?: string | null;
   role?: {
     canAccessDashboard?: boolean;
     canManageOnboarding?: boolean;
@@ -121,7 +122,7 @@ export function Sidebar({ adminMeta, user, onOpenDialog }: SidebarProps) {
       <SidebarHeader>
         <SidebarMenuButton asChild>
           <div className="group-has-[[data-collapsible=icon]]/sidebar-wrapper:hidden p-2">
-            <Logo />
+            <Logo name={user?.agencyName ?? undefined} />
           </div>
         </SidebarMenuButton>
         <SidebarMenuButton asChild>

@@ -12,7 +12,7 @@ export default async function ListLayout({ children }: { children: React.ReactNo
   
   const adminMeta = adminMetaResponse.success ? adminMetaResponse.data : null;
   const user = userResponse.success && userResponse.data?.authenticatedItem
-    ? { ...userResponse.data.authenticatedItem, tripsCount: userResponse.data.tripsCount ?? null }
+    ? { ...userResponse.data.authenticatedItem, tripsCount: userResponse.data.tripsCount ?? null, agencyName: userResponse.data.publicAgency?.name || null }
     : null;
 
   return (

@@ -10,12 +10,12 @@ import { dollars } from '../lib/format'
 
 const total = (o: any) => o.items.reduce((n: number, i: any) => n + i.sellCents, 0)
 
-export function ProposalChoice({ token, options, currency, status, depositBps = 0 }: { token: string; options: any[]; currency: string; status: string; depositBps?: number }) {
+export function ProposalChoice({ token, options, currency, status, depositBps = 0, initialDeposit = null }: { token: string; options: any[]; currency: string; status: string; depositBps?: number; initialDeposit?: { invoiceToken: string; number: string; paid: boolean; refunded?: boolean } | null }) {
   const [optionId, setOptionId] = useState(options[0]?.id || '')
   const [name, setName] = useState('')
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [accepted, setAccepted] = useState(status === 'accepted'), [deposit, setDeposit] = useState<{ invoiceToken: string; number: string; paid: boolean } | null>(null)
+  const [accepted, setAccepted] = useState(status === 'accepted'), [deposit, setDeposit] = useState<{ invoiceToken: string; number: string; paid: boolean; refunded?: boolean } | null>(initialDeposit)
   const chosen = options.find((o) => o.id === optionId)
   const depositCents = chosen ? Math.round(total(chosen) * depositBps / 10000) : 0
   if (!options.length) return <p className="text-sm text-slate-700">Your advisor has not added options to this proposal yet.</p>
@@ -41,7 +41,7 @@ export function ProposalChoice({ token, options, currency, status, depositBps = 
       </RadioGroup>
       {accepted ? <div role="status" className="space-y-2 text-sm">
         <p className="text-base font-semibold">You accepted this proposal.</p>
-        {deposit ? (deposit.paid ? <p>Your deposit {deposit.number} is paid.</p> : <p><a className="cta" href={`/invoice/${deposit.invoiceToken}`}>Pay the deposit ({deposit.number})</a></p>) : <p className="text-slate-700">Your advisor sends the invoice by email.</p>}
+        {deposit ? (deposit.refunded ? <p>Your deposit {deposit.number} was refunded.</p> : deposit.paid ? <p>Your deposit {deposit.number} is paid.</p> : <p><a className="cta" href={`/invoice/${deposit.invoiceToken}`}>Pay the deposit ({deposit.number})</a></p>) : <p className="text-slate-700">Your advisor sends the invoice by email.</p>}
         <p><a className="link font-medium" href={`/trip/${token}`}>See your trip, itinerary and invoices</a></p>
       </div> : (
         <div className="max-w-md space-y-4">

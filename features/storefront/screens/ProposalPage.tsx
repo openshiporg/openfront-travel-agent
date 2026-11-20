@@ -14,7 +14,7 @@ export async function ProposalPage({ params }: { params: Promise<{ token: string
         <h1 className="text-3xl font-bold tracking-tight">{p.trip.title}</h1>
         {p.introNote ? <p className="whitespace-pre-line text-base text-slate-700">{p.introNote}</p> : null}
       </div>
-      <ProposalChoice token={token} options={p.options} currency={p.trip.currencyCode} status={p.status} depositBps={p.depositBps || 0} />
+      <ProposalChoice token={token} options={p.options} currency={p.trip.currencyCode} status={p.status} depositBps={p.depositBps || 0} initialDeposit={p.deposit || null} />
     </div>
   )
 }
