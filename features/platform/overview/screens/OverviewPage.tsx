@@ -19,14 +19,19 @@ export async function OverviewPage() {
     inquiries(where: { status: { in: [new, qualifying, proposal] } }, orderBy: { createdAt: desc }, take: 10) { id name tripType destinations status }
   }`, { in30, now: new Date().toISOString() })
   const sum = (rows: any[]) => rows.reduce((n, r) => n + r.amountCents, 0)
-  const due7 = d.due.filter((r: any) => r.dueAt <= in7)
+  // Day-level: a payment due today is not late; one due before today is overdue, not "due in 7 days".
+  const today = new Date(new Date().toISOString().slice(0, 10)).getTime()
+  const lateDays = (r: any) => Math.floor((today - Date.parse(r.dueAt.slice(0, 10))) / 86400000)
+  const late = d.due.filter((r: any) => lateDays(r) > 0)
+  const upcoming = d.due.filter((r: any) => lateDays(r) <= 0)
+  const due7 = upcoming.filter((r: any) => r.dueAt <= in7)
   const expected = d.components.reduce((n: number, c: any) => n + c.commissionCents, 0)
   const received = d.components.reduce((n: number, c: any) => n + c.allocations.reduce((m: number, a: any) => m + a.amountCents, 0), 0)
   const supplierRows = d.owed.map((c: any) => ({ c, s: supplierDue(c) })).filter((x: any) => x.s.remainingCents > 0)
   const supplierOverdue = supplierRows.filter((x: any) => x.s.overdue).sort((x: any, y: any) => y.s.daysLate - x.s.daysLate)
   const stats = [
-    { label: 'Due in 7 days', value: money(sum(due7)), sub: `${due7.length} payments` },
-    { label: 'Due in 30 days', value: money(sum(d.due)), sub: `${d.due.length} payments` },
+    { label: 'Due in 7 days', value: money(sum(due7)), sub: late.length ? `${due7.length} payments · ${money(sum(late))} overdue` : `${due7.length} payments` },
+    { label: 'Due in 30 days', value: money(sum(upcoming)), sub: `${upcoming.length} payments` },
     { label: 'Overdue tasks', value: String(d.openTasks.length), sub: d.openTasks.length ? 'need attention' : 'all caught up' },
     { label: 'Suppliers overdue', value: money(supplierOverdue.reduce((n: number, x: any) => n + x.s.remainingCents, 0)), sub: supplierOverdue.length ? `${supplierOverdue.length} to pay` : 'none late' },
     { label: 'Commission expected', value: money(expected), sub: 'all open components' },
@@ -48,7 +53,7 @@ export async function OverviewPage() {
           {d.due.length ? <RowList>{d.due.slice(0, 8).map((r: any) => (
             <Row key={r.id} href={`/dashboard/platform/trips/${r.trip?.id}`}>
               <div className="min-w-0"><p className="truncate text-sm font-medium">{r.trip?.title}</p><p className="truncate font-mono text-xs uppercase tracking-wide text-muted-foreground">{joinParts([r.kind.replace(/_/g, ' '), r.dueAt ? day(r.dueAt) : ''])}</p></div>
-              <span className="text-sm font-medium">{money(r.amountCents, r.currencyCode)}</span>
+              <span className={`text-right text-sm font-medium${lateDays(r) > 0 ? ' text-red-600' : ''}`}>{money(r.amountCents, r.currencyCode)}{lateDays(r) > 0 ? <span className="block text-xs">{lateDays(r)}d late</span> : null}</span>
             </Row>))}</RowList> : <Empty>No payments due in the next 30 days</Empty>}
         </Panel>
         <Panel title="Overdue tasks">
